@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue'
-import type { TablePaginationConfig } from 'ant-design-vue'
+import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue'
 
 interface DataItem {
   key: string
@@ -45,16 +45,16 @@ interface DataItem {
 }
 
 const props = defineProps({
-  columns: { // Define columns prop with a more specific type if possible
-    type: Array,
+  columns: {
+    type: Array as () => TableColumnType[],
     required: true,
   },
-  data: { // Define data prop with a more specific type if possible
+  data: {
     type: Array as () => DataItem[],
     required: true,
   },
   loading: Boolean,
-  pagination: { // Define pagination prop with a more specific type if possible
+  pagination: {
     type: Object as () => TablePaginationConfig,
     required: true,
   },
@@ -72,4 +72,14 @@ const emits = defineEmits(['change', 'edit-record', 'toggle-bom-status', 'delete
 .danger-link:hover {
   color: #ff7875;
 }
+
+/* Style for the draggable row */
+/* Removed drag-sort styles */
+/* .draggable-table-row .ant-table-tbody > tr {
+  cursor: grab;
+}
+
+.draggable-table-row .ant-table-tbody > tr:active {
+    cursor: grabbing;
+} */
 </style> 

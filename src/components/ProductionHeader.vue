@@ -42,7 +42,7 @@
 import { defineProps, defineEmits } from 'vue'
 import { ReloadOutlined, DownloadOutlined, SettingOutlined } from '@ant-design/icons-vue'
 
-const props = defineProps({
+defineProps({
   filterDeviceModel: String,
   filterManufacturer: String,
   searchText: String,

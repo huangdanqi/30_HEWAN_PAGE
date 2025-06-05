@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue'
-import type { TablePaginationConfig } from 'ant-design-vue'
+import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue'
 
 interface DataItem {
   key: string;
@@ -37,11 +37,12 @@ interface DataItem {
   ttsAnnualUsage: string; // TTS年用量
   voiceCloningAnnualUsage: string; // 音色克隆年用量
   creationTime: string; // 创建时间
+  operations?: string; // Placeholder for operations column
 }
 
 const props = defineProps({
-  columns: { // Define columns prop with a more specific type if possible
-    type: Array,
+  columns: {
+    type: Array as () => TableColumnType[],
     required: true,
   },
   data: {
@@ -52,13 +53,21 @@ const props = defineProps({
   pagination: {
     type: Object as () => TablePaginationConfig,
     required: true,
-  },
-})
+  }
+});
 
-const emits = defineEmits(['change'])
+const emits = defineEmits(['change']);
 
 </script>
 
 <style scoped>
 /* Add any table specific styles here if needed */
+/* Removed drag-sort styles */
+/* .draggable-table-row .ant-table-tbody > tr {
+  cursor: grab;
+}
+
+.draggable-table-row .ant-table-tbody > tr:active {
+    cursor: grabbing;
+} */
 </style> 

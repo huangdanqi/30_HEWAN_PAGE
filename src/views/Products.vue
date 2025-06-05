@@ -9,6 +9,8 @@
       @refresh="fetchData"
       @export="handleExport"
       @settings="handleSettings"
+      @apply-filters="handleApplyFilters"
+      @configure-columns="showConfigModal"
     />
 
     <!-- Use the new ProductionTable component -->
@@ -22,6 +24,15 @@
       @toggle-bom-status="toggleBOMStatus"
       @delete-record="deleteRecord"
     />
+
+    <!-- Column Configuration Modal -->
+    <a-modal
+      title="Configure Table Columns"
+      v-model:visible="isConfigModalVisible"
+      @ok="handleConfigModalOk"
+    >
+      <!-- Add your modal content here -->
+    </a-modal>
   </div>
 </template>
 
@@ -57,9 +68,14 @@ const columns = [
   { title: '数量 (个)', dataIndex: 'quantity', key: 'quantity' },
   { title: '总价 (元)', dataIndex: 'totalPrice', key: 'totalPrice' },
   { title: '创建人', dataIndex: 'creator', key: 'creator' },
-  { title: '创建时间', dataIndex: 'creationTime', key: 'creationTime' },
+  { title: '创建时间', dataIndex: 'creationTime', key: 'creationTime', sorter: true },
   { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime' },
-  { title: '操作', key: 'operation', fixed: 'right', width: 180 },
+  {
+    title: '操作',
+    key: 'operation',
+    fixed: 'right',
+    width: 180,
+  },
 ]
 
 const loading = ref(false)
@@ -178,6 +194,41 @@ const handleSettings = () => {
 }
 
 // TODO: Implement Add Batch button logic
+
+// Handle drag sort end event
+// const handleDragSortEnd = (reorderedData: DataItem[]) => {
+//   console.log('Production data after drag sort:', reorderedData);
+//   data.value = reorderedData; // Update the data with the new order
+// }
+
+// Handle edit record
+const handleEditRecord = (record: DataItem) => {
+  console.log('Editing record:', record)
+  message.info('编辑 functionality to be implemented')
+  // TODO: Implement edit logic
+}
+
+// Handle toggle BOM status
+const handleToggleBomStatus = (record: DataItem) => {
+  console.log('Toggling BOM status for:', record)
+   message.info('上市/下市BOM functionality to be implemented')
+   // TODO: Implement toggle BOM status logic
+}
+
+// Handle apply filters
+const handleApplyFilters = () => {
+  // Implement apply filters logic
+}
+
+// Handle show config modal
+const showConfigModal = () => {
+  // Implement show config modal logic
+}
+
+// Handle config modal ok
+const handleConfigModalOk = () => {
+  // Implement config modal ok logic
+}
 
 onMounted(() => {
   fetchData()

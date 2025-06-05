@@ -4,11 +4,15 @@ import { resolve } from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/30_HEWAN_PAGE/',
   plugins: [vue()],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
     },
+  },
+  build: {
+    outDir: 'docs'
   },
   server: {
     port: 3000,

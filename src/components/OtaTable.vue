@@ -5,7 +5,8 @@
     :loading="loading"
     :pagination="pagination"
     @change="(pag: TablePaginationConfig) => $emit('change', pag)"
-    :scroll="{ x: 1800 }" <!-- Add horizontal scroll if needed -->
+    <!-- Add horizontal scroll if needed -->
+    :scroll="{ x: 1800 }"
   >
     <template #bodyCell="{ column, record }">
       <template v-if="column.key === 'operations'">
@@ -34,10 +35,11 @@ interface DataItem {
   lastOnlineTime: string; // 最后一次在线时间
   lastOfflineTime: string; // 最后一次离线时间
   creationTime: string; // 创建时间
+  otaCompletionTime: string; // OTA完成时间
   operations?: string; // Placeholder for operations column
 }
 
-const props = defineProps({
+defineProps({
   columns: { // Define columns prop with a more specific type if possible
     type: Array,
     required: true,
@@ -64,4 +66,4 @@ const emits = defineEmits(['change', 'upgrade', 'details', 'delete']);
 .danger-link:hover {
   color: #ff7875;
 }
-</style> 
+</style>

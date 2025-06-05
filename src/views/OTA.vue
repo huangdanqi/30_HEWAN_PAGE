@@ -1,18 +1,19 @@
 <template>
   <div class="ota-container">
-    
-    <OTAHeader
+
+    <OtaHeader
       v-model:filter-device-model="filterDeviceModel"
       v-model:filter-manufacturer="filterManufacturer"
       @search="handleSearch"
       @refresh="fetchData"
     />
-    <OTATable
+    <OtaTable
       :columns="columns"
       :data="data"
       :loading="loading"
       :pagination="pagination"
       @change="handleTableChange"
+      @drag-sort-end="handleDragSortEnd"
     />
   </div>
 </template>
@@ -20,23 +21,23 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import type { TablePaginationConfig } from 'ant-design-vue';
-import OTAHeader from '../components/OTAHeader.vue';
-import OTATable from '../components/OTATable.vue';
+// Corrected import paths for case sensitivity - please ensure your filenames match this casing
+import OtaHeader from '../components/OtaHeader.vue';
+import OtaTable from '../components/OtaTable.vue';
 
 interface DataItem {
   key: string;
   serialNumber: number; // 序号
-  deviceId: string; // 设备ID
   deviceModel: string; // 设备型号
-  manufacturer: string; // 生产厂家
-  currentFirmware: string; // 当前固件版本
-  initialFirmware: string; // 初始固件版本
-  latestFirmware: string; // 最新固件版本
+  deviceId: string; // 设备ID
   onlineStatus: string; // 在线状态
-  lastOnlineTime: string; // 最后在线时间
-  otaStatus: string; // OTA状态
-  otaProgress: string; // OTA进度
+  deviceStatus: string; // 设备状态
+  softwareVersion: string; // 软件版本
+  lastOnlineTime: string; // 最后一次在线时间
+  lastOfflineTime: string; // 最后一次离线时间
+  creationTime: string; // 创建时间
   otaCompletionTime: string; // OTA完成时间
+  operations?: string; // Placeholder for operations column
 }
 
 const data = ref<DataItem[]>([]);
@@ -56,15 +57,19 @@ const columns = [
   { title: '序号', dataIndex: 'serialNumber', key: 'serialNumber' },
   { title: '设备ID', dataIndex: 'deviceId', key: 'deviceId' },
   { title: '设备型号', dataIndex: 'deviceModel', key: 'deviceModel' },
-  { title: '生产厂家', dataIndex: 'manufacturer', key: 'manufacturer' },
-  { title: '当前固件版本', dataIndex: 'currentFirmware', key: 'currentFirmware' },
-  { title: '初始固件版本', dataIndex: 'initialFirmware', key: 'initialFirmware' },
-  { title: '最新固件版本', dataIndex: 'latestFirmware', key: 'latestFirmware' },
   { title: '在线状态', dataIndex: 'onlineStatus', key: 'onlineStatus' },
-  { title: '最后在线时间', dataIndex: 'lastOnlineTime', key: 'lastOnlineTime' },
-  { title: 'OTA状态', dataIndex: 'otaStatus', key: 'otaStatus' },
-  { title: 'OTA进度', dataIndex: 'otaProgress', key: 'otaProgress' },
+  { title: '设备状态', dataIndex: 'deviceStatus', key: 'deviceStatus' },
+  { title: '软件版本', dataIndex: 'softwareVersion', key: 'softwareVersion' },
+  { title: '最后一次在线时间', dataIndex: 'lastOnlineTime', key: 'lastOnlineTime' },
+  { title: '最后一次离线时间', dataIndex: 'lastOfflineTime', key: 'lastOfflineTime' },
+  { title: '创建时间', dataIndex: 'creationTime', key: 'creationTime' },
   { title: 'OTA完成时间', dataIndex: 'otaCompletionTime', key: 'otaCompletionTime' },
+  {
+    title: '操作',
+    key: 'operations',
+    fixed: 'right' as const,
+    width: 180,
+  },
 ];
 
 const fetchData = async () => {
@@ -81,15 +86,14 @@ const fetchData = async () => {
     serialNumber: i + 1,
     deviceId: `ota-dev-${i + 1000}`,
     deviceModel: `OTA Model ${i % 3}`,
-    manufacturer: `Manufacturer ${i % 2}`,
-    currentFirmware: `v1.0.${i}`,
-    initialFirmware: `v1.0.0`,
-    latestFirmware: `v1.1.${i % 5}`,
     onlineStatus: i % 2 === 0 ? '在线' : '离线',
+    deviceStatus: i % 2 === 0 ? '正常' : '异常',
+    softwareVersion: `v1.0.${i}`,
     lastOnlineTime: `2023-10-${String(i % 30 + 1).padStart(2, '0')} 10:00:00`,
-    otaStatus: i % 3 === 0 ? '成功' : i % 3 === 1 ? '进行中' : '失败',
-    otaProgress: `${(i * 2) % 101}%`,
+    lastOfflineTime: i % 2 === 0 ? '-': `2023-10-${String(i % 30 + 1).padStart(2, '0')} 10:00:00`,
+    creationTime: `2023-10-${String(i % 30 + 1).padStart(2, '0')} 10:00:00`,
     otaCompletionTime: i % 3 === 0 ? `2023-10-${String(i % 30 + 1).padStart(2, '0')} 10:05:00` : '-',
+    operations: ''
   }));
 
   data.value = dummyData.slice(
@@ -113,6 +117,12 @@ const handleTableChange = (pag: TablePaginationConfig) => {
   fetchData();
 };
 
+// Function to handle drag sort end event
+const handleDragSortEnd = (reorderedData: DataItem[]) => {
+  console.log('OTA data after drag sort:', reorderedData);
+  data.value = reorderedData; // Update the data with the new order
+};
+
 onMounted(() => {
   fetchData();
 });
@@ -122,4 +132,4 @@ onMounted(() => {
 .ota-container {
   padding: 24px; /* Keep padding for content within the page */
 }
-</style> 
+</style>

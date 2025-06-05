@@ -3,6 +3,11 @@ import { ref } from 'vue'
 import apiService from '@/utils/api'
 import type { Router } from 'vue-router'
 
+interface LoginResponseData {
+  token: string;
+  user: any; // You might want to define a more specific type for user
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
   const user = ref<any | null>(null)
@@ -11,7 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   const login = async (username: string, password: string) => {
     loading.value = true
     try {
-      const response = await apiService.login({ username, password })
+      const response = await apiService.login({ username, password }) as unknown as LoginResponseData
       token.value = response.token
       user.value = response.user
       localStorage.setItem('token', response.token)

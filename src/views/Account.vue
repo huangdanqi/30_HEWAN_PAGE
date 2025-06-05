@@ -5,11 +5,13 @@
     <AccountHeader
       v-model:filter-device-model="filterDeviceModel"
       v-model:filter-manufacturer="filterManufacturer"
+      v-model:filter-device-status="filterDeviceStatus"
       :unique-roles="uniqueRoles"
       :unique-membership-types="uniqueMembershipTypes"
       :unique-membership-payments="uniqueMembershipPayments"
       :unique-four-g-plans="uniqueFourGPlans"
       :unique-four-g-payments="uniqueFourGPayments"
+      :unique-device-statuses="uniqueDeviceStatuses"
       @search="handleSearch"
       @refresh="fetchData"
       @configure-columns="showConfigModal"
@@ -74,6 +76,7 @@ interface DataItem {
   ttsAnnualUsage: string;
   voiceCloningAnnualUsage: string;
   creationTime: string;
+  deviceStatus: string;
 }
 
 const data = ref<DataItem[]>([]);
@@ -87,6 +90,7 @@ const pagination = reactive<TablePaginationConfig>({
 
 const filterDeviceModel = ref('');
 const filterManufacturer = ref('');
+const filterDeviceStatus = ref('all');
 
 // Computed properties to get unique values for filters
 const uniqueRoles = computed(() => [
@@ -114,6 +118,11 @@ const uniqueFourGPayments = computed(() => [
   ...new Set(data.value.map(item => item.fourGPaymentStatus))
 ]);
 
+const uniqueDeviceStatuses = computed(() => [
+  '全部',
+  ...new Set(data.value.map(item => item.deviceStatus))
+]);
+
 // Define the original complete list of columns
 const allColumns = [
   { title: '序号', dataIndex: 'serialNumber', key: 'serialNumber', sorter: true },
@@ -136,6 +145,7 @@ const allColumns = [
   { title: 'TTS年用量', dataIndex: 'ttsAnnualUsage', key: 'ttsAnnualUsage', sorter: true },
   { title: '音色克隆年用量', dataIndex: 'voiceCloningAnnualUsage', key: 'voiceCloningAnnualUsage', sorter: true },
   { title: '创建时间', dataIndex: 'creationTime', key: 'creationTime', sorter: true },
+  { title: '设备状态', dataIndex: 'deviceStatus', key: 'deviceStatus', sorter: true },
 ];
 
 // Reactive state for visible column keys and their order
@@ -172,11 +182,25 @@ const handleShowInfo = () => {
 
 // Function to handle applying filters
 const handleApplyFilters = () => {
-  console.log('Applying filters...');
-  // TODO: Implement filtering logic here based on selected filter values
-  // This will likely involve calling fetchData with current filter values
+  console.log('Applying filters...', {
+    filterRole: filterRole.value,
+    filterMembershipType: filterMembershipType.value,
+    filterMembershipPayment: filterMembershipPayment.value,
+    filter4GPlan: filter4GPlan.value,
+    filter4GPayment: filter4GPayment.value,
+    filterDeviceStatus: filterDeviceStatus.value,
+    searchText: searchText.value,
+  });
+  // Reset pagination to the first page when applying filters
+  pagination.current = 1;
   fetchData(); // Refetch data with current filters
 };
+
+// Function to handle drag sort end event
+// const handleDragSortEnd = (reorderedData: DataItem[]) => {
+//   console.log('Data after drag sort:', reorderedData);
+//   data.value = reorderedData; // Update the data with the new order
+// };
 
 // Function to select all columns
 const selectAllColumns = () => {
@@ -216,19 +240,38 @@ const fetchData = async () => {
     ttsAnnualUsage: `${(i * 20).toFixed(2)} hrs`,
     voiceCloningAnnualUsage: `${(i * 5).toFixed(2)} clones`,
     creationTime: `2022-12-${String(i % 31 + 1).padStart(2, '0')}`,
+    deviceStatus: i % 2 === 0 ? 'Online' : 'Offline',
   }));
 
-  data.value = dummyData.slice(
+  // Apply filters to dummy data
+  const filteredData = dummyData.filter(item => {
+    const roleMatch = filterRole.value === 'all' || item.ipRole === filterRole.value;
+    const membershipTypeMatch = filterMembershipType.value === 'all' || item.membershipType === filterMembershipType.value;
+    const membershipPaymentMatch = filterMembershipPayment.value === 'all' || item.membershipPaymentStatus === filterMembershipPayment.value;
+    const fourGPlanMatch = filter4GPlan.value === 'all' || item.fourGPlan === filter4GPlan.value;
+    const fourGPaymentMatch = filter4GPayment.value === 'all' || item.fourGPaymentStatus === filter4GPayment.value;
+    const deviceStatusMatch = filterDeviceStatus.value === 'all' || item.deviceStatus === filterDeviceStatus.value;
+    const searchMatch = !searchText.value || Object.values(item).some(value =>
+      String(value).toLowerCase().includes(searchText.value.toLowerCase())
+    );
+    
+    return roleMatch && membershipTypeMatch && membershipPaymentMatch && fourGPlanMatch && fourGPaymentMatch && deviceStatusMatch && searchMatch;
+  });
+
+  data.value = filteredData.slice(
     ((pagination.current as number) - 1) * (pagination.pageSize as number),
     (pagination.current as number) * (pagination.pageSize as number)
   );
-  pagination.total = dummyData.length;
+  pagination.total = filteredData.length;
   loading.value = false;
 };
 
 const handleSearch = (value: string) => {
+  searchText.value = value;
   console.log('Search:', value);
   // Implement search logic here
+  // When searching, also reset pagination and apply all filters
+  pagination.current = 1;
   fetchData();
 };
 

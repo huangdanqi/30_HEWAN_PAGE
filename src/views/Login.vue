@@ -63,7 +63,7 @@ const formState = reactive<FormState>({
   password: '',
 })
 
-const onFinish = async (values: FormState) => {
+const onFinish = async (_values: FormState) => {
   loading.value = true
   try {
     // TODO: Replace with actual API call
