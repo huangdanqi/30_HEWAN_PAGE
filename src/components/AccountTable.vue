@@ -5,15 +5,19 @@
     :loading="loading"
     :pagination="pagination"
     @change="(pag: TablePaginationConfig) => $emit('change', pag)"
-    :scroll="{ x: 1800 }"
+    :scroll="{ x: 2660 }"
+    row-key="key"
   >
     <!-- No custom bodyCell template needed for Account table based on image -->
   </a-table>
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue'
-import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue'
+import { defineProps, defineEmits, ref, watch } from 'vue';
+import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue';
+// Removed draggable and HolderOutlined imports temporarily
+// import { VueDraggableNext as draggable } from 'vue-draggable-next';
+// import { HolderOutlined } from '@ant-design/icons-vue';
 
 interface DataItem {
   key: string;
@@ -37,6 +41,7 @@ interface DataItem {
   ttsAnnualUsage: string; // TTS年用量
   voiceCloningAnnualUsage: string; // 音色克隆年用量
   creationTime: string; // 创建时间
+  deviceStatus: string; // 设备状态
   operations?: string; // Placeholder for operations column
 }
 
@@ -56,13 +61,32 @@ const props = defineProps({
   }
 });
 
-const emits = defineEmits(['change']);
+const emits = defineEmits(['change', 'update:data']);
 
+const internalData = ref<DataItem[]>([]);
+
+watch(() => props.data, (newData) => {
+  internalData.value = [...newData];
+}, { immediate: true });
+
+// Temporarily commenting out customRow and onDragChange
+// const customRow = (record: DataItem) => {
+//   return {
+//     class: 'draggable-table-row',
+//     key: record.key,
+//   };
+// };
+
+// const onDragChange = (event: any) => {
+//   internalData.value.forEach((item, index) => {
+//     item.serialNumber = index + 1;
+//   });
+//   emits('update:data', internalData.value);
+// };
 </script>
 
 <style scoped>
-/* Add any table specific styles here if needed */
-/* Removed drag-sort styles */
+/* Removed drag-sort styles for now */
 /* .draggable-table-row .ant-table-tbody > tr {
   cursor: grab;
 }

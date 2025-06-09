@@ -49,13 +49,15 @@ body {
 .main-content {
   flex-grow: 1; /* Allow main content to take up remaining vertical space */
   display: flex; /* Arrange sidebar and page content side-by-side */
+  gap: 12px; /* Add a gap between sidebar and main content */
+  margin-top: 12px; /* Add gap between AppTopbar and main content */
   overflow: hidden; /* Hide overflow if content exceeds viewport */
 }
 
 .page-content {
     flex-grow: 1; /* Allow page content to take remaining horizontal space */
     overflow-y: auto; /* Add scroll to page content if it overflows vertically */
-    padding: 24px; /* Add some padding to the content area */
+    padding: 0; /* Removed incorrect 'px' unit for zero padding */
 }
 
 /* Style to make page content full width when sidebar is hidden */

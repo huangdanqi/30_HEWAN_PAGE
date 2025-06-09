@@ -34,6 +34,18 @@ const routes: RouteRecordRaw[] = [
         name: 'OTA',
         component: () => import('../views/OTA.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'firmware',
+        name: 'Firmware',
+        component: () => import('../views/Firmware.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'movement-production',
+        name: 'MovementProduction',
+        component: () => import('../views/MovementProduction.vue'),
+        meta: { requiresAuth: true }
       }
     ]
   }

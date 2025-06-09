@@ -1,5 +1,6 @@
 <template>
   <div class="production-container">
+    <ProductionTitle/>
     <!-- Use the new ProductionHeader component -->
     <ProductionHeader
       v-model:filterDeviceModel="filterDeviceModel"
@@ -39,44 +40,41 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import type { TablePaginationConfig } from 'ant-design-vue'
+import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue'
 
 // Import the new components
 import ProductionHeader from '../components/ProductionHeader.vue'
 import ProductionTable from '../components/ProductionTable.vue'
+import ProductionTitle from '../components/ProductionTitle.vue'
 
 interface DataItem {
-  key: string
-  serialNumber: number // 序号
-  deviceModel: string // 设备型号
-  productionBatch: string // 生产批次
-  manufacturer: string // 生产厂家
-  unitPrice: number // 单价 (元)
-  quantity: number // 数量 (个)
-  totalPrice: number // 总价 (元)
-  creator: string // 创建人
-  creationTime: string // 创建时间
-  updateTime: string // 更新时间
+  key: string;
+  serialNumber: number; // 序号
+  deviceModel: string; // 设备型号
+  releaseVersion: string; // 发布版本
+  versionNumber: string; // 版本号
+  contentDescription: string; // 内容描述
+  creator: string; // 创建人
+  releaseTime: string; // 发布时间
+  updateTime: string; // 更新时间
 }
 
-const columns = [
+const columns: TableColumnType[] = [
   { title: '序号', dataIndex: 'serialNumber', key: 'serialNumber', fixed: 'left', width: 70 },
-  { title: '设备型号', dataIndex: 'deviceModel', key: 'deviceModel' },
-  { title: '生产批次', dataIndex: 'productionBatch', key: 'productionBatch' },
-  { title: '生产厂家', dataIndex: 'manufacturer', key: 'manufacturer' },
-  { title: '单价 (元)', dataIndex: 'unitPrice', key: 'unitPrice' },
-  { title: '数量 (个)', dataIndex: 'quantity', key: 'quantity' },
-  { title: '总价 (元)', dataIndex: 'totalPrice', key: 'totalPrice' },
-  { title: '创建人', dataIndex: 'creator', key: 'creator' },
-  { title: '创建时间', dataIndex: 'creationTime', key: 'creationTime', sorter: true },
-  { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime' },
+  { title: '设备型号', dataIndex: 'deviceModel', key: 'deviceModel', width: 120 },
+  { title: '发布版本', dataIndex: 'releaseVersion', key: 'releaseVersion', width: 120 },
+  { title: '版本号', dataIndex: 'versionNumber', key: 'versionNumber', sorter: true, width: 120 },
+  { title: '内容描述', dataIndex: 'contentDescription', key: 'contentDescription', width: 300 },
+  { title: '创建人', dataIndex: 'creator', key: 'creator', width: 100 },
+  { title: '发布时间', dataIndex: 'releaseTime', key: 'releaseTime', sorter: true, width: 150 },
+  { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime', sorter: true, width: 150 },
   {
     title: '操作',
     key: 'operation',
     fixed: 'right',
     width: 180,
   },
-]
+];
 
 const loading = ref(false)
 const data = ref<DataItem[]>([])
@@ -93,6 +91,8 @@ const pagination = reactive<TablePaginationConfig>({
   showTotal: (total: number) => `第 ${pagination.current as number}-${Math.min((pagination.current as number) * (pagination.pageSize as number), total)} 条/共 ${total} 条`, // Updated total text to Chinese with type assertions
 })
 
+const isConfigModalVisible = ref(false);
+
 const fetchData = async () => {
   loading.value = true
   try {
@@ -107,35 +107,17 @@ const fetchData = async () => {
 
     // Simulated API response with new data structure from screenshot
     await new Promise(resolve => setTimeout(resolve, 1000))
-    data.value = [
-      {
-        key: '1',
-        serialNumber: 1,
-        deviceModel: 'HWSZ001',
-        productionBatch: '2025-06-30',
-        manufacturer: '深圳天德胜科技有限公司',
-        unitPrice: 86.75,
-        quantity: 500,
-        totalPrice: 43375,
-        creator: '33',
-        creationTime: '2025-7-13 19:25:11',
-        updateTime: '2025-7-13 19:25:11',
-      },
-      {
-        key: '2',
-        serialNumber: 2,
-        deviceModel: 'HWSZ001',
-        productionBatch: '2025-06-30',
-        manufacturer: '深圳天德胜科技有限公司',
-        unitPrice: 86.75,
-        quantity: 500,
-        totalPrice: 43375,
-        creator: '33',
-        creationTime: '2025-7-13 19:25:11',
-        updateTime: '2025-7-13 19:25:11',
-      },
-      // Add more simulated data items as needed to match the screenshot
-    ]
+    data.value = Array.from({ length: 10 }).map((_, i) => ({
+      key: `${i + 1}`,
+      serialNumber: i + 1,
+      deviceModel: 'HWSZ001',
+      releaseVersion: '首版',
+      versionNumber: 'Z001 V 1.0.0',
+      contentDescription: '1.修改压力传感器间隔采样时间，改为300ms。2.增加复合事件类型：压力+触摸。',
+      creator: '33',
+      releaseTime: '2025-7-13 19:25:11',
+      updateTime: '2025-7-13 19:25:11',
+    }));
     pagination.total = 43 // Updated total based on screenshot
   } catch (error) {
     message.error('Failed to fetch production data')

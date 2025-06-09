@@ -13,7 +13,6 @@
       :loading="loading"
       :pagination="pagination"
       @change="handleTableChange"
-      @drag-sort-end="handleDragSortEnd"
     />
   </div>
 </template>
@@ -115,12 +114,6 @@ const handleTableChange = (pag: TablePaginationConfig) => {
   pagination.current = pag.current;
   pagination.pageSize = pag.pageSize;
   fetchData();
-};
-
-// Function to handle drag sort end event
-const handleDragSortEnd = (reorderedData: DataItem[]) => {
-  console.log('OTA data after drag sort:', reorderedData);
-  data.value = reorderedData; // Update the data with the new order
 };
 
 onMounted(() => {

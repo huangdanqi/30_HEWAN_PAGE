@@ -2,7 +2,7 @@
   <a-layout class="layout">
     <a-layout>
       <a-layout-content
-        :style="{ margin: '24px 0', padding: '0 0', background: '#fff', minHeight: '280px' }"
+        :style="{ margin: '0px 0', padding: '0 0', background: '#fff', minHeight: '280px' }"
       >
         <router-view></router-view>
       </a-layout-content>

@@ -1,6 +1,6 @@
 <template>
   <div class="table-header">
-    <h2>生产信息</h2>
+    <!-- <h2>生产信息</h2> -->
     <div class="table-operations">
       <a-space>
         <!-- Filter options -->

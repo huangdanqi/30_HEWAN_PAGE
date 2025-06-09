@@ -5,7 +5,7 @@
     :loading="loading"
     :pagination="pagination"
     @change="(pag: TablePaginationConfig) => $emit('change', pag)"
-    :scroll="{ x: 1500 }"
+    :scroll="{ x: 1310 }"
   >
     <template #bodyCell="{ column, record }">
       <template v-if="column.key === 'operation'">

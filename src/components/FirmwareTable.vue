@@ -5,14 +5,20 @@
     :loading="loading"
     :pagination="pagination"
     @change="(pag: TablePaginationConfig) => $emit('change', pag)"
-    :scroll="{ x: 1800 }"
+    :scroll="{ x: 1310 }"
+    row-key="key"
   >
     <template #bodyCell="{ column, record }">
-      <template v-if="column.key === 'operations'">
+      <template v-if="column.key === 'operation'">
         <a-space>
-          <a-button type="link" @click="$emit('upgrade', record)">升级</a-button>
-          <a-button type="link" @click="$emit('details', record)">详情</a-button>
-          <a-button type="link" danger @click="$emit('delete', record)">删除</a-button>
+          <a @click="$emit('edit-record', record)">编辑</a>
+          <a-divider type="vertical" />
+          <a-popconfirm
+            title="确定要删除该固件信息吗?"
+            @confirm="$emit('delete-record', record)"
+          >
+            <a class="danger-link">删除</a>
+          </a-popconfirm>
         </a-space>
       </template>
     </template>
@@ -27,15 +33,12 @@ interface DataItem {
   key: string;
   serialNumber: number; // 序号
   deviceModel: string; // 设备型号
-  deviceId: string; // 设备ID
-  onlineStatus: string; // 在线状态
-  deviceStatus: string; // 设备状态
-  softwareVersion: string; // 软件版本
-  lastOnlineTime: string; // 最后一次在线时间
-  lastOfflineTime: string; // 最后一次离线时间
-  creationTime: string; // 创建时间
-  otaCompletionTime: string; // OTA完成时间
-  operations?: string; // Placeholder for operations column
+  releaseVersion: string; // 发布版本
+  versionNumber: string; // 版本号
+  contentDescription: string; // 内容描述
+  creator: string; // 创建人
+  releaseTime: string; // 发布时间
+  updateTime: string; // 更新时间
 }
 
 const props = defineProps({
@@ -54,15 +57,15 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(['change', 'upgrade', 'details', 'delete']);
-
+const emits = defineEmits(['change', 'edit-record', 'delete-record']);
 </script>
 
 <style scoped>
 .danger-link {
   color: #ff4d4f;
 }
+
 .danger-link:hover {
   color: #ff7875;
 }
-</style>
+</style> 

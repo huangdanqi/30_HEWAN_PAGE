@@ -14,7 +14,7 @@
             数据透视
           </span>
         </template>
-        <a-menu-item key="1">BI分析</a-menu-item>
+        <a-menu-item key="1" disabled>BI分析</a-menu-item>
       </a-sub-menu>
       <a-sub-menu key="sub2">
         <template #title>
@@ -24,7 +24,7 @@
           </span>
         </template>
         <a-menu-item key="2">账户信息</a-menu-item>
-        <a-menu-item key="3">日志查询</a-menu-item>
+        <a-menu-item key="3" disabled>日志查询</a-menu-item>
       </a-sub-menu>
        <a-sub-menu key="sub3">
         <template #title>
@@ -34,9 +34,8 @@
           </span>
         </template>
         <a-menu-item key="4">固件管理</a-menu-item>
-        <a-menu-item key="10">机芯生产</a-menu-item>
-        <a-menu-item key="5">OTA</a-menu-item>
-        <a-menu-item key="12">生产批次管理</a-menu-item>
+        <a-menu-item key="4">机芯生产</a-menu-item>
+        <a-menu-item key="5">设备OTA</a-menu-item>
       </a-sub-menu>
        <a-sub-menu key="sub4">
         <template #title>
@@ -45,9 +44,9 @@
             商品管理
           </span>
         </template>
-        <a-menu-item key="6">产品管理</a-menu-item>
-        <a-menu-item key="7">玩具生产</a-menu-item>
-        <a-menu-item key="8">商品列表</a-menu-item>
+        <a-menu-item key="6" disabled>产品管理</a-menu-item>
+        <a-menu-item key="7" disabled>玩具生产</a-menu-item>
+        <a-menu-item key="8" disabled>商品列表</a-menu-item>
       </a-sub-menu>
 
     <a-sub-menu key="sub5">
@@ -57,18 +56,18 @@
             IP信息
           </span>
         </template>
-        <a-menu-item key="9">IP管理</a-menu-item>
+        <a-menu-item key="9" disabled>IP管理</a-menu-item>
 
       </a-sub-menu>
 
-      <a-sub-menu key="sub6">
+      <a-sub-menu key="sub5">
         <template #title>
           <span>
             <setting-outlined />
             权限管理
           </span>
         </template>
-        <a-menu-item key="11">成员管理</a-menu-item>
+        <a-menu-item key="9" disabled>成员管理</a-menu-item>
 
       </a-sub-menu>
 
@@ -93,17 +92,12 @@ const handleMenuClick = (e: any) => {
   console.log('click', e);
   // Implement navigation based on selected menu item key
   if (e.key === '2') router.push('/account');
-  else if (e.key === '4') router.push('/firmware');
-  else if (e.key === '10') router.push('/movement-production');
+  else if (e.key === '4') {}
   else if (e.key === '5') router.push('/ota');
-  else if (e.key === '12') router.push('/movement-production');
-  else if (e.key === '1') { /* BI Analysis */ }
-  else if (e.key === '3') { /* Log Query */ }
+  else if (e.key === '1') { /* BI Analysis clicked - do nothing for now */ }
+  else if (e.key === '3') { /* Log Query clicked - do nothing for now */ }
   else if (e.key === '6') router.push('/products');
-  else if (e.key === '7') { /* Toy Production */ }
-  else if (e.key === '8') router.push('/products'); // Assuming '商品列表' also navigates to /products
-  else if (e.key === '9') { /* IP Management */ }
-  else if (e.key === '11') { /* Member Management */ }
+  // TODO: Add navigation for other menu items (BI Analysis, Logs, Members)
 };
 
 // TODO: Add logic to set selectedKeys and openKeys based on the current route

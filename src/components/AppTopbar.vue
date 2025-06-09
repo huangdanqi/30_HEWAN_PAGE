@@ -2,6 +2,7 @@
   <div class="app-topbar">
     <div class="topbar-left">
       <!-- Application Title/Logo -->
+      <img :src="topbarImage" alt="Logo" class="topbar-logo" />
       <span class="app-title">核玩科技信息管理平台</span>
     </div>
     <div class="topbar-right">
@@ -45,6 +46,7 @@
 import { MailOutlined, BellOutlined, UserOutlined, DownOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth'; // Import the auth store
+import topbarImage from '../assets/images/top.jpg';
 
 const router = useRouter();
 const authStore = useAuthStore(); // Use the auth store
@@ -59,7 +61,7 @@ const handleLogout = () => {
 <style scoped>
 .app-topbar {
   height: 60px; /* Example height based on common top bars */
-  background-color: #2c3e50; /* Dark background */
+  background-color: #FFFFFF; /* Dark background */
   color: white;
   display: flex;
   justify-content: space-between;
@@ -71,11 +73,16 @@ const handleLogout = () => {
 .topbar-left .app-title {
   font-size: 20px;
   font-weight: bold;
-  color: white; /* Ensure title is white */
+  color: black; /* Changed to black for visibility on white background */
+}
+
+.topbar-logo {
+  height: 40px; /* Adjust as needed */
+  margin-right: 10px;
 }
 
 .topbar-right .anticon, .topbar-right span, .topbar-right .ant-dropdown-link {
-  color: white; /* Ensure icons, text, and dropdown link are white */
+  color: black; /* Changed to black for visibility on white background */
 }
 
 .topbar-right .ant-space-item {
