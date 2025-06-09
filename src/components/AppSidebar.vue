@@ -83,6 +83,7 @@
 import { ref } from 'vue';
 import { AppstoreOutlined, UserOutlined, LaptopOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
+import { message } from 'ant-design-vue';
 
 const selectedKeys = ref<string[]>([]);
 const openKeys = ref<string[]>([]);
@@ -91,19 +92,24 @@ const router = useRouter();
 
 const handleMenuClick = (e: any) => {
   console.log('click', e);
+  
+  // Check if the menu item has proper navigation
+  const hasNavigation = e.key === '2' || e.key === '4' || e.key === '10' || 
+                       e.key === '5' || e.key === '12' || e.key === '6';
+  
+  if (!hasNavigation) {
+    // Show message for unimplemented features
+    message.info('此功能正在开发中，敬请期待！');
+    return;
+  }
+  
   // Implement navigation based on selected menu item key
   if (e.key === '2') router.push('/account');
   else if (e.key === '4') router.push('/firmware');
   else if (e.key === '10') router.push('/movement-production');
   else if (e.key === '5') router.push('/ota');
   else if (e.key === '12') router.push('/movement-production');
-  else if (e.key === '1') { /* BI Analysis */ }
-  else if (e.key === '3') { /* Log Query */ }
   else if (e.key === '6') router.push('/products');
-  else if (e.key === '7') { /* Toy Production */ }
-  else if (e.key === '8') router.push('/products'); // Assuming '商品列表' also navigates to /products
-  else if (e.key === '9') { /* IP Management */ }
-  else if (e.key === '11') { /* Member Management */ }
 };
 
 // TODO: Add logic to set selectedKeys and openKeys based on the current route
