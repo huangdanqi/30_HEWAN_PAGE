@@ -95,7 +95,7 @@ const handleMenuClick = (e: any) => {
   
   // Check if the menu item has proper navigation
   const hasNavigation = e.key === '2' || e.key === '4' || e.key === '10' || 
-                       e.key === '5' || e.key === '12' || e.key === '6';
+                       e.key === '5' || e.key === '12';
   
   if (!hasNavigation) {
     // Show message for unimplemented features
@@ -109,7 +109,7 @@ const handleMenuClick = (e: any) => {
   else if (e.key === '10') router.push('/movement-production');
   else if (e.key === '5') router.push('/ota');
   else if (e.key === '12') router.push('/movement-production');
-  else if (e.key === '6') router.push('/products');
+  // else if (e.key === '6') { /* Log Query */ }router.push('/products');
 };
 
 // TODO: Add logic to set selectedKeys and openKeys based on the current route
