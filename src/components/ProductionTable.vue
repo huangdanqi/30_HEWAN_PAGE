@@ -44,23 +44,15 @@ interface DataItem {
   updateTime: string // 更新时间
 }
 
-const props = defineProps({
-  columns: {
-    type: Array as () => TableColumnType[],
-    required: true,
-  },
-  data: {
-    type: Array as () => DataItem[],
-    required: true,
-  },
-  loading: Boolean,
-  pagination: {
-    type: Object as () => TablePaginationConfig,
-    required: true,
-  },
+// Define component props
+defineProps({
+  columns: { type: Array as () => TableColumnType[], required: true },
+  data: { type: Array as () => DataItem[], required: true },
+  loading: { type: Boolean, default: false },
+  pagination: { type: Object as () => TablePaginationConfig, required: true },
 })
 
-const emits = defineEmits(['change', 'edit-record', 'toggle-bom-status', 'delete-record'])
+const emit = defineEmits(['change', 'edit-record', 'toggle-bom-status', 'delete-record'])
 
 </script>
 

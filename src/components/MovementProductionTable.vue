@@ -45,7 +45,8 @@ interface DataItem {
   updateTime: string;
 }
 
-const props = defineProps({
+// Define component props
+defineProps({
   columns: { type: Array as () => TableColumnType[], required: true },
   data: { type: Array as () => DataItem[], required: true },
   loading: { type: Boolean, default: false },

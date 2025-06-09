@@ -79,11 +79,6 @@ watch(searchText, (newValue) => {
   emits('update:searchText', newValue);
 });
 
-const onSearch = (searchValue: string) => {
-  emits('update:searchText', searchValue);
-  emits('refresh');
-};
-
 const onRefresh = () => {
   emits('refresh');
 };

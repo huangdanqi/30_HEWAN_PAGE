@@ -103,11 +103,11 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, watch } from 'vue'
+import { defineProps, defineEmits } from 'vue'
 import { SettingOutlined } from '@ant-design/icons-vue'
 
 // Define component props received from the parent component (Account.vue)
-const props = defineProps({
+defineProps({
   filterRole: String, // Current value for IP Role filter
   filterMembershipType: String, // Current value for Membership Type filter
   filterMembershipPayment: String, // Current value for Membership Payment filter

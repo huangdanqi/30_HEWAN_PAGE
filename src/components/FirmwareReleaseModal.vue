@@ -91,7 +91,8 @@ import type { UploadChangeParam } from 'ant-design-vue';
 import { InboxOutlined } from '@ant-design/icons-vue';
 import type { FormInstance } from 'ant-design-vue';
 
-const props = defineProps({
+// Define component props received from the parent component
+defineProps({
   visible: { type: Boolean, default: false },
   uniqueDeviceModels: { type: Array as () => string[], default: () => [] },
 });

@@ -6,15 +6,16 @@
     :pagination="pagination"
     @change="(pag: TablePaginationConfig) => $emit('change', pag)"
     :scroll="{ x: 1310 }"
-    row-key="key"
   >
     <template #bodyCell="{ column, record }">
       <template v-if="column.key === 'operation'">
         <a-space>
           <a @click="$emit('edit-record', record)">编辑</a>
           <a-divider type="vertical" />
+          <a @click="$emit('toggle-bom-status', record)">上市/下市BOM</a>
+           <a-divider type="vertical" />
           <a-popconfirm
-            title="确定要删除该固件信息吗?"
+            title="确定要删除该产品信息吗?"
             @confirm="$emit('delete-record', record)"
           >
             <a class="danger-link">删除</a>
@@ -26,8 +27,8 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue';
-import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue';
+import { defineProps, defineEmits } from 'vue'
+import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue'
 
 interface DataItem {
   key: string;
@@ -44,18 +45,13 @@ interface DataItem {
 // Define component props
 defineProps({
   columns: { type: Array as () => TableColumnType[], required: true },
-  data: {
-    type: Array as () => DataItem[],
-    required: true,
-  },
-  loading: Boolean,
-  pagination: {
-    type: Object as () => TablePaginationConfig,
-    required: true,
-  },
-});
+  data: { type: Array as () => DataItem[], required: true },
+  loading: { type: Boolean, default: false },
+  pagination: { type: Object as () => TablePaginationConfig, required: true },
+})
 
-const emits = defineEmits(['change', 'edit-record', 'delete-record']);
+const emit = defineEmits(['change', 'edit-record', 'toggle-bom-status', 'delete-record'])
+
 </script>
 
 <style scoped>

@@ -14,8 +14,8 @@
       @configure-columns="showConfigModal"
     />
 
-    <!-- Use the new ProductionTable component -->
-    <ProductionTable
+    <!-- Use the new ProductsTable component -->
+    <ProductsTable
       :columns="columns"
       :data="data"
       :loading="loading"
@@ -44,7 +44,7 @@ import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue'
 
 // Import the new components
 import ProductionHeader from '../components/ProductionHeader.vue'
-import ProductionTable from '../components/ProductionTable.vue'
+import ProductsTable from '../components/ProductsTable.vue'
 import ProductionTitle from '../components/ProductionTitle.vue'
 
 interface DataItem {
@@ -176,26 +176,6 @@ const handleSettings = () => {
 }
 
 // TODO: Implement Add Batch button logic
-
-// Handle drag sort end event
-// const handleDragSortEnd = (reorderedData: DataItem[]) => {
-//   console.log('Production data after drag sort:', reorderedData);
-//   data.value = reorderedData; // Update the data with the new order
-// }
-
-// Handle edit record
-const handleEditRecord = (record: DataItem) => {
-  console.log('Editing record:', record)
-  message.info('编辑 functionality to be implemented')
-  // TODO: Implement edit logic
-}
-
-// Handle toggle BOM status
-const handleToggleBomStatus = (record: DataItem) => {
-  console.log('Toggling BOM status for:', record)
-   message.info('上市/下市BOM functionality to be implemented')
-   // TODO: Implement toggle BOM status logic
-}
 
 // Handle apply filters
 const handleApplyFilters = () => {
