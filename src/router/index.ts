@@ -15,7 +15,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        redirect: '/accounting'
+        redirect: '/account'
       },
       {
         path: 'account',
@@ -46,13 +46,19 @@ const routes: RouteRecordRaw[] = [
         name: 'MovementProduction',
         component: () => import('../views/MovementProduction.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'product-management',
+        name: 'ProductManagement',
+        component: () => import('../views/ProductManagement.vue'),
+        meta: { requiresAuth: true }
       }
     ]
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 
