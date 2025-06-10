@@ -26,16 +26,23 @@ import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue';
 interface DataItem {
   key: string;
   serialNumber: number; // 序号
-  deviceModel: string; // 设备型号
   deviceId: string; // 设备ID
-  onlineStatus: string; // 在线状态
-  deviceStatus: string; // 设备状态
-  softwareVersion: string; // 软件版本
-  lastOnlineTime: string; // 最后一次在线时间
-  lastOfflineTime: string; // 最后一次离线时间
+  boundSubAccount: string; // 绑定子账户
+  deviceModel: string; // 设备型号
+  productionBatch: string; // 生产批次
+  manufacturer: string; // 生产厂家
+  initialFirmware: string; // 初始固件
+  latestFirmware: string; // 最新固件
+  currentFirmwareVersion: string; // 当前固件版本
+  snCode: string; // SN码
+  eFuseId: string; // eFuse ID
+  macAddress: string; // MAC地址
+  bluetoothName: string; // 蓝牙名称
+  imei: string; // IMEI
+  fourGCardNumber: string; // 4G卡号
+  cpuSerial: string; // CPU序列
   creationTime: string; // 创建时间
-  otaCompletionTime: string; // OTA完成时间
-  operations?: string; // Placeholder for operations column
+  updateTime: string; // 更新时间
 }
 
 // Define component props

@@ -1,74 +1,128 @@
 <template>
-  <div class="ota-header">
-    <h2>OTA Listing Information</h2>
-    <div class="ota-operations">
-      <a-space>
-        <!-- Filter options based on screenshot -->
+  <div class="ota-header-container">
+    <div class="filter-section">
+      <div class="select-container">
+        <span class="select-always-placeholder">设备型号:</span>
         <a-select
-          v-model:value="filterOnlineStatus"
-          placeholder="在线状态: 全部"
-          style="width: 120px"
-          @change="(value: string) => $emit('filter-change', { type: 'onlineStatus', value })"
+          :value="filterDeviceModel"
+          @change="(newValue: string) => $emit('update:filterDeviceModel', newValue)"
+          style="width: 120px;"
         >
           <a-select-option value="all">全部</a-select-option>
-          <a-select-option value="online">在线</a-select-option>
-          <a-select-option value="offline">离线</a-select-option>
           <!-- Add more options if needed -->
         </a-select>
+      </div>
+      <div class="select-container">
+        <span class="select-always-placeholder">生产厂家:</span>
         <a-select
-          v-model:value="filterDeviceStatus"
-          placeholder="设备状态: 全部"
-          style="width: 120px"
-          @change="(value: string) => $emit('filter-change', { type: 'deviceStatus', value })"
+          :value="filterManufacturer"
+          @change="(newValue: string) => $emit('update:filterManufacturer', newValue)"
+          style="width: 120px;"
         >
           <a-select-option value="all">全部</a-select-option>
-          <a-select-option value="active">活跃</a-select-option>
-          <a-select-option value="inactive">不活跃</a-select-option>
           <!-- Add more options if needed -->
         </a-select>
-        <a-input-search
-          v-model:value="searchText"
-          placeholder="请输入关键字搜索"
-          style="width: 200px"
-          @search="(value: string) => $emit('search', value)"
-        />
-        <!-- Buttons/Icons -->
-        <a-button type="primary" @click="$emit('refresh')">刷新</a-button>
-        <a-button @click="$emit('export')">导出</a-button>
-        <!-- Assuming a settings icon button -->
-        <a-tooltip title="Settings">
-          <a-button type="default" shape="circle" @click="$emit('settings')">
-            <template #icon><SettingOutlined /></template>
-          </a-button>
-        </a-tooltip>
-      </a-space>
+      </div>
+    </div>
+    <div class="action-section">
+      <a-input-search
+        :value="searchText"
+        placeholder="请输入关键字搜索"
+        style="width: 200px; margin-right: 8px;"
+        @search="(value: string) => $emit('search', value)"
+        @input="(e: Event) => $emit('update:searchText', (e.target as HTMLInputElement).value)"
+      />
+      <a-button type="primary" @click="$emit('device-import')" style="margin-right: 8px;">设备导入</a-button>
+      <a-button type="primary" @click="$emit('ota-config')" style="margin-right: 8px;">OTA配置</a-button>
+      <a-button @click="$emit('refresh')" style="margin-right: 8px;">
+        <template #icon><ReloadOutlined /></template>
+      </a-button>
+      <a-button @click="$emit('configure-columns')">
+        <template #icon><SettingOutlined /></template>
+      </a-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { SettingOutlined } from '@ant-design/icons-vue';
+import { defineProps, defineEmits } from 'vue'
+import { SettingOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 
-const filterOnlineStatus = ref('all');
-const filterDeviceStatus = ref('all');
-const searchText = ref('');
+defineProps({
+  searchText: String,
+  filterDeviceModel: String,
+  filterManufacturer: String,
+});
 
-const emits = defineEmits(['filter-change', 'search', 'refresh', 'export', 'settings']);
-
+const emits = defineEmits([
+  'update:searchText',
+  'update:filterDeviceModel',
+  'update:filterManufacturer',
+  'search',
+  'refresh',
+  'device-import',
+  'ota-config',
+  'configure-columns',
+]);
 </script>
 
 <style scoped>
-.ota-header {
+.ota-header-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #fff;
+  padding: 16px 24px;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.ota-operations {
+.filter-section {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.select-container {
+  position: relative;
+  display: inline-block;
+}
+
+.select-always-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 7px;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 1;
+  font-size: 12px;
+}
+
+:deep(.ant-select-selector) {
+  padding-left: 60px !important; /* Adjusted to make space for placeholder */
+}
+
+.action-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .ota-header-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-section,
+  .action-section {
+    justify-content: center;
+  }
 }
 </style> 
