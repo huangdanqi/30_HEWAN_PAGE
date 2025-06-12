@@ -6,6 +6,8 @@
     "paths": {
       "@/*": ["./src/*"]
     },
+    "target": "es2018",
+    "downlevelIteration": true,
 
     /* Linting */
     "strict": true,

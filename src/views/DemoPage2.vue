@@ -8,13 +8,27 @@
     <!-- select item area -->
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
+
+
+      <div class="select-container" style="margin-left: 10px;">
+        <span class="select-always-placeholder">IP角色:</span>
         <a-select
-          v-model:value="value"
+          v-model:value="ipRoleValue"
+          style="width: 150px; padding-left: 60px;"
+          :options="ipRoleOptions"
+          @change="handleIpRoleChange"
+          :allowClear="true"
           label-in-value
-          style="width: 120px"
-          :options="options"
-          @change="handleChange"
-        ></a-select>
+        >
+          <template #value="{ value: val }">
+            <template v-if="val">
+              {{ val.label }}
+            </template>
+          </template>
+        </a-select>
+      </div>
+
+
       </div>
 
       <!-- icon area -->
@@ -30,39 +44,82 @@
               <SearchOutlined />
             </template>
           </a-input>
-          <ReloadOutlined />
-          <ColumnHeightOutlined />
-          <SettingOutlined />
+          <ReloadOutlined @click="onRefresh" />
+          <a-dropdown>
+            <ColumnHeightOutlined @click.prevent />
+            <template #overlay>
+              <a-menu @click="handleMenuClick">
+                <a-menu-item key="large">宽松</a-menu-item>
+                <a-menu-item key="middle">中等</a-menu-item>
+                <a-menu-item key="small">紧凑</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <a-popover trigger="click" placement="bottomRight">
+  <template #content>
+    <div class="column-setting-panel" style="max-height: 300px; overflow-y: auto;">
+      <div class="setting-section">
+        <div class="section-header" style="display: flex; justify-content: space-between;">
+          <span>列展示</span>
+          <a-button type="link" @click="resetColumns">重置</a-button>
+        </div>
+
+        <draggable
+          v-model="columnOrder"
+          item-key="key"
+          @end="onColumnOrderChange"
+          class="column-checkbox-group"
+        >
+          <template #item="{ element: colKey }">
+            <div class="column-checkbox-item" style="padding: 4px 0;">
+              <a-checkbox
+                :checked="selectedColumnKeys.includes(colKey)"
+                @change="(event: Event) => handleColumnVisibilityChange(colKey, (event.target as HTMLInputElement).checked)"
+              >
+                {{ columnConfigs.find(config => config.key === colKey)?.title }}
+              </a-checkbox>
+            </div>
+          </template>
+        </draggable>
+      </div>
+    </div>
+  </template>
+  <SettingOutlined @click="onSettingClick" />
+</a-popover>
+
+
       </div>
     </div>
       
     <!-- table area -->
-    <!-- <a-table sticky :columns="columns" :data-source="filteredData" :pagination="pagination" >
-      <template #bodyCell="{ column }">
-        <template v-if="column.key === 'operation'"><a>action</a></template>
-      </template>
-    </a-table> -->
-    <a-table
-    :columns="columns"
-    :data-source="filteredData"
- 
-    :pagination="pagination"
-    
-    :scroll="{ x: 2660 }"
-   
-  >
-    
-  </a-table>
+    <div class="table-container">
+      <a-table
+      :columns="columns"
+      :data-source="filteredData"
+  
+      :pagination="pagination"
+      :loading="loading"
+      :size="tableSize"
+      :scroll="{ x: 3000, y: 400, scrollToFirstRowOnChange: true }"
+      >
+      </a-table>
+    </div>
 
   </a-config-provider>
 </template>
 <script lang="ts" setup>
-import type { TableColumnsType } from 'ant-design-vue';
-import { ref, computed } from 'vue';
-import type { SelectProps } from 'ant-design-vue';
+import type { ColumnsType, ColumnType } from 'ant-design-vue/es/table';
+import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import draggable from 'vuedraggable';
+
+interface LabeledValue {
+  key: string;
+  label: string;
+  value: string;
+}
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -99,33 +156,77 @@ interface DataItem {
   registrationTime: string; // 注册时间
 }
 
-const columns = ref<TableColumnsType>([
-  { title: '序号', dataIndex: 'key', key: 'key', width: 60, fixed: 'left' },
-  { title: '账户ID', dataIndex: 'accountId', key: 'accountId', width: 150 },
-  { title: '手机号', dataIndex: 'phoneNumber', key: 'phoneNumber', width: 120 },
-  { title: '设备型号', dataIndex: 'deviceModel', key: 'deviceModel', width: 100 },
-  { title: '设备ID', dataIndex: 'deviceId', key: 'deviceId', width: 150 },
-  { title: '商品ID', dataIndex: 'productId', key: 'productId', width: 150 },
-  { title: 'IP角色', dataIndex: 'ipRole', key: 'ipRole', width: 80 },
-  { title: '产品型号', dataIndex: 'productModel', key: 'productModel', width: 120 },
-  { title: '当前会员类型', dataIndex: 'currentMemberType', key: 'currentMemberType', width: 120 },
-  { title: '会员付费', dataIndex: 'memberPayment', key: 'memberPayment', width: 100 },
-  { title: '会员激活时间', dataIndex: 'memberActivationTime', key: 'memberActivationTime', width: 150 },
-  { title: '会员到期时间', dataIndex: 'memberExpirationTime', key: 'memberExpirationTime', width: 150 },
-  { title: '4G卡号', dataIndex: 'fourGCardNumber', key: 'fourGCardNumber', width: 120 },
-  { title: '4G套餐', dataIndex: 'fourGPlan', key: 'fourGPlan', width: 100 },
-  { title: '当月剩余流量', dataIndex: 'remainingDataThisMonth', key: 'remainingDataThisMonth', width: 120 },
-  { title: '4G付费', dataIndex: 'fourGPayment', key: 'fourGPayment', width: 100 },
-  { title: '4G激活时间', dataIndex: 'fourGActivationTime', key: 'fourGActivationTime', width: 150 },
-  { title: '4G到期时间', dataIndex: 'fourGExpirationTime', key: 'fourGExpirationTime', width: 150 },
-  { title: '服务年费用余额 (元)', dataIndex: 'serviceAnnualFeeBalance', key: 'serviceAnnualFeeBalance', width: 150 },
-  { title: 'ASR年用量', dataIndex: 'asrAnnualUsage', key: 'asrAnnualUsage', width: 120 },
-  { title: 'LLM年用量', dataIndex: 'llmAnnualUsage', key: 'llmAnnualUsage', width: 120 },
-  { title: 'TTS年用量', dataIndex: 'ttsAnnualUsage', key: 'ttsAnnualUsage', width: 120 },
-  { title: '音色克隆年用量', dataIndex: 'voiceCloneAnnualUsage', key: 'voiceCloneAnnualUsage', width: 150 },
-  { title: '注册时间', dataIndex: 'registrationTime', key: 'registrationTime', width: 150 },
-  { title: 'Action', key: 'operation', fixed: 'right', width: 100 },
-]);
+// Define column configuration separately from the table columns
+interface ColumnConfig {
+  key: string;
+  title: string;
+  dataIndex: string;
+  width: number;
+  fixed?: 'left' | 'right' | boolean;
+}
+
+const columnConfigs: ColumnConfig[] = [
+  { key: 'key_0', title: '序号', dataIndex: 'key', width: 60},
+  { key: 'accountId_1', title: '账户ID', dataIndex: 'accountId', width: 150  },
+  { key: 'phoneNumber_2', title: '手机号', dataIndex: 'phoneNumber', width: 120 },
+  { key: 'deviceModel_3', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
+  { key: 'deviceId_4', title: '设备ID', dataIndex: 'deviceId', width: 150 },
+  { key: 'productId_5', title: '商品ID', dataIndex: 'productId', width: 150 },
+  { key: 'ipRole_6', title: 'IP角色', dataIndex: 'ipRole', width: 80 },
+  { key: 'productModel_7', title: '产品型号', dataIndex: 'productModel', width: 120 },
+  { key: 'currentMemberType_8', title: '当前会员类型', dataIndex: 'currentMemberType', width: 120 },
+  { key: 'memberPayment_9', title: '会员付费', dataIndex: 'memberPayment', width: 100 },
+  { key: 'memberActivationTime_10', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150 },
+  { key: 'memberExpirationTime_11', title: '会员到期时间', dataIndex: 'memberExpirationTime', width: 150 },
+  { key: 'fourGCardNumber_12', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120 },
+  { key: '4GPlan_13', title: '4G套餐', dataIndex: '4GPlan', width: 100 },
+  { key: 'remainingDataThisMonth_14', title: '当月剩余流量', dataIndex: 'remainingDataThisMonth', width: 120 },
+  { key: '4GPayment_15', title: '4G付费', dataIndex: '4GPayment', width: 100 },
+  { key: '4GActivationTime_16', title: '4G激活时间', dataIndex: '4GActivationTime', width: 150 },
+  { key: '4GExpirationTime_17', title: '4G到期时间', dataIndex: '4GExpirationTime', width: 150 },
+  { key: 'serviceAnnualFeeBalance_18', title: '服务年费用余额 (元)', dataIndex: 'serviceAnnualFeeBalance', width: 150 },
+  { key: 'asrAnnualUsage_19', title: 'ASR年用量', dataIndex: 'asrAnnualUsage', width: 120 },
+  { key: 'llmAnnualUsage_20', title: 'LLM年用量', dataIndex: 'llmAnnualUsage', width: 120 },
+  { key: 'ttsAnnualUsage_21', title: 'TTS年用量', dataIndex: 'ttsAnnualUsage', width: 120 },
+  { key: 'voiceCloneAnnualUsage_22', title: '音色克隆年用量', dataIndex: 'voiceCloneAnnualUsage', width: 150 },
+  { key: 'registrationTime_23', title: '注册时间', dataIndex: 'registrationTime', width: 150 },
+  { key: 'operation_24', title: 'Action', dataIndex: '', width: 100, fixed: 'right' },
+];
+
+// Store column order and visibility separately
+const columnOrder = ref<string[]>(columnConfigs.map(config => config.key));
+const selectedColumnKeys = ref<string[]>(columnConfigs.map(config => config.key));
+
+// Create columns from configs
+const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
+  return configs.map(config => ({
+    title: config.title,
+    dataIndex: config.dataIndex,
+    key: config.key,
+    width: config.width,
+    fixed: config.fixed,
+  })) as ColumnsType;
+};
+
+// Computed property for visible columns
+const columns = computed<ColumnsType>(() => {
+  // Get visible configs based on selected keys and order
+  const visibleConfigs = columnOrder.value
+    .filter(key => selectedColumnKeys.value.includes(key))
+    .map(key => columnConfigs.find(config => config.key === key))
+    .filter(Boolean) as ColumnConfig[];
+
+  // Create columns from visible configs
+  const visibleColumns = createColumnsFromConfigs(visibleConfigs);
+
+  // Sort columns: fixed left, then unfixed, then fixed right
+  return visibleColumns.sort((a, b) => {
+    const fixedOrder = { 'left': 1, undefined: 2, 'right': 3 };
+    const aFixed = fixedOrder[a.fixed as keyof typeof fixedOrder] || 2;
+    const bFixed = fixedOrder[b.fixed as keyof typeof fixedOrder] || 2;
+    return aFixed - bFixed;
+  });
+});
 
 const rawData: DataItem[] = [];
 const memberTypes = ['普通会员', 'VIP', 'SVIP'];
@@ -170,25 +271,54 @@ for (let i = 0; i < 100; i++) {
 
 const data = ref<DataItem[]>(rawData);
 
-const options = computed<SelectProps['options']>(() => {
-  return data.value.map(item => ({
+console.log('Raw Data:', rawData);
+
+const options = computed<any[]>(() => {
+  return data.value.map((item: DataItem) => ({
+    key: item.key.toString(), 
     value: item.key.toString(), 
     label: `${item.accountId}`,
   }));
 });
 
-const handleChange: SelectProps['onChange'] = (val) => {
-  console.log(val);
+const handleChange = (val: LabeledValue, option: any | any[]) => {
+  console.log(val, option);
 };
 
 const onSearch = (searchValue: string) => {
   console.log('use value', searchValue);
 };
 
-const value = ref({ value: data.value[0].key.toString(), label: `${data.value[0].accountId}` });
+const value = ref<LabeledValue>({ key: data.value[0].key.toString(), value: data.value[0].key.toString(), label: `${data.value[0].accountId}` });
+
+const ipRoleValue = ref<LabeledValue | undefined>(undefined); // Updated type for IP Role selection
+
+const ipRoleOptions = computed(() => {
+  const uniqueIpRoles = Array.from(new Set(rawData.map(item => item.ipRole)));
+  console.log('Unique IP Roles:', uniqueIpRoles);
+  const options = uniqueIpRoles.map(role => ({
+    key: role,
+    value: role,
+    label: role,
+  }));
+  console.log('IP Role Options:', options);
+  return options;
+});
+
+const handleIpRoleChange = (val: LabeledValue | undefined) => {
+  console.log('IP Role selected (raw val):', val);
+  if (val) {
+    console.log('IP Role selected (val.key):', val.key);
+    console.log('IP Role selected (val.value):', val.value);
+    console.log('IP Role selected (val.label):', val.label);
+  }
+  ipRoleValue.value = val; // Assign the full LabeledValue object
+};
 
 const currentPage = ref(1);
-const pageSize = ref(10); 
+const pageSize = ref(10);
+
+console.log('Initial ipRoleValue:', ipRoleValue.value);
 
 const pagination = computed(() => ({
   total: rawData.length, 
@@ -197,7 +327,7 @@ const pagination = computed(() => ({
   showSizeChanger: true, 
   pageSizeOptions: ['10', '20', '50'], 
   showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
-  // showQuickJumper: { goButton: '跳转至' }, 
+  showQuickJumper: { goButton: '页' }, 
   onShowSizeChange: (current: number, size: number) => {
     console.log('onShowSizeChange', current, size);
     currentPage.value = current;
@@ -210,14 +340,87 @@ const pagination = computed(() => ({
   },
 }));
 
+const onRefresh = () => {
+  console.log('Refresh button clicked!');
+  loading.value = true; // Show loading icon
+  searchInputValue.value = '';
+  currentPage.value = 1;
+  resetColumns(); // Reset column order and visibility
+
+  // Simulate data fetching
+  setTimeout(() => {
+    loading.value = false; // Hide loading icon after a delay
+  }, 500); // Adjust delay as needed
+};
+
 const filteredData = computed<DataItem[]>(() => {
+  console.log('filteredData computed property re-evaluating.');
+  let dataToFilter = rawData;
+
+  if (searchInputValue.value) {
+    const searchTerm = searchInputValue.value.toLowerCase();
+    dataToFilter = dataToFilter.filter((item: DataItem) => {
+      return Object.values(item).some(value =>
+        typeof value === 'string' && value.toLowerCase().includes(searchTerm)
+      );
+    });
+  }
+
+  // Filter by IP Role
+  if (ipRoleValue.value && ipRoleValue.value.value) {
+    const selectedIpRole = ipRoleValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.ipRole === selectedIpRole);
+  }
+
   const start = (currentPage.value - 1) * pageSize.value;
   const end = start + pageSize.value;
-  return rawData.slice(start, end);
+  return dataToFilter.slice(start, end);
 });
 
 const searchInputValue = ref('');
 
+const onSettingClick = () => {
+  console.log('Setting clicked');
+};
+
+const loading = ref(false); // Add a loading state
+
+const tableSize = ref('middle'); // Default table size
+
+const handleMenuClick = ({ key }: { key: string }) => {
+  tableSize.value = key;
+};
+
+const resetColumns = () => {
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  columnOrder.value = columnConfigs.map(config => config.key);
+};
+
+const onColumnOrderChange = (event: { newIndex: number; oldIndex: number }) => {
+  const { newIndex, oldIndex } = event;
+  const movedColumn = columnOrder.value[oldIndex];
+  const newOrder = [...columnOrder.value];
+  newOrder.splice(oldIndex, 1);
+  newOrder.splice(newIndex, 0, movedColumn);
+  columnOrder.value = newOrder;
+
+  // The selectedColumnKeys should not be altered here, as it maintains visibility state.
+  // Its order is implicitly handled by the 'columns' computed property based on columnOrder.
+};
+
+const handleColumnVisibilityChange = (key: string, checked: boolean) => {
+  if (checked) {
+    if (!selectedColumnKeys.value.includes(key)) {
+      selectedColumnKeys.value.push(key);
+    }
+  } else {
+    selectedColumnKeys.value = selectedColumnKeys.value.filter(k => k !== key);
+  }
+};
+
+onMounted(() => {
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+});
 </script>
 <style scoped>
 #components-table-demo-summary tfoot th,
@@ -229,18 +432,36 @@ const searchInputValue = ref('');
   background: #1d1d1d;
 }
 
-/* Custom style to reduce row height */
-.ant-table-tbody > tr > td {
-  padding: 8px; /* Adjust as needed, default is often 16px */
-  font-size: 12px; /* Set font size to 13px */
-  font-family: 'PingFang SC', sans-serif; /* Set font family */
-}
-
+/* Custom style to adjust row height and font size based on table size */
+.ant-table-tbody > tr > td,
 .ant-table-thead > tr > th {
-  font-size: 12px; /* Apply font size to table headers as well */
-  font-family: 'PingFang SC', sans-serif; /* Apply font family to table headers */
+  font-family: 'PingFang SC', sans-serif; /* Keep font family consistent */
+  white-space: nowrap; /* Prevent text from stacking */
+  text-align: left; /* Ensure left alignment for headers */
 }
 
+.ant-table-wrapper-small .ant-table-tbody > tr > td,
+.ant-table-wrapper-small .ant-table-thead > tr > th {
+  padding: 2px 2px; /* Very compact */
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.ant-table-wrapper-middle .ant-table-tbody > tr > td,
+.ant-table-wrapper-middle .ant-table-thead > tr > th {
+  padding: 8px 8px; /* Medium density */
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ant-table-wrapper-large .ant-table-tbody > tr > td,
+.ant-table-wrapper-large .ant-table-thead > tr > th {
+  padding: 16px 16px; /* Larger, more spacious */
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* title like demo page */
 .title-container {
    /* Light grey border */
   padding: 10px 14px; /* Adjusted from 16px 24px * 0.60 */
@@ -277,17 +498,44 @@ const searchInputValue = ref('');
   padding-right: 30px;
 }
 
-.right-aligned-icons .anticon {
-  padding: 0;
-  border: none;
-  background: transparent;
-
+.right-aligned-icons > .anticon {
+  padding: 6px 8px; /* Add padding to make them look like buttons */
+  border: 1px solid #d9d9d9; /* Add a subtle border */
+  background-color: #f0f0f0; /* Add a light background */
+  border-radius: 4px; /* Slightly rounded corners */
+  transition: all 0.3s; /* Smooth transition for hover effects */
   cursor: pointer;
-  font-size: 16px; /* Adjust as needed */
-  color: rgba(0, 0, 0, 0.45); /* Grey color for icons */
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.65); /* Slightly darker grey for better visibility */
+}
+
+.right-aligned-icons > .anticon:hover {
+  border-color: #4096ff; /* Ant Design primary color on hover */
+  color: #4096ff; /* Change icon color on hover */
+  background-color: #e6f7ff; /* Lighter background on hover */
 }
 
 html, body {
   overflow-x: hidden;
+}
+
+.table-container {
+  padding: 10px ;
+  padding-right: 50px;
+}
+
+/* Styling for the custom always-visible placeholder */
+.select-container {
+  position: relative; /* Needed for absolute positioning of placeholder */
+  display: inline-block; /* Ensures container wraps content and allows side-by-side display */
+}
+.select-always-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 10px; /* Adjusted to give a bit more space from the left edge */
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45); /* Ant Design standard placeholder color */
+  pointer-events: none; /* Allow clicks to pass through to the select input */
+  z-index: 1; /* Ensure it's above the select input content */
 }
 </style>
