@@ -127,8 +127,6 @@ const props = defineProps({
   uniqueDeviceStatuses: { type: Array as () => string[], default: () => [] }, // Unique device statuses
 })
 
-console.log('AccountHeader Props:', props.filter4GPlan, props.filter4GPayment);
-
 // Define component emits to communicate changes back to the parent component
 const emits = defineEmits([
   'update:filterRole',

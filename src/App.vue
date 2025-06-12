@@ -37,7 +37,7 @@ html, body, #app {
 }
 
 body {
-  background-color: #f0f2f5;
+  background-color: #ffffff;
 }
 
 .app-layout {

@@ -8,10 +8,10 @@
     <div class="topbar-right">
       <!-- Right side icons and user info -->
       <a-space :size="16">
-        <a-tooltip title="Messages">
+        <a-tooltip title="消息">
           <MailOutlined />
         </a-tooltip>
-        <a-tooltip title="Notifications">
+        <a-tooltip title="通知">
           <BellOutlined />
         </a-tooltip>
         <!-- User Dropdown -->
@@ -21,18 +21,17 @@
                <a-avatar size="small">
                  <template #icon><UserOutlined /></template>
                </a-avatar>
-               <span>Admin</span>
+               <span>管理员</span>
                <DownOutlined />
             </a-space>
           </a>
           <template #overlay>
             <a-menu>
-              <a-menu-item key="login">
-                <!-- Assuming a login route exists -->
-                <router-link to="/login">Login</router-link>
+              <a-menu-item key="login" v-if="!loggedInStatus">
+                <router-link to="/login">登录</router-link>
               </a-menu-item>
-              <a-menu-item key="logout" @click="handleLogout">
-                Logout
+              <a-menu-item key="logout" v-if="loggedInStatus" @click="handleLogout">
+                退出登录
               </a-menu-item>
             </a-menu>
           </template>
@@ -46,10 +45,14 @@
 import { MailOutlined, BellOutlined, UserOutlined, DownOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth'; // Import the auth store
+import { computed } from 'vue'; // Import computed
 import topbarImage from '../assets/images/top.jpg';
 
 const router = useRouter();
 const authStore = useAuthStore(); // Use the auth store
+
+// Create a computed property for login status
+const loggedInStatus = computed(() => authStore.isAuthenticated());
 
 const handleLogout = () => {
   authStore.logout(router); // Call the logout action from the auth store and pass the router instance
@@ -71,7 +74,7 @@ const handleLogout = () => {
 }
 
 .topbar-left .app-title {
-  font-size: 20px;
+  font-size: 12px;
   font-weight: bold;
   color: black; /* Changed to black for visibility on white background */
 }

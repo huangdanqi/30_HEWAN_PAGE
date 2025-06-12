@@ -52,6 +52,48 @@ const routes: RouteRecordRaw[] = [
         name: 'ProductManagement',
         component: () => import('../views/ProductManagement.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'toy-production',
+        name: 'ToyProduction',
+        component: () => import('../views/ToyProduction.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'product-list',
+        name: 'ProductList',
+        component: () => import('../views/ProductList.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'ip-management',
+        name: 'IPManagement',
+        component: () => import('../views/IPManagement.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'account-management',
+        name: 'AccountManagement',
+        component: () => import('../views/AccountManagement.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'log-query',
+        name: 'LogQuery',
+        component: () => import('../views/LogQuery.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'demo-page',
+        name: 'DemoPage',
+        component: () => import('../views/DemoPage.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'demo-page-2',
+        name: 'DemoPage2',
+        component: () => import('../views/DemoPage2.vue'),
+        meta: { requiresAuth: true }
       }
     ]
   }

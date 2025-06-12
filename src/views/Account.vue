@@ -5,22 +5,24 @@
     <!-- AccountHeader component for filters and actions -->
     <AccountHeader
       :filter-device-model="filterDeviceModel"
-      @update:filter-device-model="(newValue: string) => { filterDeviceModel = newValue; }"
+      @update:filterDeviceModel="(newValue: string) => { filterDeviceModel = newValue; }"
       :filter-manufacturer="filterManufacturer"
-      @update:filter-manufacturer="(newValue: string) => { filterManufacturer = newValue; }"
+      @update:filterManufacturer="(newValue: string) => { filterManufacturer = newValue; }"
       :filter-device-status="filterDeviceStatus"
-      @update:filter-device-status="(newValue: string) => { filterDeviceStatus = newValue; }"
+      @update:filterDeviceStatus="(newValue: string) => { filterDeviceStatus = newValue; }"
       :unique-roles="uniqueRoles"
       :unique-membership-types="uniqueMembershipTypes"
       :filter-membership-type="filterMembershipType"
-      @update:filter-membership-type="(newValue: string) => { filterMembershipType = newValue; }"
+      @update:filterMembershipType="(newValue: string) => { filterMembershipType = newValue; }"
       :unique-membership-payments="uniqueMembershipPayments"
       :filter-membership-payment="filterMembershipPayment"
-      @update:filter-membership-payment="(newValue: string) => { filterMembershipPayment = newValue; }"
+      @update:filterMembershipPayment="(newValue: string) => { filterMembershipPayment = newValue; }"
       :unique-four-g-plans="uniqueFourGPlans"
       :filter-four-g-plan="filter4GPlan"
-      @update:filter-four-g-plan="(newValue: string) => { filter4GPlan = newValue; console.log('Account.vue: @update:filter4GPlan received', newValue); }"
+      @update:filter4GPlan="(newValue: string) => { filter4GPlan = newValue; console.log('Account.vue: @update:filter4GPlan received', newValue); }"
       :unique-four-g-payments="uniqueFourGPayments"
+      :filter-four-g-payment="filter4GPayment"
+      @update:filter4GPayment="(newValue: string) => { filter4GPayment = newValue; console.log('Account.vue: @update:filter4GPayment received', newValue); }"
       :unique-device-statuses="uniqueDeviceStatuses"
       :searchText="searchText"
       @update:searchText="(newValue: string) => { searchText = newValue; }"
@@ -29,7 +31,7 @@
       @show-info="handleShowInfo"
       @apply-filters="handleApplyFilters"
       :filter-role="filterRole"
-      @update:filter-role="newValue => filterRole = newValue"
+      @update:filterRole="newValue => filterRole = newValue"
     />
     <!-- AccountTable component for displaying data -->
     <AccountTable
@@ -105,7 +107,7 @@ const pagination = reactive<TablePaginationConfig>({
   total: 0, // Total number of items
   showTotal: (total: number) => `第 ${((pagination.current as number) - 1) * (pagination.pageSize as number) + 1}-${Math.min((pagination.current as number) * (pagination.pageSize as number), total)}条/共 ${total} 条`, // Function to display total items
   showSizeChanger: true, // Enable page size changer
-  pageSizeOptions: ['5','10', '20', '50', '100'], // Options for page size
+  pageSizeOptions: ['10', '20', '50', '100'], // Options for page size
   // showQuickJumper: true, // Enable quick jumper for pagination
 });
 
@@ -124,15 +126,18 @@ const filter4GPayment = ref('all');
 const filterDeviceStatus = ref('all');
 const searchText = ref(''); // Search input text
 
+console.log('Account.vue initial filter4GPlan:', filter4GPlan.value);
+console.log('Account.vue initial filter4GPayment:', filter4GPayment.value);
+
 // Watcher to trigger data fetching when any filter variable, search text, or pagination changes
 // pagination.current is reset to 1 to go back to the first page with new filters
 // nextTick ensures that filter/pagination refs are updated in the DOM before fetchData is called
 watch(
   [filterRole, filterMembershipType, filterMembershipPayment, filter4GPlan, filter4GPayment, filterDeviceStatus, searchText, () => pagination.current, () => pagination.pageSize],
   () => {
-    console.log('Account.vue: Watcher triggered. filter4GPlan before fetchData (in watch):', filter4GPlan.value);
+    console.log('Account.vue: Watcher triggered.');
+    console.log('  filter4GPayment (in watcher):', filter4GPayment.value);
     // Always reset current page when any watched filter/search value changes
-    // This simplifies the logic and ensures consistency
     pagination.current = 1;
     nextTick(() => fetchData());
   }
@@ -154,15 +159,23 @@ const uniqueMembershipPayments = computed(() => [
   ...new Set(originalData.value.map(item => item.membershipPaymentStatus))
 ]);
 
-const uniqueFourGPlans = computed(() => [
-  // Collects unique 4G plans from the original data
-  ...new Set(originalData.value.map(item => item.fourGPlan))
-]);
+const uniqueFourGPlans = computed(() => {
+  // Start with 'all' as an option
+  const plans = new Set<string>();
+  plans.add('all');
+  // Add unique 4G plans from the original data
+  originalData.value.forEach(item => plans.add(item.fourGPlan));
+  return [...plans];
+});
 
-const uniqueFourGPayments = computed(() => [
-  // Collects unique 4G payment statuses from the original data
-  ...new Set(originalData.value.map(item => item.fourGPaymentStatus))
-]);
+const uniqueFourGPayments = computed(() => {
+  // Start with 'all' as an option
+  const payments = new Set<string>();
+  payments.add('all');
+  // Add unique 4G payment statuses from the original data
+  originalData.value.forEach(item => payments.add(item.fourGPaymentStatus));
+  return [...payments];
+});
 
 const uniqueDeviceStatuses = computed(() => [
   // Collects unique device statuses from the original data
@@ -292,7 +305,7 @@ const fetchData = async () => {
     membershipPaymentStatus: i % 2 === 0 ? 'Paid' : 'Unpaid',
     membershipActivationTime: `2023-01-${String(i % 30 + 1).padStart(2, '0')}`,
     membershipExpirationTime: `2024-01-${String(i % 30 + 1).padStart(2, '0')}`,
-    fourGPlan: i % 3 === 0 ? 'Unlimited' : 'Limited',
+    fourGPlan: i % 3 === 0 ? 'unlimited' : 'limited',
     remainingData: `${(100 - i).toFixed(2)} GB`,
     fourGPaymentStatus: i % 3 === 0 ? 'Active' : 'Inactive',
     annualServiceFee: (i + 1) * 100,
@@ -313,6 +326,7 @@ const fetchData = async () => {
     const membershipPaymentMatch = filterMembershipPayment.value === 'all' || item.membershipPaymentStatus === filterMembershipPayment.value;
     const fourGPlanMatch = filter4GPlan.value === 'all' || item.fourGPlan === filter4GPlan.value;
     const fourGPaymentMatch = filter4GPayment.value === 'all' || item.fourGPaymentStatus === filter4GPayment.value;
+    console.log(`Filtering: item.fourGPaymentStatus=${item.fourGPaymentStatus}, filter4GPayment.value=${filter4GPayment.value}, fourGPaymentMatch=${fourGPaymentMatch}`);
     const deviceStatusMatch = filterDeviceStatus.value === 'all' || item.deviceStatus === filterDeviceStatus.value;
     const searchMatch = !searchText.value || Object.values(item).some(value =>
       String(value).toLowerCase().includes(searchText.value.toLowerCase())
