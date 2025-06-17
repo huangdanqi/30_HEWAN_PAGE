@@ -122,12 +122,6 @@ import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 
-interface LabeledValue {
-  key: string;
-  label: string;
-  value: string;
-}
-
 const customLocale = computed(() => ({
   ...zh_CN,
   Pagination: {

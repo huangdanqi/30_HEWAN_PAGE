@@ -122,6 +122,14 @@ import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 
+const customLocale = computed(() => ({
+  ...zh_CN,
+  Pagination: {
+    ...zh_CN.Pagination,
+    page: '', // Override the '页' suffix for quick jumper
+  },
+}));
+
 interface DataItem {
   key: number;
   accountId: string; // 账户ID
