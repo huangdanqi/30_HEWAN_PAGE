@@ -8,29 +8,21 @@
     <!-- select item area -->
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
-
-
-      <div class="select-container" style="margin-left: 10px;">
-        <span class="select-always-placeholder">IP角色:</span>
-        <a-select
-          v-model:value="ipRoleValue"
-          style="width: 150px; padding-left: 60px;"
-          :options="ipRoleOptions"
-          @change="handleIpRoleChange"
-          :allowClear="true"
-          label-in-value
-        >
-          <template #value="{ value: val }">
-            <template v-if="val">
-              {{ val.label }}
-            </template>
-          </template>
-        </a-select>
+        <div class="select-container" style="margin-left: 10px;">
+          <span class="select-always-placeholder">IP角色:</span>
+          <a-select
+            v-model:value="ipRoleValue"
+            style="width: 120px;"
+            :options="ipRoleOptions"
+            @change="handleIpRoleChange"
+            :allowClear="true" 
+            label-in-value
+          >
+            <a-select-option value="all">全部</a-select-option>
+            <!-- If you have dynamic options, add them here -->
+          </a-select>
+        </div>
       </div>
-
-
-      </div>
-
       <!-- icon area -->
       <div class="right-aligned-icons">
           <!-- search area  -->
@@ -38,12 +30,12 @@
             v-model:value="searchInputValue"
             placeholder="输入关键字搜索"
             style="width: 200px"
-            @pressEnter="onSearch"
           >
             <template #prefix>
               <SearchOutlined />
             </template>
           </a-input>
+          <a-button type="primary" @click="handleVersionRelease">版本发布</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -94,40 +86,41 @@
     <!-- table area -->
     <div class="table-container">
       <a-table
-      :columns="columns"
-      :data-source="filteredData"
-  
-      :pagination="pagination"
-      :loading="loading"
-      :size="tableSize"
-      :scroll="{ x: 3000, y: 400, scrollToFirstRowOnChange: true }"
+        :columns="columns"
+        :data-source="filteredData"
+        :pagination="filteredData.length === 0 ? false : pagination"
+        :loading="loading"
+        :size="tableSize"
+        :scroll="{ x: 3000, y: 400, scrollToFirstRowOnChange: true }"
+        @change="handleTableChange"
+        :showSorterTooltip="false"
       >
+      <template #bodyCell="{ column, record }">
+      <template v-if="column.key === 'operation_24'">
+        <a-space class="action-cell" direction="horizontal">
+          <a class="edit-link" @click="$emit('edit-record', record)">编辑</a>
+          <a-divider type="vertical" />
+          <a-popconfirm
+            title="确定要删除该信息吗?"
+            @confirm="$emit('delete-record', record)"
+          >
+            <a class="danger-link">删除</a>
+          </a-popconfirm>
+        </a-space>
+      </template>
+    </template>
       </a-table>
     </div>
 
   </a-config-provider>
 </template>
 <script lang="ts" setup>
-import type { ColumnsType, ColumnType } from 'ant-design-vue/es/table';
+import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
-
-interface LabeledValue {
-  key: string;
-  label: string;
-  value: string;
-}
-
-const customLocale = computed(() => ({
-  ...zh_CN,
-  Pagination: {
-    ...zh_CN.Pagination,
-    page: '', // Override the '页' suffix for quick jumper
-  },
-}));
 
 interface DataItem {
   key: number;
@@ -163,10 +156,14 @@ interface ColumnConfig {
   dataIndex: string;
   width: number;
   fixed?: 'left' | 'right' | boolean;
+  sorter?: (a: any, b: any) => number;
+  sortDirections?: ('ascend' | 'descend')[];
+  defaultSortOrder?: 'ascend' | 'descend';
+  customRender?: (record: any) => string | number;
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'key_0', title: '序号', dataIndex: 'key', width: 60},
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
   { key: 'accountId_1', title: '账户ID', dataIndex: 'accountId', width: 150  },
   { key: 'phoneNumber_2', title: '手机号', dataIndex: 'phoneNumber', width: 120 },
   { key: 'deviceModel_3', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
@@ -176,7 +173,7 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'productModel_7', title: '产品型号', dataIndex: 'productModel', width: 120 },
   { key: 'currentMemberType_8', title: '当前会员类型', dataIndex: 'currentMemberType', width: 120 },
   { key: 'memberPayment_9', title: '会员付费', dataIndex: 'memberPayment', width: 100 },
-  { key: 'memberActivationTime_10', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150 },
+  { key: 'memberActivationTime_10', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150, sorter: (a, b) => new Date(a.memberActivationTime).getTime() - new Date(b.memberActivationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
   { key: 'memberExpirationTime_11', title: '会员到期时间', dataIndex: 'memberExpirationTime', width: 150 },
   { key: 'fourGCardNumber_12', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120 },
   { key: '4GPlan_13', title: '4G套餐', dataIndex: '4GPlan', width: 100 },
@@ -190,7 +187,7 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'ttsAnnualUsage_21', title: 'TTS年用量', dataIndex: 'ttsAnnualUsage', width: 120 },
   { key: 'voiceCloneAnnualUsage_22', title: '音色克隆年用量', dataIndex: 'voiceCloneAnnualUsage', width: 150 },
   { key: 'registrationTime_23', title: '注册时间', dataIndex: 'registrationTime', width: 150 },
-  { key: 'operation_24', title: 'Action', dataIndex: '', width: 100, fixed: 'right' },
+  { key: 'operation_24', title: '操作', dataIndex: '', width: 100, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -205,6 +202,12 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     key: config.key,
     width: config.width,
     fixed: config.fixed,
+    sorter: config.sorter,
+    sortDirections: config.sortDirections,
+    defaultSortOrder: config.defaultSortOrder,
+    customRender: config.customRender
+      ? config.customRender
+      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
   })) as ColumnsType;
 };
 
@@ -233,8 +236,11 @@ const memberTypes = ['普通会员', 'VIP', 'SVIP'];
 const paymentStatuses = ['自动续费', '赠送', '停止续费', '未续购'];
 
 for (let i = 0; i < 100; i++) {
-  const date = new Date(2025, 5, 23, 23, 25, 33); // Example date
-  date.setDate(date.getDate() + Math.floor(i / 10)); // Vary date slightly
+  const date = new Date(2025, 5, 23, 23, 25, 33); // Example base date
+  date.setDate(date.getDate() + i); // Vary date by day for each record
+  date.setHours(date.getHours() + (i % 24)); // Vary hours
+  date.setMinutes(date.getMinutes() + (i % 60)); // Vary minutes
+  date.setSeconds(date.getSeconds() + (i % 60)); // Vary seconds
 
   const activationTime = date.toISOString().slice(0, 19).replace('T', ' ');
   const expirationDate = new Date(date);
@@ -269,50 +275,29 @@ for (let i = 0; i < 100; i++) {
   });
 }
 
-const data = ref<DataItem[]>(rawData);
-
 console.log('Raw Data:', rawData);
 
-const options = computed<any[]>(() => {
-  return data.value.map((item: DataItem) => ({
-    key: item.key.toString(), 
-    value: item.key.toString(), 
-    label: `${item.accountId}`,
-  }));
-});
-
-const handleChange = (val: LabeledValue, option: any | any[]) => {
-  console.log(val, option);
-};
-
-const onSearch = (searchValue: string) => {
-  console.log('use value', searchValue);
-};
-
-const value = ref<LabeledValue>({ key: data.value[0].key.toString(), value: data.value[0].key.toString(), label: `${data.value[0].accountId}` });
-
-const ipRoleValue = ref<LabeledValue | undefined>(undefined); // Updated type for IP Role selection
+const ipRoleValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const ipRoleOptions = computed(() => {
   const uniqueIpRoles = Array.from(new Set(rawData.map(item => item.ipRole)));
-  console.log('Unique IP Roles:', uniqueIpRoles);
   const options = uniqueIpRoles.map(role => ({
     key: role,
     value: role,
     label: role,
   }));
-  console.log('IP Role Options:', options);
-  return options;
+  return [
+    { key: 'all', value: 'all', label: '全部' },
+    ...options
+  ];
 });
 
-const handleIpRoleChange = (val: LabeledValue | undefined) => {
-  console.log('IP Role selected (raw val):', val);
-  if (val) {
-    console.log('IP Role selected (val.key):', val.key);
-    console.log('IP Role selected (val.value):', val.value);
-    console.log('IP Role selected (val.label):', val.label);
+const handleIpRoleChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    ipRoleValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    ipRoleValue.value = val;
   }
-  ipRoleValue.value = val; // Assign the full LabeledValue object
 };
 
 const currentPage = ref(1);
@@ -354,7 +339,6 @@ const onRefresh = () => {
 };
 
 const filteredData = computed<DataItem[]>(() => {
-  console.log('filteredData computed property re-evaluating.');
   let dataToFilter = rawData;
 
   if (searchInputValue.value) {
@@ -367,7 +351,11 @@ const filteredData = computed<DataItem[]>(() => {
   }
 
   // Filter by IP Role
-  if (ipRoleValue.value && ipRoleValue.value.value) {
+  if (
+    ipRoleValue.value &&
+    ipRoleValue.value.value !== 'all' &&
+    ipRoleValue.value.value !== ''
+  ) {
     const selectedIpRole = ipRoleValue.value.value;
     dataToFilter = dataToFilter.filter(item => item.ipRole === selectedIpRole);
   }
@@ -378,6 +366,16 @@ const filteredData = computed<DataItem[]>(() => {
 });
 
 const searchInputValue = ref('');
+
+const handleTableChange = (
+  pagination: any,
+  filters: any,
+  sorter: any,
+) => {
+  console.log('Table change:', pagination, filters, sorter);
+  // You can implement your logic here to handle pagination, filters, and sorter
+  // For example, update currentPage, pageSize, or re-fetch data based on sorting/filtering
+};
 
 const onSettingClick = () => {
   console.log('Setting clicked');
@@ -418,8 +416,17 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
   }
 };
 
+const handleVersionRelease = () => {
+  console.log('版本发布 button clicked!');
+  // Add your version release logic here
+};
+
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+});
+
+defineExpose({
+  handleTableChange, // Explicitly expose handleTableChange
 });
 </script>
 <style scoped>
@@ -491,6 +498,10 @@ onMounted(() => {
   align-items: center;
 }
 
+.right-aligned-section {
+  display: none;
+}
+
 .right-aligned-icons {
   display: flex;
   align-items: center;
@@ -506,13 +517,21 @@ onMounted(() => {
   transition: all 0.3s; /* Smooth transition for hover effects */
   cursor: pointer;
   font-size: 16px;
-  color: rgba(0, 0, 0, 0.65); /* Slightly darker grey for better visibility */
+  color: rgba(0, 0, 0, 0.65);
+   /* Slightly darker grey for better visibility */
 }
 
 .right-aligned-icons > .anticon:hover {
   border-color: #4096ff; /* Ant Design primary color on hover */
   color: #4096ff; /* Change icon color on hover */
   background-color: #e6f7ff; /* Lighter background on hover */
+}
+
+.right-aligned-icons > .anticon:last-child,
+.right-aligned-icons > .ant-btn:last-child,
+.right-aligned-icons > .ant-dropdown:last-child,
+.right-aligned-icons > .ant-popover:last-child {
+  margin-right: 28px; /* Adjust this value for a bigger gap */
 }
 
 html, body {
@@ -526,16 +545,64 @@ html, body {
 
 /* Styling for the custom always-visible placeholder */
 .select-container {
-  position: relative; /* Needed for absolute positioning of placeholder */
-  display: inline-block; /* Ensures container wraps content and allows side-by-side display */
+  position: relative;
+  display: inline-block;
 }
 .select-always-placeholder {
   position: absolute;
   top: 50%;
-  left: 10px; /* Adjusted to give a bit more space from the left edge */
+  left: 7px;
   transform: translateY(-50%);
-  color: rgba(0, 0, 0, 0.45); /* Ant Design standard placeholder color */
-  pointer-events: none; /* Allow clicks to pass through to the select input */
-  z-index: 1; /* Ensure it's above the select input content */
+  color: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 1;
+  font-size: 13px;
+}
+:deep(.ant-select-selector) {
+  padding-left: 60px !important;
+}
+:deep(.ant-select-selector),
+:deep(.ant-select-dropdown),
+:deep(.ant-select-item),
+:deep(.ant-select-selection-item),
+:deep(.ant-select-item-option-content) {
+  font-size: 12px !important;
+}
+
+/* Add custom style for pagination font size */
+:deep(.ant-pagination) {
+  font-size: 12px !important;
+}
+
+:deep(.ant-input),
+:deep(.ant-btn-primary) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-input::placeholder) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-pagination-options) .ant-select-selector {
+  min-width: unset !important;
+  width: auto !important;
+  padding-left: 4px !important;
+  padding-right: 18px !important; /* keep space for arrow */
+}
+
+/* Make the action buttons horizontal and style '编辑' as blue and bold */
+:deep(.ant-table-cell .action-cell) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 90px;
+}
+:deep(.ant-table-cell .action-cell .edit-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
+}
+:deep(.ant-table-cell .action-cell .danger-link) {
+  color: #ff4d4f !important; /* Ant Design red */
+  font-weight: bold;
 }
 </style>

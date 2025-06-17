@@ -2,7 +2,7 @@
   <div class="product-list-header">
     <div class="filter-section">
       <div class="select-container">
-        <span class="select-always-placeholder">产品类型:</span>
+        <span class="a">产品类型:</span>
         <a-select
           :value="filterProductType"
           @change="(newValue: string) => $emit('update:filterProductType', newValue)"
