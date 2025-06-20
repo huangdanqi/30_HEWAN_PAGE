@@ -2,12 +2,12 @@
   <a-config-provider :locale="customLocale" :theme="{ algorithm: theme.defaultAlgorithm }">
     <!-- Title -->
     <div class="title-container">
-      <h2>机芯生产</h2>
+      <h2>IP管理</h2>
     </div>
 
     <!-- select item area -->
     <div class="top-controls-wrapper">
-      <div class="left-aligned-section">
+      <!-- <div class="left-aligned-section">
 
         <div class="select-container device-model-select" style="margin-left: 10px;">
           <span class="select-always-placeholder">设备型号:</span>
@@ -25,24 +25,39 @@
             </a-select>
           </a-tooltip>
         </div>
-        <div class="select-container manufacturer-select" style="margin-left: 10px;">
-          <span class="select-always-placeholder">生产厂家:</span>
-          <a-tooltip :title="manufacturerValue.label">
+        <div class="select-container release-version-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">发布版本:</span>
+          <a-tooltip :title="releaseVersionValue.label">
             <a-select
-              v-model:value="manufacturerValue"
+              v-model:value="releaseVersionValue"
               style="width: 130px;"
-              :options="manufacturerOptions"
-              @change="handleManufacturerChange"
+              :options="releaseVersionOptions"
+              @change="handleReleaseVersionChange"
               :allowClear="true"
               label-in-value
-              class="manufacturer-select"
+              class="release-version-select"
             >
               <a-select-option value="all">全部</a-select-option>
             </a-select>
           </a-tooltip>
         </div>
-
-      </div>
+        <div class="select-container version-number-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">版本号:</span>
+          <a-tooltip :title="versionNumberValue.label">
+            <a-select
+              v-model:value="versionNumberValue"
+              style="width: 120px;"
+              :options="versionNumberOptions"
+              @change="handleVersionNumberChange"
+              :allowClear="true"
+              label-in-value
+              class="version-number-select"
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+      </div> -->
       <!-- icon area -->
       <div class="right-aligned-icons">
           <!-- search area  -->
@@ -55,17 +70,17 @@
               <SearchOutlined />
             </template>
           </a-input>
-          <a-button type="primary" @click="handleAddBatchClick">新增批次</a-button>
+    
+            <a-button type="primary" @click="showCreateIpModal = true">新建 IP</a-button>
+        
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
-            <template #overlay>
-              <a-menu @click="handleMenuClick">
-                <a-menu-item key="large">宽松</a-menu-item>
-                <a-menu-item key="middle">中等</a-menu-item>
-                <a-menu-item key="small">紧凑</a-menu-item>
-              </a-menu>
-            </template>
+            <a-menu @click="handleMenuClick">
+              <a-menu-item key="large">宽松</a-menu-item>
+              <a-menu-item key="middle">中等</a-menu-item>
+              <a-menu-item key="small">紧凑</a-menu-item>
+            </a-menu>
           </a-dropdown>
           <a-popover trigger="click" placement="bottomRight">
   <template #content>
@@ -106,7 +121,6 @@
     <!-- table area -->
     <div class="table-container">
       <a-table
-        rowKey="key"
         :columns="columns"
         :data-source="filteredData"
         :pagination="filteredData.length === 0 ? false : pagination"
@@ -115,16 +129,11 @@
         :scroll="{ x: 1000 }"
         @change="handleTableChange"
         :showSorterTooltip="false"
-        @edit-record="handleEditRecord"
       >
       <template #bodyCell="{ column, record }">
       <template v-if="column.key === 'operation'">
         <a-space class="action-cell" direction="horizontal">
-          <a class="edit-link" @click="handleEditRecord(record)">编辑</a>
-          <a-divider type="vertical" />
-          <a class="edit-link" @click="handleBomUpload(record)">上传</a>
-          <a-divider type="vertical" />
-          <a class="download-link">下载BOM</a>
+          <a class="edit-link" @click="handleEditClick">编辑</a>
           <a-divider type="vertical" />
           <a-popconfirm
             title="确定要删除该信息吗?"
@@ -140,45 +149,96 @@
 
     <FirmwareReleaseModal
       :visible="showReleaseModal"
-      :uniqueDeviceModels="uniqueDeviceModels"
       @update:visible="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
 
-    <AddBatchModal
-      v-model:open="showAddBatchModal"
-      :deviceModelOptions="deviceModelOptions.filter(opt => opt.value !== 'all')"
-      :manufacturerOptions="manufacturerOptions.filter(opt => opt.value !== 'all')"
-      @submit="handleAddBatchSubmit"
+    <FirmwareEditModal
+      :visible="showEditModal"
+      :record="editRecord"
+      @update:visible="handleEditModalClose"
+      @submit="handleEditModalSubmit"
     />
 
-    <AddBatchModal
-      v-model:open="showEditModal"
-      title="编辑批次"
-      :deviceModelOptions="deviceModelOptions.filter(opt => opt.value !== 'all')"
-      :manufacturerOptions="manufacturerOptions.filter(opt => opt.value !== 'all')"
-      :initialValues="editRecord"
-      @submit="handleEditBatchSubmit"
-    />
-
-    <BomUploadModal
-      :visible="showBomModal"
-      @update:visible="showBomModal = $event"
-      @submit="handleBomSubmit"
-    />
+    <a-modal
+      v-model:visible="showCreateIpModal"
+      title="新建IP"
+      :footer="null"
+      width="500px"
+    >
+      <a-form layout="vertical">
+        <a-form-item required>
+          <template #label>
+            <span style="color:#ff4d4f">*</span> IP名称
+          </template>
+          <a-input placeholder="请输入" />
+        </a-form-item>
+        <a-form-item required>
+          <template #label>
+            <span style="color:#ff4d4f">*</span> IP音频库
+          </template>
+          <a-input placeholder="请输入URL" />
+        </a-form-item>
+        <a-form-item required>
+          <template #label>
+            <span style="color:#ff4d4f">*</span> IP素材库
+          </template>
+          <a-input placeholder="请输入URL" />
+        </a-form-item>
+        <a-form-item required>
+          <template #label>
+            <span style="color:#ff4d4f">*</span> IP介绍
+          </template>
+          <a-textarea placeholder="请输入" rows="4" />
+        </a-form-item>
+        <a-form-item label="Agent Basic ID">
+          <a-input placeholder="请输入ID" />
+        </a-form-item>
+        <a-form-item label="Agent Basic API">
+          <a-input placeholder="请输入URL" />
+        </a-form-item>
+        <a-form-item label="Agent Pro ID">
+          <a-input placeholder="请输入ID" />
+        </a-form-item>
+        <a-form-item label="Agent Pro API">
+          <a-input placeholder="请输入URL" />
+        </a-form-item>
+        <a-form-item label="Agent SVIP ID">
+          <a-input placeholder="请输入ID" />
+        </a-form-item>
+        <a-form-item label="Agent SVIP API">
+          <a-input placeholder="请输入URL" />
+        </a-form-item>
+        <a-form-item label="TTS ID">
+          <a-input placeholder="请输入ID" />
+        </a-form-item>
+        <a-form-item label="TTS API">
+          <a-input placeholder="请输入URL" />
+        </a-form-item>
+        <a-form-item label="VCM ID">
+          <a-input placeholder="请输入ID" />
+        </a-form-item>
+        <a-form-item label="VCM API">
+          <a-input placeholder="请输入URL" />
+        </a-form-item>
+        <div style="display: flex; justify-content: center; gap: 16px; margin-top: 24px;">
+          <a-button @click="showCreateIpModal = false">取消</a-button>
+          <a-button type="primary">保存</a-button>
+        </div>
+      </a-form>
+    </a-modal>
 
   </a-config-provider>
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
-import { theme } from 'ant-design-vue';
+import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import FirmwareReleaseModal from '@/components/FirmwareReleaseModal.vue';
-import AddBatchModal from '@/components/AddBatchModal.vue';
-import BomUploadModal from '@/components/BomUploadModal.vue';
+import FirmwareEditModal from '@/components/FirmwareEditModal.vue';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -189,16 +249,19 @@ const customLocale = computed(() => ({
 }));
 
 interface DataItem {
-  key: number;
-  deviceModel: string;
-  productionBatch: string;
-  manufacturer: string;
-  burnedFirmware: string;
-  unitPrice: number;
-  quantity: number;
-  totalPrice: string;
+  ipId: string;
+  ipName: string;
+  ipIntro: string;
+  ipFirmware: string;
+  ipData: string;
+  agentBasicId: string;
+  agentBasicApi: string;
+  agentProId: string;
+  agentProApi: string;
+  agentSvipId: string;
+  agentSvipApi: string;
   creator: string;
-  creationTime: string;
+  createTime: string;
   updateTime: string;
 }
 
@@ -215,19 +278,23 @@ interface ColumnConfig {
   customRender?: (record: any) => string | number;
 }
 
-const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1 },
-  { key: 'deviceModel', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
-  { key: 'productionBatch', title: '生产批次', dataIndex: 'productionBatch', width: 120, sorter: (a: any, b: any) => new Date(a.productionBatch).getTime() - new Date(b.productionBatch).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'manufacturer', title: '生产厂家', dataIndex: 'manufacturer', width: 180 },
-  { key: 'burnedFirmware', title: '烧录固件', dataIndex: 'burnedFirmware', width: 120 },
-  { key: 'unitPrice', title: '单价（元）', dataIndex: 'unitPrice', width: 100, sorter: (a: any, b: any) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'quantity', title: '数量（个）', dataIndex: 'quantity', width: 100, sorter: (a: any, b: any) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
-  { key: 'totalPrice', title: '总价（元）', dataIndex: 'totalPrice', width: 120, sorter: (a: any, b: any) => parseFloat(a.totalPrice) - parseFloat(b.totalPrice), sortDirections: ['ascend', 'descend'] },
-  { key: 'creator', title: '创建人', dataIndex: 'creator', width: 100, customRender: ({ record }: any) => record.creator },
-  { key: 'creationTime', title: '创建时间', dataIndex: 'creationTime', width: 160, sorter: (a: any, b: any) => new Date(a.creationTime).getTime() - new Date(b.creationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation', title: '操作', dataIndex: '', width: 280, fixed: 'right' },
+const columnConfigs = [
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }: { index: number }) => index + 1 },
+  { key: 'ipId', title: 'IP ID', dataIndex: 'ipId', width: 120 },
+  { key: 'ipName', title: 'IP名称', dataIndex: 'ipName', width: 120 },
+  { key: 'ipIntro', title: 'IP介绍', dataIndex: 'ipIntro', width: 320 },
+  { key: 'ipFirmware', title: 'IP音频库', dataIndex: 'ipFirmware', width: 250 },
+  { key: 'ipData', title: 'IP素材库', dataIndex: 'ipData', width: 250 },
+  { key: 'agentBasicId', title: 'Agent Basic ID', dataIndex: 'agentBasicId', width: 200 },
+  { key: 'agentBasicApi', title: 'Agent Basic API', dataIndex: 'agentBasicApi', width: 250 },
+  { key: 'agentProId', title: 'Agent Pro ID', dataIndex: 'agentProId', width: 150 },
+  { key: 'agentProApi', title: 'Agent Pro API', dataIndex: 'agentProApi', width: 250 },
+  { key: 'agentSvipId', title: 'Agent SVIP ID', dataIndex: 'agentSvipId', width: 150 },
+  { key: 'agentSvipApi', title: 'Agent SVIP API', dataIndex: 'agentSvipApi', width: 230 },
+  { key: 'creator', title: '创建人', dataIndex: 'creator', width: 80 },
+  { key: 'createTime', title: '创建时间', dataIndex: 'createTime', width: 160, sorter: (a: any, b: any) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime() },
+  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime() },
+  { key: 'operation', title: '操作', dataIndex: '', width: 100, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -244,7 +311,6 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     fixed: config.fixed,
     sorter: config.sorter,
     sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
     defaultSortOrder: config.defaultSortOrder,
     customRender: config.customRender
       ? config.customRender
@@ -272,126 +338,47 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-// Generate virtual data for the new columns
-const rawData: any[] = [];
-const deviceModels = ['HWSZ001', 'HWSZ002', 'HWSZ003'];
-const manufacturers = ['深圳沃能威科技有限公司', '上海智造电子有限公司', '北京创新科技有限公司'];
-const releaseVersions = ['首版', '主版本', '子版本', '修订版'];
-const versionNumbers = ['Z001 V 1.0.0', 'Z002 V 2.0.0', 'Z003 V 3.0.0'];
-const creatorAvatars = [
-  'https://randomuser.me/api/portraits/men/33.jpg',
-  'https://randomuser.me/api/portraits/men/34.jpg',
-];
-const creatorNames = ['张三', '李四'];
-rawData.length = 0;
-for (let i = 0; i < 12; i++) {
-  rawData.push({
-    key: i + 1,
-    deviceModel: deviceModels[i % deviceModels.length],
-    productionBatch: `2025-06-${10 + (i % 20)}`,
-    manufacturer: manufacturers[i % manufacturers.length],
-    burnedFirmware: versionNumbers[i % versionNumbers.length],
-    unitPrice: 80 + (i % 3) * 5 + 0.75,
-    quantity: 500 + i * 10,
-    totalPrice: (80 + (i % 3) * 5 + 0.75) * (500 + i * 10) + '',
-    creator: creatorNames[i % 2],
-    creatorAvatar: creatorAvatars[i % 2],
-    creationTime: `2025-7-${13 + (i % 10)} 19:25:11`,
-    updateTime: `2025-7-${13 + (i % 10)} 19:25:11`,
-  });
-}
+// Update the rawData to have different createTime and updateTime values for each row
+const rawData = Array.from({ length: 10 }, (_, i) => ({
+  ipId: 'hjwan832nj2r',
+  ipName: '哆啦A梦',
+  ipIntro: '硬核  题库: 白羊座·MBTI: INFP; 画板: 火; 估价: ...',
+  ipFirmware: 'https://example.com/firmware.bin',
+  ipData: 'https://example.com/firmware.bin',
+  agentBasicId: 'hjwan832nj2r',
+  agentBasicApi: 'https://example.com/firmware.bin',
+  agentProId: 'hjwan832nj2r',
+  agentProApi: 'https://example.com/firmware.bin',
+  agentSvipId: 'hjwan832nj2r',
+  agentSvipApi: 'https://example.com/firmware.bin',
+  creator: '33',
+  createTime: `2025-7-13 19:${(25 + i).toString().padStart(2, '0')}:11`,
+  updateTime: `2025-7-13 19:${(30 + i).toString().padStart(2, '0')}:51`,
+}));
 
 console.log('Raw Data:', rawData);
-
-const ipRoleValue = ref({ key: 'all', label: '全部', value: 'all' });
-const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
-const releaseVersionValue = ref({ key: 'all', label: '全部', value: 'all' });
-const versionNumberValue = ref({ key: 'all', label: '全部', value: 'all' });
-const manufacturerValue = ref({ key: 'all', label: '全部', value: 'all' });
-
-const ipRoleOptions = computed(() => {
-  const uniqueIpRoles = Array.from(new Set(rawData.map(item => item.ipRole)));
-  const options = uniqueIpRoles.map(role => ({
-    key: role,
-    value: role,
-    label: role,
-  }));
-  return [
-    { key: 'all', value: 'all', label: '全部' },
-    ...options
-  ];
-});
-
-const deviceModelOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.deviceModel)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const releaseVersionOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.releaseVersion)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const versionNumberOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.versionNumber)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const manufacturerOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.manufacturer)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const handleIpRoleChange = (val: any) => {
-  if (!val || !val.value || val.value === 'all') {
-    ipRoleValue.value = { key: 'all', label: '全部', value: 'all' };
-  } else {
-    ipRoleValue.value = val;
-  }
-};
-
-const handleDeviceModelChange = (val: any) => {
-  deviceModelValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
-
-const handleReleaseVersionChange = (val: any) => {
-  releaseVersionValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
-
-const handleVersionNumberChange = (val: any) => {
-  versionNumberValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
-
-const handleManufacturerChange = (val: any) => {
-  manufacturerValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
 
 const currentPage = ref(1);
 const pageSize = ref(10);
 
-console.log('Initial deviceModelValue:', deviceModelValue.value);
-
-const sorterInfo = ref<any>({
-  columnKey: 'updateTime',
-  order: 'descend',
-});
-
 const pagination = computed(() => ({
-  total: filteredData.value.length, 
+  total: rawData.length, 
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true, 
   pageSizeOptions: ['10', '20', '50'], 
   showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
   showQuickJumper: { goButton: '页' }, 
+  onShowSizeChange: (current: number, size: number) => {
+    console.log('onShowSizeChange', current, size);
+    currentPage.value = current;
+    pageSize.value = size;
+  },
+  onChange: (page: number, size: number) => {
+    console.log('onChange', page, size);
+    currentPage.value = page;
+    pageSize.value = size;
+  },
 }));
 
 const onRefresh = () => {
@@ -401,13 +388,6 @@ const onRefresh = () => {
   currentPage.value = 1;
   resetColumns(); // Reset column order and visibility
 
-  // Reset all selector values to '全部'
-  ipRoleValue.value = { key: 'all', label: '全部', value: 'all' };
-  deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
-  releaseVersionValue.value = { key: 'all', label: '全部', value: 'all' };
-  versionNumberValue.value = { key: 'all', label: '全部', value: 'all' };
-  manufacturerValue.value = { key: 'all', label: '全部', value: 'all' };
-
   // Simulate data fetching
   setTimeout(() => {
     loading.value = false; // Hide loading icon after a delay
@@ -415,8 +395,7 @@ const onRefresh = () => {
 };
 
 const filteredData = computed<DataItem[]>(() => {
-  let dataToFilter: DataItem[] = [...rawData];
-
+  let dataToFilter = rawData;
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
     dataToFilter = dataToFilter.filter((item: DataItem) => {
@@ -425,73 +404,21 @@ const filteredData = computed<DataItem[]>(() => {
       );
     });
   }
-
-  // Filter by device model
-  if (
-    deviceModelValue.value &&
-    deviceModelValue.value.value !== 'all' &&
-    deviceModelValue.value.value !== ''
-  ) {
-    dataToFilter = dataToFilter.filter(item => item.deviceModel === deviceModelValue.value.value);
-  }
-
-  // Filter by manufacturer
-  if (
-    manufacturerValue.value &&
-    manufacturerValue.value.value !== 'all' &&
-    manufacturerValue.value.value !== ''
-  ) {
-    dataToFilter = dataToFilter.filter(item => item.manufacturer === manufacturerValue.value.value);
-  }
-
-  // Sorting logic
-  if (sorterInfo.value && sorterInfo.value.order) {
-    const { columnKey, order } = sorterInfo.value;
-    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-    if (sorterFn) {
-      dataToFilter.sort((a, b) => {
-        const result = sorterFn(a, b);
-        return order === 'ascend' ? result : -result;
-      });
-    }
-  }
-
   const start = (currentPage.value - 1) * pageSize.value;
   const end = start + pageSize.value;
   return dataToFilter.slice(start, end);
 });
 
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredData.value.slice(start, end);
-})
-
 const searchInputValue = ref('');
 
 const handleTableChange = (
-  paginationData: any,
+  pagination: any,
   filters: any,
   sorter: any,
 ) => {
-  console.log('Table change:', paginationData, filters, sorter);
-  const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-
-  if (currentSorter && currentSorter.order) {
-    sorterInfo.value = {
-      columnKey: currentSorter.columnKey,
-      order: currentSorter.order,
-    };
-  } else {
-    // When sorting is cleared, revert to default
-    sorterInfo.value = {
-      columnKey: 'updateTime',
-      order: 'descend',
-    };
-  }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
+  console.log('Table change:', pagination, filters, sorter);
+  // You can implement your logic here to handle pagination, filters, and sorter
+  // For example, update currentPage, pageSize, or re-fetch data based on sorting/filtering
 };
 
 const onSettingClick = () => {
@@ -534,7 +461,6 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 };
 
 const showReleaseModal = ref(false);
-const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.map(item => item.deviceModel))));
 
 const handleVersionRelease = () => {
   showReleaseModal.value = true;
@@ -550,64 +476,25 @@ const handleReleaseModalSubmit = (data: any) => {
 const showEditModal = ref(false);
 const editRecord = ref<any>(null);
 
+const handleEditClick = () => {
+  message.info('开发中');
+};
+
 const handleEditRecord = (record: any) => {
   editRecord.value = { ...record };
   showEditModal.value = true;
 };
-const handleEditBatchSubmit = (data: any) => {
-  // Find and update the record in rawData
-  const idx = rawData.findIndex(item => item.key === editRecord.value.key);
-  if (idx !== -1) {
-    rawData[idx] = {
-      ...rawData[idx],
-      ...data,
-      productionBatch: data.productionBatch?.format ? data.productionBatch.format('YYYY-MM-DD') : data.productionBatch,
-      totalPrice: (data.unitPrice * data.quantity).toString(),
-      updateTime: new Date().toLocaleString(),
-    };
-  }
+const handleEditModalClose = () => {
+  showEditModal.value = false;
+  editRecord.value = null;
+};
+const handleEditModalSubmit = (data: any) => {
+  // Update the data in your table as needed
   showEditModal.value = false;
   editRecord.value = null;
 };
 
-const showBomModal = ref(false);
-const bomRecord = ref<any>(null);
-
-function handleBomUpload(record: any) {
-  console.log('Upload clicked', record);
-  bomRecord.value = record;
-  showBomModal.value = true;
-}
-
-function handleBomSubmit(file: any) {
-  // Handle the uploaded file for bomRecord.value
-  showBomModal.value = false;
-}
-
-const showAddBatchModal = ref(false);
-
-function handleAddBatchClick() {
-  showAddBatchModal.value = true;
-}
-
-function handleAddBatchSubmit(data: any) {
-  // Add the new batch to rawData
-  rawData.unshift({
-    key: rawData.length + 1,
-    deviceModel: data.deviceModel,
-    productionBatch: data.productionBatch?.format ? data.productionBatch.format('YYYY-MM-DD') : data.productionBatch,
-    manufacturer: data.manufacturer,
-    burnedFirmware: data.burnedFirmware,
-    unitPrice: data.unitPrice,
-    quantity: data.quantity,
-    totalPrice: (data.unitPrice * data.quantity).toString(),
-    creator: 'admin',
-    creatorAvatar: '',
-    creationTime: new Date().toLocaleString(),
-    updateTime: new Date().toLocaleString(),
-  });
-  showAddBatchModal.value = false;
-}
+const showCreateIpModal = ref(false);
 
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
@@ -625,13 +512,6 @@ defineExpose({
 [data-theme='dark'] #components-table-demo-summary tfoot th,
 [data-theme='dark'] #components-table-demo-summary tfoot td {
   background: #1d1d1d;
-}
-
-/* DEBUG: Force modal to be visible */
-:deep(.ant-modal) {
-  display: block !important;
-  opacity: 1 !important;
-  z-index: 99999 !important;
 }
 
 /* Custom style to adjust row height and font size based on table size */
@@ -702,6 +582,7 @@ defineExpose({
   align-items: center;
   gap: 10px; /* Add space between icons */
   padding-right: 30px;
+  margin-left: auto;
 }
 
 .right-aligned-icons > .anticon {
@@ -762,9 +643,6 @@ html, body {
 :deep(.version-number-select .ant-select-selector) {
   padding-left: 50px !important;
 }
-:deep(.manufacturer-select .ant-select-selector) {
-  padding-left: 65px !important;
-}
 :deep(.ant-select-selector),
 :deep(.ant-select-dropdown),
 :deep(.ant-select-item),
@@ -796,9 +674,6 @@ html, body {
 
 /* Make the action buttons horizontal and style '编辑' as blue and bold */
 :deep(.ant-table-cell .action-cell) {
-  position: relative;
-  z-index: 9999 !important;
-  background: #fff !important;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -815,17 +690,14 @@ html, body {
 
 :deep(.ant-table-column-sorter-up),
 :deep(.ant-table-column-sorter-down) {
-  color: #bfbfbf; /* grey by default */
+  color: #bfbfbf !important; /* grey by default */
 }
-:deep(.ant-table-column-sorter-up.active),
-:deep(.ant-table-column-sorter-down.active) {
-  color: #1677ff; /* blue when active */
+:deep(.ant-table-column-sorter-up.on),
+:deep(.ant-table-column-sorter-down.on) {
+  color: #1677ff !important; /* blue when active */
 }
-
-.download-link {
-  color: #bfbfbf !important;
-  cursor: not-allowed;
-  pointer-events: none;
-  font-weight: bold;
+:deep(th .ant-table-column-sorter-up:hover),
+:deep(th .ant-table-column-sorter-down:hover) {
+  color: #1677ff !important;
 }
 </style>

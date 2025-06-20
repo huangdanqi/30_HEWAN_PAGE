@@ -22,7 +22,12 @@
           </a-form-item>
 
           <a-form-item label="设备型号" name="deviceModel">
-            <a-input v-model:value="formState.deviceModel" placeholder="请输入" v-if="formState.isFirstRelease" />
+            <a-input
+              v-model:value="formState.deviceModel"
+              :placeholder="`请输入（最多15个字符，不含空格）`"
+              v-if="formState.isFirstRelease"
+              :maxlength="30"
+            />
             <a-select v-model:value="formState.deviceModel" placeholder="请选择" v-else>
               <a-select-option v-for="model in uniqueDeviceModels" :key="model" :value="model">{{ model }}</a-select-option>
             </a-select>
@@ -38,7 +43,12 @@
           </a-form-item>
 
           <a-form-item label="内容描述" name="contentDescription">
-            <a-textarea v-model:value="formState.contentDescription" placeholder="请输入" :rows="4" />
+            <a-textarea
+              v-model:value="formState.contentDescription"
+              :placeholder="'请输入（最多10000个字符，不含空格）'"
+              :rows="4"
+              :maxlength="10020"
+            />
           </a-form-item>
         </a-form>
       </div>
@@ -88,7 +98,7 @@
 import { ref, reactive, watch, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import type { UploadChangeParam } from 'ant-design-vue';
-import { InboxOutlined } from '@ant-design/icons-vue';
+import { InboxOutlined, BarcodeOutlined } from '@ant-design/icons-vue';
 import type { FormInstance } from 'ant-design-vue';
 
 // Define component props received from the parent component
@@ -138,11 +148,45 @@ const generatedVersion = computed(() => {
   }
 });
 
+// Computed for deviceModel input length (excluding spaces)
+const deviceModelMaxLength = 15;
+const deviceModelInputLength = computed(() => formState.deviceModel.replace(/\s/g, '').length);
+
+watch(() => formState.deviceModel, (val) => {
+  // If over max, trim (excluding spaces)
+  let raw = val.replace(/\s/g, '');
+  if (raw.length > deviceModelMaxLength) {
+    // Only keep up to max non-space chars, but preserve spaces
+    let count = 0;
+    let result = '';
+    for (let c of val) {
+      if (c !== ' ') count++;
+      if (count > deviceModelMaxLength) break;
+      result += c;
+    }
+    formState.deviceModel = result;
+  }
+});
+
 watch(() => formState.isFirstRelease, (newVal) => {
   if (newVal) {
     formState.releaseType = 'major'; // Reset releaseType if it's a first release
   }
   formState.deviceModel = ''; // Clear device model when isFirstRelease changes
+});
+
+watch(() => formState.contentDescription, (val) => {
+  let raw = val.replace(/\s/g, '');
+  if (raw.length > 10000) {
+    let count = 0;
+    let result = '';
+    for (let c of val) {
+      if (c !== ' ') count++;
+      if (count > 10000) break;
+      result += c;
+    }
+    formState.contentDescription = result;
+  }
 });
 
 const nextStep = async () => {
@@ -213,12 +257,42 @@ const handleDrop = (e: DragEvent) => {
   border-radius: 6px;
   background-color: #fafafa;
   min-height: 200px;
-  text-align: center;
+  text-align: left;
   padding: 20px;
+  font-family: 'PingFang SC', sans-serif;
 }
 
 .steps-action {
   margin-top: 24px;
-  text-align: right;
+  text-align: left;
+  font-family: 'PingFang SC', sans-serif;
+}
+
+:deep(.ant-modal-title),
+:deep(.ant-modal),
+:deep(.ant-form),
+:deep(.ant-form-item-label > label),
+:deep(.ant-form-item),
+:deep(.ant-radio-group),
+:deep(.ant-input),
+:deep(.ant-select),
+:deep(.ant-btn),
+:deep(.ant-steps),
+:deep(.ant-upload),
+:deep(.ant-upload-text),
+:deep(.ant-upload-hint),
+:deep(.ant-upload-drag-icon),
+:deep(.ant-progress),
+:deep(.ant-modal-close-x) {
+  font-family: 'PingFang SC', sans-serif !important;
+  text-align: left !important;
+}
+
+:deep(.ant-form-item-label > label) {
+  text-align: left !important;
+}
+
+:deep(.ant-modal-body) {
+  text-align: left !important;
 }
 </style> 

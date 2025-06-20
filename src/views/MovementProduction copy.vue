@@ -190,16 +190,29 @@ const customLocale = computed(() => ({
 
 interface DataItem {
   key: number;
-  deviceModel: string;
-  productionBatch: string;
-  manufacturer: string;
-  burnedFirmware: string;
-  unitPrice: number;
-  quantity: number;
-  totalPrice: string;
-  creator: string;
-  creationTime: string;
-  updateTime: string;
+  accountId: string; // 账户ID
+  phoneNumber: string; // 手机号
+  deviceModel: string; // 设备型号
+  deviceId: string; // 设备ID
+  productId: string; // 商品ID
+  ipRole: string; // IP角色
+  productModel: string; // 产品型号
+  currentMemberType: string; // 当前会员类型
+  memberPayment: string; // 会员付费
+  memberActivationTime: string; // 会员激活时间
+  memberExpirationTime: string; // 会员到期时间
+  fourGCardNumber: string; // 4G卡号
+  fourGPlan: string; // 4G套餐
+  remainingDataThisMonth: string; // 当月剩余流量
+  fourGPayment: string; // 4G付费
+  fourGActivationTime: string; // 4G激活时间
+  fourGExpirationTime: string; // 4G到期时间
+  serviceAnnualFeeBalance: number; // 服务年费用余额 (元)
+  asrAnnualUsage: string; // ASR年用量
+  llmAnnualUsage: string; // LLM年用量
+  ttsAnnualUsage: string; // TTS年用量
+  voiceCloneAnnualUsage: string; // 音色克隆年用量
+  registrationTime: string; // 注册时间
 }
 
 // Define column configuration separately from the table columns
@@ -215,18 +228,18 @@ interface ColumnConfig {
   customRender?: (record: any) => string | number;
 }
 
-const columnConfigs: ColumnConfig[] = [
+const columnConfigs = [
   { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1 },
   { key: 'deviceModel', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
-  { key: 'productionBatch', title: '生产批次', dataIndex: 'productionBatch', width: 120, sorter: (a: any, b: any) => new Date(a.productionBatch).getTime() - new Date(b.productionBatch).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'productionBatch', title: '生产批次', dataIndex: 'productionBatch', width: 120 },
   { key: 'manufacturer', title: '生产厂家', dataIndex: 'manufacturer', width: 180 },
   { key: 'burnedFirmware', title: '烧录固件', dataIndex: 'burnedFirmware', width: 120 },
-  { key: 'unitPrice', title: '单价（元）', dataIndex: 'unitPrice', width: 100, sorter: (a: any, b: any) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'quantity', title: '数量（个）', dataIndex: 'quantity', width: 100, sorter: (a: any, b: any) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
-  { key: 'totalPrice', title: '总价（元）', dataIndex: 'totalPrice', width: 120, sorter: (a: any, b: any) => parseFloat(a.totalPrice) - parseFloat(b.totalPrice), sortDirections: ['ascend', 'descend'] },
+  { key: 'unitPrice', title: '单价（元）', dataIndex: 'unitPrice', width: 100 },
+  { key: 'quantity', title: '数量（个）', dataIndex: 'quantity', width: 100 },
+  { key: 'totalPrice', title: '总价（元）', dataIndex: 'totalPrice', width: 120 },
   { key: 'creator', title: '创建人', dataIndex: 'creator', width: 100, customRender: ({ record }: any) => record.creator },
-  { key: 'creationTime', title: '创建时间', dataIndex: 'creationTime', width: 160, sorter: (a: any, b: any) => new Date(a.creationTime).getTime() - new Date(b.creationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'creationTime', title: '创建时间', dataIndex: 'creationTime', width: 160 },
+  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160 },
   { key: 'operation', title: '操作', dataIndex: '', width: 280, fixed: 'right' },
 ];
 
@@ -236,20 +249,36 @@ const selectedColumnKeys = ref<string[]>(columnConfigs.map(config => config.key)
 
 // Create columns from configs
 const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
-  return configs.map(config => ({
-    title: config.title,
-    dataIndex: config.dataIndex,
-    key: config.key,
-    width: config.width,
-    fixed: config.fixed,
-    sorter: config.sorter,
-    sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    defaultSortOrder: config.defaultSortOrder,
-    customRender: config.customRender
-      ? config.customRender
-      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
-  })) as ColumnsType;
+  return configs.map(config => {
+    if (config.key === 'operation') {
+      return {
+        ...config,
+        title: config.title,
+        dataIndex: config.dataIndex,
+        key: config.key,
+        width: config.width,
+        fixed: config.fixed,
+        sorter: config.sorter,
+        sortDirections: config.sortDirections,
+        defaultSortOrder: config.defaultSortOrder,
+        // No customRender for operation column!
+      };
+    }
+    return {
+      ...config,
+      title: config.title,
+      dataIndex: config.dataIndex,
+      key: config.key,
+      width: config.width,
+      fixed: config.fixed,
+      sorter: config.sorter,
+      sortDirections: config.sortDirections,
+      defaultSortOrder: config.defaultSortOrder,
+      customRender: config.customRender
+        ? config.customRender
+        : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+    };
+  }) as ColumnsType;
 };
 
 // Computed property for visible columns
@@ -377,21 +406,26 @@ const handleManufacturerChange = (val: any) => {
 const currentPage = ref(1);
 const pageSize = ref(10);
 
-console.log('Initial deviceModelValue:', deviceModelValue.value);
-
-const sorterInfo = ref<any>({
-  columnKey: 'updateTime',
-  order: 'descend',
-});
+console.log('Initial ipRoleValue:', ipRoleValue.value);
 
 const pagination = computed(() => ({
-  total: filteredData.value.length, 
+  total: rawData.length, 
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true, 
   pageSizeOptions: ['10', '20', '50'], 
   showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
   showQuickJumper: { goButton: '页' }, 
+  onShowSizeChange: (current: number, size: number) => {
+    console.log('onShowSizeChange', current, size);
+    currentPage.value = current;
+    pageSize.value = size;
+  },
+  onChange: (page: number, size: number) => {
+    console.log('onChange', page, size);
+    currentPage.value = page;
+    pageSize.value = size;
+  },
 }));
 
 const onRefresh = () => {
@@ -415,7 +449,7 @@ const onRefresh = () => {
 };
 
 const filteredData = computed<DataItem[]>(() => {
-  let dataToFilter: DataItem[] = [...rawData];
+  let dataToFilter = rawData;
 
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
@@ -424,6 +458,16 @@ const filteredData = computed<DataItem[]>(() => {
         typeof value === 'string' && value.toLowerCase().includes(searchTerm)
       );
     });
+  }
+
+  // Filter by IP Role
+  if (
+    ipRoleValue.value &&
+    ipRoleValue.value.value !== 'all' &&
+    ipRoleValue.value.value !== ''
+  ) {
+    const selectedIpRole = ipRoleValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.ipRole === selectedIpRole);
   }
 
   // Filter by device model
@@ -435,6 +479,24 @@ const filteredData = computed<DataItem[]>(() => {
     dataToFilter = dataToFilter.filter(item => item.deviceModel === deviceModelValue.value.value);
   }
 
+  // Filter by release version
+  if (
+    releaseVersionValue.value &&
+    releaseVersionValue.value.value !== 'all' &&
+    releaseVersionValue.value.value !== ''
+  ) {
+    dataToFilter = dataToFilter.filter(item => item.releaseVersion === releaseVersionValue.value.value);
+  }
+
+  // Filter by version number
+  if (
+    versionNumberValue.value &&
+    versionNumberValue.value.value !== 'all' &&
+    versionNumberValue.value.value !== ''
+  ) {
+    dataToFilter = dataToFilter.filter(item => item.versionNumber === versionNumberValue.value.value);
+  }
+
   // Filter by manufacturer
   if (
     manufacturerValue.value &&
@@ -444,54 +506,21 @@ const filteredData = computed<DataItem[]>(() => {
     dataToFilter = dataToFilter.filter(item => item.manufacturer === manufacturerValue.value.value);
   }
 
-  // Sorting logic
-  if (sorterInfo.value && sorterInfo.value.order) {
-    const { columnKey, order } = sorterInfo.value;
-    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-    if (sorterFn) {
-      dataToFilter.sort((a, b) => {
-        const result = sorterFn(a, b);
-        return order === 'ascend' ? result : -result;
-      });
-    }
-  }
-
   const start = (currentPage.value - 1) * pageSize.value;
   const end = start + pageSize.value;
   return dataToFilter.slice(start, end);
 });
 
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredData.value.slice(start, end);
-})
-
 const searchInputValue = ref('');
 
 const handleTableChange = (
-  paginationData: any,
+  pagination: any,
   filters: any,
   sorter: any,
 ) => {
-  console.log('Table change:', paginationData, filters, sorter);
-  const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-
-  if (currentSorter && currentSorter.order) {
-    sorterInfo.value = {
-      columnKey: currentSorter.columnKey,
-      order: currentSorter.order,
-    };
-  } else {
-    // When sorting is cleared, revert to default
-    sorterInfo.value = {
-      columnKey: 'updateTime',
-      order: 'descend',
-    };
-  }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
+  console.log('Table change:', pagination, filters, sorter);
+  // You can implement your logic here to handle pagination, filters, and sorter
+  // For example, update currentPage, pageSize, or re-fetch data based on sorting/filtering
 };
 
 const onSettingClick = () => {
@@ -815,11 +844,15 @@ html, body {
 
 :deep(.ant-table-column-sorter-up),
 :deep(.ant-table-column-sorter-down) {
-  color: #bfbfbf; /* grey by default */
+  color: #bfbfbf !important; /* grey by default */
 }
-:deep(.ant-table-column-sorter-up.active),
-:deep(.ant-table-column-sorter-down.active) {
-  color: #1677ff; /* blue when active */
+:deep(.ant-table-column-sorter-up.on),
+:deep(.ant-table-column-sorter-down.on) {
+  color: #1677ff !important; /* blue when active */
+}
+:deep(th .ant-table-column-sorter-up:hover),
+:deep(th .ant-table-column-sorter-down:hover) {
+  color: #1677ff !important;
 }
 
 .download-link {

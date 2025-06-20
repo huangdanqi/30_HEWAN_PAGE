@@ -238,7 +238,7 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'sn', title: 'SN码', dataIndex: 'sn', width: 180 },
   { key: 'efuseId', title: 'eFuse ID', dataIndex: 'efuseId', width: 180 },
   { key: 'mac', title: 'MAC地址', dataIndex: 'mac', width: 160 },
-  { key: 'tempName', title: '蓝牙名称', dataIndex: 'tempName', width: 160 },
+  { key: 'tempName', title: '温子名称', dataIndex: 'tempName', width: 160 },
   { key: 'imei', title: 'IMEI', dataIndex: 'imei', width: 160 },
   { key: 'sim', title: '4G卡号', dataIndex: 'sim', width: 160 },
   { key: 'cpu', title: 'CPU序列', dataIndex: 'cpu', width: 120 },
@@ -266,7 +266,6 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     fixed: config.fixed,
     sorter: config.sorter,
     sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
     defaultSortOrder: config.defaultSortOrder,
     customRender: config.customRender
       ? config.customRender
@@ -832,11 +831,6 @@ const pageSize = ref(10);
 
 console.log('Initial ipRoleValue:', ipRoleValue.value);
 
-const sorterInfo = ref<any>({
-  columnKey: 'updateTime',
-  order: 'descend',
-});
-
 const pagination = computed(() => ({
   total: rawData.length, 
   current: currentPage.value,
@@ -880,7 +874,7 @@ const onRefresh = () => {
 };
 
 const filteredData = computed<DataItem[]>(() => {
-  let dataToFilter: DataItem[] = [...rawData];
+  let dataToFilter = rawData;
 
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
@@ -971,52 +965,21 @@ const filteredData = computed<DataItem[]>(() => {
     dataToFilter = dataToFilter.filter(item => item.latestFirmware === selectedFirmware);
   }
 
-  // Sorting logic
-  if (sorterInfo.value && sorterInfo.value.order) {
-    const { columnKey, order } = sorterInfo.value;
-    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-    if (sorterFn) {
-      dataToFilter.sort((a, b) => {
-        const result = sorterFn(a, b);
-        return order === 'ascend' ? result : -result;
-      });
-    }
-  }
-
-  return dataToFilter;
-});
-
-const paginatedData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
   const end = start + pageSize.value;
-  return filteredData.value.slice(start, end);
+  return dataToFilter.slice(start, end);
 });
 
 const searchInputValue = ref('');
 
 const handleTableChange = (
-  paginationData: any,
+  pagination: any,
   filters: any,
   sorter: any,
 ) => {
-  console.log('Table change:', paginationData, filters, sorter);
-  const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-
-  if (currentSorter && currentSorter.order) {
-    sorterInfo.value = {
-      columnKey: currentSorter.columnKey,
-      order: currentSorter.order,
-    };
-  } else {
-    // When sorting is cleared, revert to default
-    sorterInfo.value = {
-      columnKey: 'updateTime',
-      order: 'descend',
-    };
-  }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
+  console.log('Table change:', pagination, filters, sorter);
+  // You can implement your logic here to handle pagination, filters, and sorter
+  // For example, update currentPage, pageSize, or re-fetch data based on sorting/filtering
 };
 
 const onSettingClick = () => {

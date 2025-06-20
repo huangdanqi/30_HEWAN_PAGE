@@ -1,378 +1,845 @@
 <template>
-  <div class="account-container">
-    <AccountTitle />
+  <a-config-provider :locale="customLocale" :theme="{ algorithm: theme.defaultAlgorithm }">
+    <!-- Title -->
+    <div class="title-container">
+      <h2>账户信息</h2>
+    </div>
 
-    <!-- AccountHeader component for filters and actions -->
-    <AccountHeader
-      :filter-device-model="filterDeviceModel"
-      @update:filterDeviceModel="(newValue: string) => { filterDeviceModel = newValue; }"
-      :filter-manufacturer="filterManufacturer"
-      @update:filterManufacturer="(newValue: string) => { filterManufacturer = newValue; }"
-      :filter-device-status="filterDeviceStatus"
-      @update:filterDeviceStatus="(newValue: string) => { filterDeviceStatus = newValue; }"
-      :unique-roles="uniqueRoles"
-      :unique-membership-types="uniqueMembershipTypes"
-      :filter-membership-type="filterMembershipType"
-      @update:filterMembershipType="(newValue: string) => { filterMembershipType = newValue; }"
-      :unique-membership-payments="uniqueMembershipPayments"
-      :filter-membership-payment="filterMembershipPayment"
-      @update:filterMembershipPayment="(newValue: string) => { filterMembershipPayment = newValue; }"
-      :unique-four-g-plans="uniqueFourGPlans"
-      :filter-four-g-plan="filter4GPlan"
-      @update:filter4GPlan="(newValue: string) => { filter4GPlan = newValue; console.log('Account.vue: @update:filter4GPlan received', newValue); }"
-      :unique-four-g-payments="uniqueFourGPayments"
-      :filter-four-g-payment="filter4GPayment"
-      @update:filter4GPayment="(newValue: string) => { filter4GPayment = newValue; console.log('Account.vue: @update:filter4GPayment received', newValue); }"
-      :unique-device-statuses="uniqueDeviceStatuses"
-      :searchText="searchText"
-      @update:searchText="(newValue: string) => { searchText = newValue; }"
-      @refresh="fetchData"
-      @configure-columns="showConfigModal"
-      @show-info="handleShowInfo"
-      @apply-filters="handleApplyFilters"
-      :filter-role="filterRole"
-      @update:filterRole="newValue => filterRole = newValue"
-    />
-    <!-- AccountTable component for displaying data -->
-    <AccountTable
-      :columns="displayedColumns"
-      :data="data"
-      :loading="loading"
-      :pagination="pagination"
-      @change="handleTableChange"
-      @update:data="(newData: DataItem[]) => { data = newData; }"
-    />
+    <!-- select item area -->
+    <div class="top-controls-wrapper">
+      <div class="left-aligned-section">
+        <div class="select-container ip-role-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">IP角色:</span>
+          <a-tooltip :title="ipRoleValue.label">
+            <a-select
+              v-model:value="ipRoleValue"
+              style="width: 110px;"
+              :options="ipRoleOptions"
+              @change="handleIpRoleChange"
+              :allowClear="true" 
+              label-in-value
+            >
+              <a-select-option value="all">全部</a-select-option>
+              <!-- If you have dynamic options, add them here -->
+            </a-select>
+          </a-tooltip>
+        </div>
+        <div class="select-container member-type-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">当前会员类型:</span>
+          <a-tooltip :title="memberTypeValue.label">
+            <a-select
+              v-model:value="memberTypeValue"
+              style="width: 150px;"
+              :options="memberTypeOptions"
+              @change="handleMemberTypeChange"
+              :allowClear="true"
+              label-in-value
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+        <div class="select-container member-payment-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">会员付费:</span>
+          <a-tooltip :title="memberPaymentValue.label">
+            <a-select
+              v-model:value="memberPaymentValue"
+              style="width: 120px;"
+              :options="memberPaymentOptions"
+              @change="handleMemberPaymentChange"
+              :allowClear="true"
+              label-in-value
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+        <div class="select-container fourg-plan-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">4G套餐:</span>
+          <a-tooltip :title="fourGPlanValue.label">
+            <a-select
+              v-model:value="fourGPlanValue"
+              style="width: 120px;"
+              :options="fourGPlanOptions"
+              @change="handleFourGPlanChange"
+              :allowClear="true"
+              label-in-value
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+        <div class="select-container fourg-payment-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">4G付费:</span>
+          <a-tooltip :title="fourGPaymentValue.label">
+            <a-select
+              v-model:value="fourGPaymentValue"
+              style="width: 120px;"
+              :options="fourGPaymentOptions"
+              @change="handleFourGPaymentChange"
+              :allowClear="true"
+              label-in-value
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
 
-    <!-- Column Configuration Modal -->
-    <a-modal
-      title="Configure Table Columns"
-      :visible="isConfigModalVisible"
-      @cancel="handleConfigModalClose"
-      @ok="handleConfigModalClose"
-    >
-      <div>
-        <h3>
-          Visible Columns
-          <a-button type="link" @click="selectAllColumns" style="float: right;">Select All</a-button>
-        </h3>
-        <a-checkbox-group v-model:value="visibleColumnKeys">
-          <div v-for="column in allColumns" :key="column.key as string">
-            <a-checkbox :value="column.key as string">{{ column.title }}</a-checkbox>
-          </div>
-        </a-checkbox-group>
       </div>
-    </a-modal>
-  </div>
+      <!-- icon area -->
+      <div class="right-aligned-icons">
+          <!-- search area  -->
+          <a-input
+            v-model:value="searchInputValue"
+            placeholder="输入关键字搜索"
+            style="width: 200px"
+          >
+            <template #prefix>
+              <SearchOutlined />
+            </template>
+          </a-input>
+          <!-- <a-button type="primary" @click="handleVersionRelease">版本发布</a-button> -->
+          <ReloadOutlined @click="onRefresh" />
+          <a-dropdown>
+            <ColumnHeightOutlined @click.prevent />
+            <template #overlay>
+              <a-menu @click="handleMenuClick">
+                <a-menu-item key="large">宽松</a-menu-item>
+                <a-menu-item key="middle">中等</a-menu-item>
+                <a-menu-item key="small">紧凑</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <a-popover trigger="click" placement="bottomRight">
+  <template #content>
+    <div class="column-setting-panel" style="max-height: 300px; overflow-y: auto;">
+      <div class="setting-section">
+        <div class="section-header" style="display: flex; justify-content: space-between;">
+          <span>列展示</span>
+          <a-button type="link" @click="resetColumns">重置</a-button>
+        </div>
+
+        <draggable
+          v-model="columnOrder"
+          item-key="key"
+          @end="onColumnOrderChange"
+          class="column-checkbox-group"
+        >
+          <template #item="{ element: colKey }">
+            <div class="column-checkbox-item" style="padding: 4px 0;">
+              <a-checkbox
+                :checked="selectedColumnKeys.includes(colKey)"
+                @change="(event: Event) => handleColumnVisibilityChange(colKey, (event.target as HTMLInputElement).checked)"
+              >
+                {{ columnConfigs.find(config => config.key === colKey)?.title }}
+              </a-checkbox>
+            </div>
+          </template>
+        </draggable>
+      </div>
+    </div>
+  </template>
+  <SettingOutlined @click="onSettingClick" />
+</a-popover>
+
+
+      </div>
+    </div>
+      
+    <!-- table area -->
+    <div class="table-container">
+      <a-table
+        :columns="columns"
+        :data-source="filteredData"
+        :pagination="filteredData.length === 0 ? false : pagination"
+        :loading="loading"
+        :size="tableSize"
+        :scroll="{ x: 3000, y: 400, scrollToFirstRowOnChange: true }"
+        @change="handleTableChange"
+        :showSorterTooltip="false"
+      >
+      <template #bodyCell="{ column, record }">
+      <template v-if="column.key === 'operation_24'">
+        <a-space class="action-cell" direction="horizontal">
+          <a class="edit-link" @click="$emit('edit-record', record)">编辑</a>
+          <a-divider type="vertical" />
+          <a-popconfirm
+            title="确定要删除该信息吗?"
+            @confirm="$emit('delete-record', record)"
+          >
+            <a class="danger-link">删除</a>
+          </a-popconfirm>
+        </a-space>
+      </template>
+    </template>
+      </a-table>
+    </div>
+
+  </a-config-provider>
 </template>
+<script lang="ts" setup>
+import type { ColumnsType } from 'ant-design-vue/es/table';
+import { ref, computed, onMounted } from 'vue';
+import zh_CN from 'ant-design-vue/es/locale/zh_CN';
+import { theme } from 'ant-design-vue';
+import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import draggable from 'vuedraggable';
 
-<script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue';
-import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue';
-import AccountHeader from '../components/AccountHeader.vue';
-import AccountTable from '../components/AccountTable.vue';
-import AccountTitle from '../components/AccountTitle.vue';
+const customLocale = computed(() => ({
+  ...zh_CN,
+  Pagination: {
+    ...zh_CN.Pagination,
+    page: '', // Override the '页' suffix for quick jumper
+  },
+}));
 
-// Interface defining the structure of a single data item in the table
 interface DataItem {
-  key: string;
-  serialNumber: number;
-  accountId: string;
-  phoneNumber: string;
-  deviceModel: string;
-  deviceId: string;
-  ipRole: string;
-  productModel: string;
-  membershipType: string;
-  membershipPaymentStatus: string;
-  membershipActivationTime: string;
-  membershipExpirationTime: string;
-  fourGPlan: string;
-  remainingData: string;
-  fourGPaymentStatus: string;
-  annualServiceFee: number;
-  asrAnnualUsage: string;
-  llmAnnualUsage: string;
-  ttsAnnualUsage: string;
-  voiceCloningAnnualUsage: string;
-  creationTime: string;
-  deviceStatus: string;
+  key: number;
+  accountId: string; // 账户ID
+  phoneNumber: string; // 手机号
+  deviceModel: string; // 设备型号
+  deviceId: string; // 设备ID
+  productId: string; // 商品ID
+  ipRole: string; // IP角色
+  productModel: string; // 产品型号
+  currentMemberType: string; // 当前会员类型
+  memberPayment: string; // 会员付费
+  memberActivationTime: string; // 会员激活时间
+  memberExpirationTime: string; // 会员到期时间
+  fourGCardNumber: string; // 4G卡号
+  fourGPlan: string; // 4G套餐
+  remainingDataThisMonth: string; // 当月剩余流量
+  fourGPayment: string; // 4G付费
+  fourGActivationTime: string; // 4G激活时间
+  fourGExpirationTime: string; // 4G到期时间
+  serviceAnnualFeeBalance: number; // 服务年费用余额 (元)
+  asrAnnualUsage: string; // ASR年用量
+  llmAnnualUsage: string; // LLM年用量
+  ttsAnnualUsage: string; // TTS年用量
+  voiceCloneAnnualUsage: string; // 音色克隆年用量
+  registrationTime: string; // 注册时间
 }
 
-// Reactive state for table data, loading status, and pagination
-const data = ref<DataItem[]>([]); // Data displayed in the table
-const loading = ref(false); // Loading indicator for the table
-const pagination = reactive<TablePaginationConfig>({
-  current: 1, // Current page number
-  pageSize: 5, // Number of items per page
-  total: 0, // Total number of items
-  showTotal: (total: number) => `第 ${((pagination.current as number) - 1) * (pagination.pageSize as number) + 1}-${Math.min((pagination.current as number) * (pagination.pageSize as number), total)}条/共 ${total} 条`, // Function to display total items
-  showSizeChanger: true, // Enable page size changer
-  pageSizeOptions: ['10', '20', '50', '100'], // Options for page size
-  // showQuickJumper: true, // Enable quick jumper for pagination
-});
+// Define column configuration separately from the table columns
+interface ColumnConfig {
+  key: string;
+  title: string;
+  dataIndex: string;
+  width: number;
+  fixed?: 'left' | 'right' | boolean;
+  sorter?: (a: any, b: any) => number;
+  sortDirections?: ('ascend' | 'descend')[];
+  defaultSortOrder?: 'ascend' | 'descend';
+  customRender?: (record: any) => string | number;
+  className?: string;
+}
 
-// Ref to store the original unfiltered data fetched from the "API"
-const originalData = ref<DataItem[]>([]);
-
-// Define local reactive references (refs) for filter values and search text
-// These refs are updated by the AccountHeader component and trigger data fetching via the watcher
-const filterDeviceModel = ref('');
-const filterManufacturer = ref('');
-const filterRole = ref('all'); // Initial value 'all' for "全部" (all) selection
-const filterMembershipType = ref('all');
-const filterMembershipPayment = ref('all');
-const filter4GPlan = ref('all');
-const filter4GPayment = ref('all');
-const filterDeviceStatus = ref('all');
-const searchText = ref(''); // Search input text
-
-// Watcher to trigger data fetching when any filter variable, search text, or pagination changes
-// pagination.current is reset to 1 to go back to the first page with new filters
-// nextTick ensures that filter/pagination refs are updated in the DOM before fetchData is called
-watch(
-  [filterRole, filterMembershipType, filterMembershipPayment, filter4GPlan, filter4GPayment, filterDeviceStatus, searchText, () => pagination.current, () => pagination.pageSize],
-  () => {
-    console.log('Account.vue: Watcher triggered.');
-    console.log('  filter4GPayment (in watcher):', filter4GPayment.value);
-    // Always reset current page when any watched filter/search value changes
-    pagination.current = 1;
-    nextTick(() => fetchData());
-  }
-);
-
-// Computed properties to get unique values for filters from the original data
-// These are passed as props to AccountHeader for populating dropdown options
-const uniqueRoles = computed(() => [
-  ...new Set(originalData.value.map(item => item.ipRole))
-]);
-
-const uniqueMembershipTypes = computed(() => [
-  // Collects unique membership types from the original data
-  ...new Set(originalData.value.map(item => item.membershipType))
-]);
-
-const uniqueMembershipPayments = computed(() => [
-  // Collects unique membership payment statuses from the original data
-  ...new Set(originalData.value.map(item => item.membershipPaymentStatus))
-]);
-
-const uniqueFourGPlans = computed(() => {
-  // If originalData is empty, return the expected values
-  if (originalData.value.length === 0) {
-    return ['unlimited', 'limited'];
-  }
-  // Otherwise, collect unique 4G plans from the original data
-  return [...new Set(originalData.value.map(item => item.fourGPlan))];
-});
-
-const uniqueFourGPayments = computed(() => [
-  // Collects unique 4G payment statuses from the original data
-  ...new Set(originalData.value.map(item => item.fourGPaymentStatus))
-]);
-
-const uniqueDeviceStatuses = computed(() => [
-  // Collects unique device statuses from the original data
-  ...new Set(originalData.value.map(item => item.deviceStatus))
-]);
-
-// Define the original complete list of columns for the table
-// Each column has a title, dataIndex (key for data mapping), key, and sorter property
-const allColumns: TableColumnType[] = [
-  { title: '序号', dataIndex: 'serialNumber', key: 'serialNumber', sorter: true, width: 80 },
-  { title: '账户ID', dataIndex: 'accountId', key: 'accountId', sorter: true, width: 120 },
-  { title: '手机号', dataIndex: 'phoneNumber', key: 'phoneNumber', sorter: true, width: 120 },
-  { title: '设备型号', dataIndex: 'deviceModel', key: 'deviceModel', sorter: true, width: 120 },
-  { title: '设备ID', dataIndex: 'deviceId', key: 'deviceId', sorter: true, width: 120 },
-  { title: 'IP角色', dataIndex: 'ipRole', key: 'ipRole', sorter: true, width: 120 },
-  { title: '产品型号', dataIndex: 'productModel', key: 'productModel', sorter: true, width: 120 },
-  { title: '会员类型', dataIndex: 'membershipType', key: 'membershipType', sorter: true, width: 120 },
-  { title: '会员付费', dataIndex: 'membershipPaymentStatus', key: 'membershipPaymentStatus', sorter: true, width: 120 },
-  { title: '会员激活时间', dataIndex: 'membershipActivationTime', key: 'membershipActivationTime', sorter: true, width: 140 },
-  { title: '会员到期时间', dataIndex: 'membershipExpirationTime', key: 'membershipExpirationTime', sorter: true, width: 140 },
-  { title: '4G套餐', dataIndex: 'fourGPlan', key: 'fourGPlan', sorter: true, width: 100 },
-  { title: '当月剩余流量', dataIndex: 'remainingData', key: 'remainingData', sorter: true, width: 160 },
-  { title: '4G付费', dataIndex: 'fourGPaymentStatus', key: '4GPaymentStatus', sorter: true, width: 100 },
-  { title: '服务年费用 (元)', dataIndex: 'annualServiceFee', key: 'annualServiceFee', sorter: true, width: 160 },
-  { title: 'ASR年用量', dataIndex: 'asrAnnualUsage', key: 'asrAnnualUsage', sorter: true, width: 120 },
-  { title: 'LLM年用量', dataIndex: 'llmAnnualUsage', key: 'llmAnnualUsage', sorter: true, width: 120 },
-  { title: 'TTS年用量', dataIndex: 'ttsAnnualUsage', key: 'ttsAnnualUsage', sorter: true, width: 120 },
-  { title: '音色克隆年用量', dataIndex: 'voiceCloningAnnualUsage', key: 'voiceCloningAnnualUsage', sorter: true, width: 160 },
-  { title: '创建时间', dataIndex: 'creationTime', key: 'creationTime', sorter: true, width: 120 },
-  { title: '设备状态', dataIndex: 'deviceStatus', key: 'deviceStatus', sorter: true, width: 120, fixed: 'right' },
+const columnConfigs: ColumnConfig[] = [
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
+  { key: 'accountId_1', title: '账户ID', dataIndex: 'accountId', width: 150  },
+  { key: 'phoneNumber_2', title: '手机号', dataIndex: 'phoneNumber', width: 120 },
+  { key: 'deviceModel_3', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
+  { key: 'deviceId_4', title: '设备ID', dataIndex: 'deviceId', width: 150 },
+  { key: 'productId_5', title: '商品ID', dataIndex: 'productId', width: 150 },
+  { key: 'ipRole_6', title: 'IP角色', dataIndex: 'ipRole', width: 80 },
+  { key: 'productModel_7', title: '产品型号', dataIndex: 'productModel', width: 120 },
+  { key: 'currentMemberType_8', title: '当前会员类型', dataIndex: 'currentMemberType', width: 120 },
+  { key: 'memberPayment_9', title: '会员付费', dataIndex: 'memberPayment', width: 100 },
+  { key: 'memberActivationTime_10', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150, sorter: (a, b) => new Date(a.memberActivationTime).getTime() - new Date(b.memberActivationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'memberExpirationTime_11', title: '会员到期时间', dataIndex: 'memberExpirationTime', width: 150, sorter: (a, b) => new Date(a.memberExpirationTime).getTime() - new Date(b.memberExpirationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'fourGCardNumber_12', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120 },
+  { key: '4GPlan_13', title: '4G套餐', dataIndex: 'fourGPlan', width: 100 },
+  { key: 'remainingDataThisMonth_14', title: '当月剩余流量', dataIndex: 'remainingDataThisMonth', width: 120, sorter: (a, b) => parseFloat(a.remainingDataThisMonth) - parseFloat(b.remainingDataThisMonth), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: '4GPayment_15', title: '4G付费', dataIndex: '4GPayment', width: 100 },
+  { key: '4GActivationTime_16', title: '4G激活时间', dataIndex: 'fourGActivationTime', width: 150, sorter: (a, b) => new Date(a.fourGActivationTime).getTime() - new Date(b.fourGActivationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: '4GExpirationTime_17', title: '4G到期时间', dataIndex: 'fourGExpirationTime', width: 150, sorter: (a, b) => new Date(a.fourGExpirationTime).getTime() - new Date(b.fourGExpirationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'serviceAnnualFeeBalance_18', title: '服务年费用余额 (元)', dataIndex: 'serviceAnnualFeeBalance', width: 180, className: 'nowrap-header', sorter: (a, b) => a.serviceAnnualFeeBalance - b.serviceAnnualFeeBalance, sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'asrAnnualUsage_19', title: 'ASR年用量', dataIndex: 'asrAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.asrAnnualUsage) - parseFloat(b.asrAnnualUsage), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'llmAnnualUsage_20', title: 'LLM年用量', dataIndex: 'llmAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.llmAnnualUsage) - parseFloat(b.llmAnnualUsage), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'ttsAnnualUsage_21', title: 'TTS年用量', dataIndex: 'ttsAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.ttsAnnualUsage) - parseFloat(b.ttsAnnualUsage), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'voiceCloneAnnualUsage_22', title: '音色克隆年用量', dataIndex: 'voiceCloneAnnualUsage', width: 150, sorter: (a, b) => parseFloat(a.voiceCloneAnnualUsage) - parseFloat(b.voiceCloneAnnualUsage), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'registrationTime_23', title: '注册时间', dataIndex: 'registrationTime', width: 150, sorter: (a, b) => new Date(a.registrationTime).getTime() - new Date(b.registrationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  // { key: 'operation_24', title: '操作', dataIndex: '', width: 100, fixed: 'right' },
 ];
 
-// Reactive state for visible column keys and their order for the column configuration modal
-const visibleColumnKeys = ref(allColumns.map(col => col.key as string)); // Keys of currently visible columns
-const columnOrder = ref(allColumns.map(col => col.key as string)); // Order of columns
+// Store column order and visibility separately
+const columnOrder = ref<string[]>(columnConfigs.map(config => config.key));
+const selectedColumnKeys = ref<string[]>(columnConfigs.map(config => config.key));
 
-// State for the column configuration modal visibility
-const isConfigModalVisible = ref(false);
+// Create columns from configs
+const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
+  return configs.map(config => ({
+    title: config.title,
+    dataIndex: config.dataIndex,
+    key: config.key,
+    width: config.width,
+    fixed: config.fixed,
+    sorter: config.sorter,
+    sortDirections: config.sortDirections,
+    defaultSortOrder: config.defaultSortOrder,
+    customRender: config.customRender
+      ? config.customRender
+      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+    className: config.className,
+  })) as ColumnsType;
+};
 
-// Computed property to get the columns to display based on visibility and order selected by the user
-const displayedColumns = computed(() => {
-  const orderedColumns = columnOrder.value
-    .map(key => allColumns.find(col => col.key === key))
-    .filter(col => col !== undefined);
+// Computed property for visible columns
+const columns = computed<ColumnsType>(() => {
+  // Get visible configs based on selected keys and order
+  const visibleConfigs = columnOrder.value
+    .filter(key => selectedColumnKeys.value.includes(key))
+    .map(key => columnConfigs.find(config => config.key === key))
+    .filter(Boolean) as ColumnConfig[];
 
-  return orderedColumns.filter(col => visibleColumnKeys.value.includes(col!.key as string));
+  // Create columns from visible configs
+  const visibleColumns = createColumnsFromConfigs(visibleConfigs);
+
+  // Sort columns: fixed left, then unfixed, then fixed right
+  return visibleColumns.sort((a, b) => {
+    const fixedOrder = { 'left': 1, undefined: 2, 'right': 3 };
+    const aFixed = fixedOrder[a.fixed as keyof typeof fixedOrder] || 2;
+    const bFixed = fixedOrder[b.fixed as keyof typeof fixedOrder] || 2;
+    return aFixed - bFixed;
+  });
 });
 
-// Function to show the column configuration modal
-const showConfigModal = () => {
-  isConfigModalVisible.value = true;
-};
+const rawData: DataItem[] = [];
+const memberTypes = ['普通会员', 'VIP', 'SVIP'];
+const paymentStatuses = ['自动续费', '赠送', '停止续费', '未续购'];
 
-// Function to handle modal close/cancel for column configuration
-const handleConfigModalClose = () => {
-  isConfigModalVisible.value = false;
-  // The changes to visibleColumnKeys are already reactive, so no need to explicitly save here
-  // TODO: Add logic to save column configuration persistently (e.g., using localStorage) if desired
-};
+for (let i = 0; i < 100; i++) {
+  const date = new Date(2025, 5, 23, 23, 25, 33); // Example base date
+  date.setDate(date.getDate() + i); // Vary date by day for each record
+  date.setHours(date.getHours() + (i % 24)); // Vary hours
+  date.setMinutes(date.getMinutes() + (i % 60)); // Vary minutes
+  date.setSeconds(date.getSeconds() + (i % 60)); // Vary seconds
 
-// Function to handle the Info button click (placeholder/example)
-const handleShowInfo = () => {
-  alert('Account Information Page - Info'); // Replace with a more sophisticated notification if needed
-};
+  const activationTime = date.toISOString().slice(0, 19).replace('T', ' ');
+  const expirationDate = new Date(date);
+  expirationDate.setDate(date.getDate() + 20); // Example expiration 20 days later
+  const expirationTime = expirationDate.toISOString().slice(0, 19).replace('T', ' ');
 
-// Function to handle applying filters from a dedicated "Apply Filters" button (if implemented in header)
-// Resets pagination and triggers fetchData
-const handleApplyFilters = () => {
-  console.log('Applying filters...', {
-    filterRole: filterRole.value,
-    filterMembershipType: filterMembershipType.value,
-    filterMembershipPayment: filterMembershipPayment.value,
-    filter4GPlan: filter4GPlan.value,
-    filter4GPayment: filter4GPayment.value,
-    filterDeviceStatus: filterDeviceStatus.value,
-    searchText: searchText.value,
+  rawData.push({
+    key: i + 1,
+    accountId: `jkhg824&3*g${i % 10}`,
+    phoneNumber: `183****${7950 + (i % 10)}`,
+    deviceModel: `HWSZ00${i % 2 === 0 ? '1' : '2'}`,
+    deviceId: `0075A1B2SZTD${1000 + i}`,
+    productId: `hjhtwn832nj${i}`,
+    ipRole: i % 2 === 0 ? '王龙' : '张三',
+    productModel: `HWSZ00100${i % 3}`,
+    currentMemberType: memberTypes[i % memberTypes.length],
+    memberPayment: paymentStatuses[i % paymentStatuses.length],
+    memberActivationTime: activationTime,
+    memberExpirationTime: expirationTime,
+    fourGCardNumber: `1477629430${10 + i}`,
+    fourGPlan: `${(500 + (i % 3) * 100)}M/月`,
+    remainingDataThisMonth: `${(20 + (i % 5))}M`,
+    fourGPayment: paymentStatuses[(i + 1) % paymentStatuses.length],
+    fourGActivationTime: activationTime,
+    fourGExpirationTime: expirationTime,
+    serviceAnnualFeeBalance: 26.35 + (i % 5),
+    asrAnnualUsage: `384,3848 tokens`,
+    llmAnnualUsage: `384,3848 tokens`,
+    ttsAnnualUsage: `213.55 h`,
+    voiceCloneAnnualUsage: `213.55 h`,
+    registrationTime: activationTime,
   });
-  // Reset pagination to the first page when applying filters
-  pagination.current = 1;
-  nextTick(() => fetchData()); // Ensure fetchData is called after filter refs are updated
-};
+}
 
-// Function to handle drag sort end event (currently commented out/not implemented)
-// const handleDragSortEnd = (reorderedData: DataItem[]) => {
-//   console.log('Data after drag sort:', reorderedData);
-//   data.value = reorderedData; // Update the data with the new order
-// };
+console.log('Raw Data:', rawData);
 
-// Function to select all columns in the configuration modal
-const selectAllColumns = () => {
-  visibleColumnKeys.value = allColumns.map(col => col.key as string);
-};
+const ipRoleValue = ref({ key: 'all', label: '全部', value: 'all' });
 
-// TODO: Implement persistence for visibleColumnKeys and columnOrder (e.g., using localStorage)
-
-// Function to fetch data based on current filters and pagination settings
-const fetchData = async () => {
-  loading.value = true; // Set loading state to true
-  console.log('Account.vue: fetchData called.');
-  console.log('  filterRole:', filterRole.value);
-  console.log('  filterMembershipType:', filterMembershipType.value);
-  console.log('  filterMembershipPayment:', filterMembershipPayment.value);
-  console.log('  filter4GPlan (inside fetchData):', filter4GPlan.value);
-  console.log('  filter4GPayment:', filter4GPayment.value);
-  console.log('  filterDeviceStatus:', filterDeviceStatus.value);
-  console.log('  searchText:', searchText.value);
-  console.log('  Pagination:', pagination.current, pagination.pageSize);
-  
-  // Replace with actual API call to fetch accounting data
-  console.log('Fetching data with filters:', filterDeviceModel.value, filterManufacturer.value);
-  
-  // Simulate API call or fetch real data (e.g., from a backend API)
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // Generate dummy data or assign fetched data to originalData
-  // In a real application, you'd assign the data from your API call here
-  const generatedDummyData: DataItem[] = Array.from({ length: 50 }).map((_, i) => ({
-    key: `item-${i}`,
-    serialNumber: i + 1,
-    accountId: `acc-${i + 1}`,
-    phoneNumber: `1380000${String(i).padStart(4, '0')}`,
-    deviceModel: `Model ${i % 5}`,
-    deviceId: `dev-${i + 1000}`,
-    ipRole: i % 2 === 0 ? 'Admin' : 'User',
-    productModel: `Prod ${i % 3}`,
-    membershipType: i % 2 === 0 ? 'Premium' : 'Standard',
-    membershipPaymentStatus: i % 2 === 0 ? 'Paid' : 'Unpaid',
-    membershipActivationTime: `2023-01-${String(i % 30 + 1).padStart(2, '0')}`,
-    membershipExpirationTime: `2024-01-${String(i % 30 + 1).padStart(2, '0')}`,
-    fourGPlan: i % 3 === 0 ? 'unlimited' : 'limited',
-    remainingData: `${(100 - i).toFixed(2)} GB`,
-    fourGPaymentStatus: i % 3 === 0 ? 'Active' : 'Inactive',
-    annualServiceFee: (i + 1) * 100,
-    asrAnnualUsage: `${(i * 10).toFixed(2)} hrs`,
-    llmAnnualUsage: `${(i * 50).toFixed(2)} tokens`,
-    ttsAnnualUsage: `${(i * 20).toFixed(2)} hrs`,
-    voiceCloningAnnualUsage: `${(i * 5).toFixed(2)} clones`,
-    creationTime: `2022-12-${String(i % 31 + 1).padStart(2, '0')}`,
-    deviceStatus: i % 2 === 0 ? 'Online' : 'Offline',
+const ipRoleOptions = computed(() => {
+  const uniqueIpRoles = Array.from(new Set(rawData.map(item => item.ipRole)));
+  const options = uniqueIpRoles.map(role => ({
+    key: role,
+    value: role,
+    label: role,
   }));
+  return [
+    { key: 'all', value: 'all', label: '全部' },
+    ...options
+  ];
+});
 
-  originalData.value = generatedDummyData; // For simulation, assign dummy data
-
-  // Apply filters to the original data
-  const filteredData = originalData.value.filter(item => {
-    const roleMatch = filterRole.value === 'all' || item.ipRole === filterRole.value;
-    const membershipTypeMatch = filterMembershipType.value === 'all' || item.membershipType === filterMembershipType.value;
-    const membershipPaymentMatch = filterMembershipPayment.value === 'all' || item.membershipPaymentStatus === filterMembershipPayment.value;
-    const fourGPlanMatch = filter4GPlan.value === 'all' || item.fourGPlan === filter4GPlan.value;
-    const fourGPaymentMatch = filter4GPayment.value === 'all' || item.fourGPaymentStatus === filter4GPayment.value;
-    console.log(`Filtering: item.fourGPaymentStatus=${item.fourGPaymentStatus}, filter4GPayment.value=${filter4GPayment.value}, fourGPaymentMatch=${fourGPaymentMatch}`);
-    const deviceStatusMatch = filterDeviceStatus.value === 'all' || item.deviceStatus === filterDeviceStatus.value;
-    const searchMatch = !searchText.value || Object.values(item).some(value =>
-      String(value).toLowerCase().includes(searchText.value.toLowerCase())
-    );
-    
-    return roleMatch && membershipTypeMatch && membershipPaymentMatch && fourGPlanMatch && fourGPaymentMatch && deviceStatusMatch && searchMatch;
-  });
-
-  console.log('Filtered data length:', filteredData.length);
-  console.log('Sample filtered data (first 5 items):', filteredData.slice(0, 5));
-
-  // Apply pagination to the filtered data
-  data.value = filteredData.slice(
-    ((pagination.current as number) - 1) * (pagination.pageSize as number),
-    (pagination.current as number) * (pagination.pageSize as number)
-  );
-  pagination.total = filteredData.length; // Update total count for pagination
-  loading.value = false; // Set loading state to false
+const handleIpRoleChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    ipRoleValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    ipRoleValue.value = val;
+  }
 };
 
-// Handler for table changes (pagination, filters, sorter)
-const handleTableChange = (pag: TablePaginationConfig, filters: any, sorter: any) => {
-  pagination.current = pag.current; // Update current page
-  pagination.pageSize = pag.pageSize; // Update page size
-  console.log('Table change - Pagination:', pag);
-  console.log('Table change - Filters:', filters);
-  console.log('Table change - Sorter:', sorter);
-  // The watcher will handle triggering fetchData once pagination state is updated
-  // Removed direct fetchData() call to prevent infinite reactivity loop
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+console.log('Initial ipRoleValue:', ipRoleValue.value);
+
+const pagination = computed(() => ({
+  total: rawData.length, 
+  current: currentPage.value,
+  pageSize: pageSize.value,
+  showSizeChanger: true, 
+  pageSizeOptions: ['10', '20', '50'], 
+  showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
+  showQuickJumper: { goButton: '页' }, 
+  onShowSizeChange: (current: number, size: number) => {
+    console.log('onShowSizeChange', current, size);
+    currentPage.value = current;
+    pageSize.value = size;
+  },
+  onChange: (page: number, size: number) => {
+    console.log('onChange', page, size);
+    currentPage.value = page;
+    pageSize.value = size;
+  },
+}));
+
+const onRefresh = () => {
+  console.log('Refresh button clicked!');
+  loading.value = true; // Show loading icon
+  searchInputValue.value = '';
+  currentPage.value = 1;
+  resetColumns(); // Reset column order and visibility
+
+  // Reset all selector values to '全部'
+  ipRoleValue.value = { key: 'all', label: '全部', value: 'all' };
+  memberTypeValue.value = { key: 'all', label: '全部', value: 'all' };
+  memberPaymentValue.value = { key: 'all', label: '全部', value: 'all' };
+  fourGPlanValue.value = { key: 'all', label: '全部', value: 'all' };
+  fourGPaymentValue.value = { key: 'all', label: '全部', value: 'all' };
+
+  // Simulate data fetching
+  setTimeout(() => {
+    loading.value = false; // Hide loading icon after a delay
+  }, 500); // Adjust delay as needed
 };
 
-// Fetch data when the component is mounted
+const filteredData = computed<DataItem[]>(() => {
+  let dataToFilter = rawData;
+
+  if (searchInputValue.value) {
+    const searchTerm = searchInputValue.value.toLowerCase();
+    dataToFilter = dataToFilter.filter((item: DataItem) => {
+      return Object.values(item).some(value =>
+        typeof value === 'string' && value.toLowerCase().includes(searchTerm)
+      );
+    });
+  }
+
+  // Filter by IP Role
+  if (
+    ipRoleValue.value &&
+    ipRoleValue.value.value !== 'all' &&
+    ipRoleValue.value.value !== ''
+  ) {
+    const selectedIpRole = ipRoleValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.ipRole === selectedIpRole);
+  }
+
+  // Filter by member type
+  if (
+    memberTypeValue.value &&
+    memberTypeValue.value.value !== 'all' &&
+    memberTypeValue.value.value !== ''
+  ) {
+    const selectedType = memberTypeValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.currentMemberType === selectedType);
+  }
+
+  // Filter by member payment
+  if (
+    memberPaymentValue.value &&
+    memberPaymentValue.value.value !== 'all' &&
+    memberPaymentValue.value.value !== ''
+  ) {
+    const selectedPayment = memberPaymentValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.memberPayment === selectedPayment);
+  }
+
+  // Filter by 4G payment
+  if (
+    fourGPaymentValue.value &&
+    fourGPaymentValue.value.value !== 'all' &&
+    fourGPaymentValue.value.value !== ''
+  ) {
+    const selectedFourGPayment = fourGPaymentValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.fourGPayment === selectedFourGPayment);
+  }
+
+  // Filter by 4G plan
+  if (
+    fourGPlanValue.value &&
+    fourGPlanValue.value.value !== 'all' &&
+    fourGPlanValue.value.value !== ''
+  ) {
+    const selectedPlan = fourGPlanValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.fourGPlan === selectedPlan);
+  }
+
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return dataToFilter.slice(start, end);
+});
+
+const searchInputValue = ref('');
+
+const handleTableChange = (
+  pagination: any,
+  filters: any,
+  sorter: any,
+) => {
+  console.log('Table change:', pagination, filters, sorter);
+  // You can implement your logic here to handle pagination, filters, and sorter
+  // For example, update currentPage, pageSize, or re-fetch data based on sorting/filtering
+};
+
+const onSettingClick = () => {
+  console.log('Setting clicked');
+};
+
+const loading = ref(false); // Add a loading state
+
+const tableSize = ref('middle'); // Default table size
+
+const handleMenuClick = ({ key }: { key: string }) => {
+  tableSize.value = key;
+};
+
+const resetColumns = () => {
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  columnOrder.value = columnConfigs.map(config => config.key);
+};
+
+const onColumnOrderChange = (event: { newIndex: number; oldIndex: number }) => {
+  const { newIndex, oldIndex } = event;
+  const movedColumn = columnOrder.value[oldIndex];
+  const newOrder = [...columnOrder.value];
+  newOrder.splice(oldIndex, 1);
+  newOrder.splice(newIndex, 0, movedColumn);
+  columnOrder.value = newOrder;
+
+  // The selectedColumnKeys should not be altered here, as it maintains visibility state.
+  // Its order is implicitly handled by the 'columns' computed property based on columnOrder.
+};
+
+const handleColumnVisibilityChange = (key: string, checked: boolean) => {
+  if (checked) {
+    if (!selectedColumnKeys.value.includes(key)) {
+      selectedColumnKeys.value.push(key);
+    }
+  } else {
+    selectedColumnKeys.value = selectedColumnKeys.value.filter(k => k !== key);
+  }
+};
+
+const handleVersionRelease = () => {
+  console.log('版本发布 button clicked!');
+  // Add your version release logic here
+};
+
+const memberTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
+
+const memberTypeOptions = computed(() => {
+  const uniqueTypes = Array.from(new Set(rawData.map(item => item.currentMemberType)));
+  const options = uniqueTypes.map(type => ({
+    key: type,
+    value: type,
+    label: type,
+  }));
+  return [
+    { key: 'all', value: 'all', label: '全部' },
+    ...options
+  ];
+});
+
+const handleMemberTypeChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    memberTypeValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    memberTypeValue.value = val;
+  }
+};
+
+const memberPaymentValue = ref({ key: 'all', label: '全部', value: 'all' });
+
+const memberPaymentOptions = computed(() => {
+  const uniquePayments = Array.from(new Set(rawData.map(item => item.memberPayment)));
+  const options = uniquePayments.map(payment => ({
+    key: payment,
+    value: payment,
+    label: payment,
+  }));
+  return [
+    { key: 'all', value: 'all', label: '全部' },
+    ...options
+  ];
+});
+
+const handleMemberPaymentChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    memberPaymentValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    memberPaymentValue.value = val;
+  }
+};
+
+const fourGPaymentValue = ref({ key: 'all', label: '全部', value: 'all' });
+
+const fourGPaymentOptions = computed(() => {
+  const uniquePayments = Array.from(new Set(rawData.map(item => item.fourGPayment)));
+  const options = uniquePayments.map(payment => ({
+    key: payment,
+    value: payment,
+    label: payment,
+  }));
+  return [
+    { key: 'all', value: 'all', label: '全部' },
+    ...options
+  ];
+});
+
+const handleFourGPaymentChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    fourGPaymentValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    fourGPaymentValue.value = val;
+  }
+};
+
+const fourGPlanValue = ref({ key: 'all', label: '全部', value: 'all' });
+
+const fourGPlanOptions = computed(() => {
+  const uniquePlans = Array.from(new Set(rawData.map(item => item.fourGPlan)));
+  const options = uniquePlans.map(plan => ({
+    key: plan,
+    value: plan,
+    label: plan,
+  }));
+  return [
+    { key: 'all', value: 'all', label: '全部' },
+    ...options
+  ];
+});
+
+const handleFourGPlanChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    fourGPlanValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    fourGPlanValue.value = val;
+  }
+};
+
 onMounted(() => {
-  fetchData();
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+});
+
+defineExpose({
+  handleTableChange, // Explicitly expose handleTableChange
 });
 </script>
-
 <style scoped>
-/* Scoped styles for the account container */
-.account-container {
-  padding: 14px; /* Adjusted padding (24px * 0.60) */
-  width: 100%; /* Ensure full width */
-  height: auto; /* Allow height to adjust naturally */
-  font-size: 12px; /* Set base font size for the account page */
+#components-table-demo-summary tfoot th,
+#components-table-demo-summary tfoot td {
+  background: #fafafa;
+}
+[data-theme='dark'] #components-table-demo-summary tfoot th,
+[data-theme='dark'] #components-table-demo-summary tfoot td {
+  background: #1d1d1d;
+}
+
+/* Custom style to adjust row height and font size based on table size */
+.ant-table-tbody > tr > td,
+.ant-table-thead > tr > th {
+  font-family: 'PingFang SC', sans-serif; /* Keep font family consistent */
+  white-space: nowrap; /* Prevent text from stacking */
+  text-align: left; /* Ensure left alignment for headers */
+}
+
+.ant-table-wrapper-small .ant-table-tbody > tr > td,
+.ant-table-wrapper-small .ant-table-thead > tr > th {
+  padding: 2px 2px; /* Very compact */
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.ant-table-wrapper-middle .ant-table-tbody > tr > td,
+.ant-table-wrapper-middle .ant-table-thead > tr > th {
+  padding: 8px 8px; /* Medium density */
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ant-table-wrapper-large .ant-table-tbody > tr > td,
+.ant-table-wrapper-large .ant-table-thead > tr > th {
+  padding: 16px 16px; /* Larger, more spacious */
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* title like demo page */
+.title-container {
+   /* Light grey border */
+  padding: 10px 14px; /* Adjusted from 16px 24px * 0.60 */
+  margin-bottom: 10px; /* Adjusted from 16px * 0.60 */
+  background-color: #fff; /* White background */
+  border-radius: 4px; /* Slightly rounded corners */
+}
+
+.title-container h2 {
+  margin: 0; /* Remove default margin from h2 */
+  font-size: 16px; /* Adjusted to 12px */
+  font-weight: 500; /* Adjust font weight if needed */
+  color: rgba(0, 0, 0, 0.85); /* Standard Ant Design text color */
+  text-align: left;
+  font-weight: bold; /* Center the text horizontally */
+}
+
+.top-controls-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.left-aligned-section {
+  display: flex;
+  align-items: center;
+}
+
+.right-aligned-section {
+  display: none;
+}
+
+.right-aligned-icons {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Add space between icons */
+  padding-right: 30px;
+}
+
+.right-aligned-icons > .anticon {
+  padding: 6px 8px; /* Add padding to make them look like buttons */
+  border: 1px solid #d9d9d9; /* Add a subtle border */
+  background-color: #f0f0f0; /* Add a light background */
+  border-radius: 4px; /* Slightly rounded corners */
+  transition: all 0.3s; /* Smooth transition for hover effects */
+  cursor: pointer;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.65);
+   /* Slightly darker grey for better visibility */
+}
+
+.right-aligned-icons > .anticon:hover {
+  border-color: #4096ff; /* Ant Design primary color on hover */
+  color: #4096ff; /* Change icon color on hover */
+  background-color: #e6f7ff; /* Lighter background on hover */
+}
+
+.right-aligned-icons > .anticon:last-child,
+.right-aligned-icons > .ant-btn:last-child,
+.right-aligned-icons > .ant-dropdown:last-child,
+.right-aligned-icons > .ant-popover:last-child {
+  margin-right: 28px; /* Adjust this value for a bigger gap */
+}
+
+html, body {
+  overflow-x: hidden;
+}
+
+.table-container {
+  padding: 10px ;
+  padding-right: 50px;
+}
+
+/* Styling for the custom always-visible placeholder */
+.select-container {
+  position: relative;
+  display: inline-block;
+}
+.select-always-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 7px;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 1;
+  font-size: 13px;
+}
+:deep(.ant-select-selector) {
+  padding-left: 100px !important;
+}
+
+:deep(.ant-select-selector),
+:deep(.ant-select-dropdown),
+:deep(.ant-select-item),
+:deep(.ant-select-selection-item),
+:deep(.ant-select-item-option-content) {
+  font-size: 12px !important;
+}
+
+/* Add custom style for pagination font size */
+:deep(.ant-pagination) {
+  font-size: 12px !important;
+}
+
+:deep(.ant-input),
+:deep(.ant-btn-primary) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-input::placeholder) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-pagination-options) .ant-select-selector {
+  min-width: unset !important;
+  width: auto !important;
+  padding-left: 4px !important;
+  padding-right: 18px !important; /* keep space for arrow */
+}
+
+/* Make the action buttons horizontal and style '编辑' as blue and bold */
+:deep(.ant-table-cell .action-cell) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 90px;
+}
+:deep(.ant-table-cell .action-cell .edit-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
+}
+:deep(.ant-table-cell .action-cell .danger-link) {
+  color: #ff4d4f !important; /* Ant Design red */
+  font-weight: bold;
+}
+
+:deep(.member-type-select .ant-select-selector) {
+  padding-left: 90px !important;
+}
+
+:deep(.ip-role-select .ant-select-selector) {
+  padding-left: 50px !important;
+}
+
+:deep(.member-payment-select .ant-select-selector) {
+  padding-left: 65px !important;
+}
+
+:deep(.fourg-payment-select .ant-select-selector) {
+  padding-left: 55px !important;
+}
+
+:deep(.fourg-plan-select .ant-select-selector) {
+  padding-left: 55px !important;
+}
+
+:deep(.nowrap-header) {
+  white-space: nowrap !important;
 }
 </style>
-
-<style>
-/* Global styles to override Ant Design pagination defaults if needed */
-.ant-pagination {
-  text-align: right; /* Default Ant Design pagination alignment */
-}
-
-
-
-</style> 

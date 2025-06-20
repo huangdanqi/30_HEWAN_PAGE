@@ -525,13 +525,21 @@ defineExpose({
   transition: all 0.3s; /* Smooth transition for hover effects */
   cursor: pointer;
   font-size: 16px;
-  color: rgba(0, 0, 0, 0.65); /* Slightly darker grey for better visibility */
+  color: rgba(0, 0, 0, 0.65);
+   /* Slightly darker grey for better visibility */
 }
 
 .right-aligned-icons > .anticon:hover {
   border-color: #4096ff; /* Ant Design primary color on hover */
   color: #4096ff; /* Change icon color on hover */
   background-color: #e6f7ff; /* Lighter background on hover */
+}
+
+.right-aligned-icons > .anticon:last-child,
+.right-aligned-icons > .ant-btn:last-child,
+.right-aligned-icons > .ant-dropdown:last-child,
+.right-aligned-icons > .ant-popover:last-child {
+  margin-right: 28px; /* Adjust this value for a bigger gap */
 }
 
 html, body {

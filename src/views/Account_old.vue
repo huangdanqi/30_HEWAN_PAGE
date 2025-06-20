@@ -11,17 +11,17 @@
         <div class="select-container ip-role-select" style="margin-left: 10px;">
           <span class="select-always-placeholder">IP角色:</span>
           <a-tooltip :title="ipRoleValue.label">
-          <a-select
-            v-model:value="ipRoleValue"
+            <a-select
+              v-model:value="ipRoleValue"
               style="width: 110px;"
-            :options="ipRoleOptions"
-            @change="handleIpRoleChange"
-            :allowClear="true" 
-            label-in-value
-          >
-            <a-select-option value="all">全部</a-select-option>
-            <!-- If you have dynamic options, add them here -->
-          </a-select>
+              :options="ipRoleOptions"
+              @change="handleIpRoleChange"
+              :allowClear="true" 
+              label-in-value
+            >
+              <a-select-option value="all">全部</a-select-option>
+              <!-- If you have dynamic options, add them here -->
+            </a-select>
           </a-tooltip>
         </div>
         <div class="select-container member-type-select" style="margin-left: 10px;">
@@ -218,7 +218,6 @@ interface DataItem {
   ttsAnnualUsage: string; // TTS年用量
   voiceCloneAnnualUsage: string; // 音色克隆年用量
   registrationTime: string; // 注册时间
-  updateTime: string; // 更新时间
 }
 
 // Define column configuration separately from the table columns
@@ -230,7 +229,6 @@ interface ColumnConfig {
   fixed?: 'left' | 'right' | boolean;
   sorter?: (a: any, b: any) => number;
   sortDirections?: ('ascend' | 'descend')[];
-  sortOrder?: 'ascend' | 'descend';
   defaultSortOrder?: 'ascend' | 'descend';
   customRender?: (record: any) => string | number;
   className?: string;
@@ -240,30 +238,27 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
   { key: 'accountId_1', title: '账户ID', dataIndex: 'accountId', width: 150  },
   { key: 'phoneNumber_2', title: '手机号', dataIndex: 'phoneNumber', width: 120 },
-  { key: 'deviceModel', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
-
-
+  { key: 'deviceModel_3', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
   { key: 'deviceId_4', title: '设备ID', dataIndex: 'deviceId', width: 150 },
   { key: 'productId_5', title: '商品ID', dataIndex: 'productId', width: 150 },
   { key: 'ipRole_6', title: 'IP角色', dataIndex: 'ipRole', width: 80 },
   { key: 'productModel_7', title: '产品型号', dataIndex: 'productModel', width: 120 },
   { key: 'currentMemberType_8', title: '当前会员类型', dataIndex: 'currentMemberType', width: 120 },
   { key: 'memberPayment_9', title: '会员付费', dataIndex: 'memberPayment', width: 100 },
-  { key: 'memberActivationTime_10', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150, sorter: (a, b) => new Date(a.memberActivationTime).getTime() - new Date(b.memberActivationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'memberExpirationTime_11', title: '会员到期时间', dataIndex: 'memberExpirationTime', width: 150, sorter: (a, b) => new Date(a.memberExpirationTime).getTime() - new Date(b.memberExpirationTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'memberActivationTime_10', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150, sorter: (a, b) => new Date(a.memberActivationTime).getTime() - new Date(b.memberActivationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'memberExpirationTime_11', title: '会员到期时间', dataIndex: 'memberExpirationTime', width: 150, sorter: (a, b) => new Date(a.memberExpirationTime).getTime() - new Date(b.memberExpirationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
   { key: 'fourGCardNumber_12', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120 },
   { key: '4GPlan_13', title: '4G套餐', dataIndex: 'fourGPlan', width: 100 },
-  { key: 'remainingDataThisMonth_14', title: '当月剩余流量', dataIndex: 'remainingDataThisMonth', width: 120, sorter: (a, b) => parseFloat(a.remainingDataThisMonth) - parseFloat(b.remainingDataThisMonth), sortDirections: ['ascend', 'descend'] },
+  { key: 'remainingDataThisMonth_14', title: '当月剩余流量', dataIndex: 'remainingDataThisMonth', width: 120, sorter: (a, b) => parseFloat(a.remainingDataThisMonth) - parseFloat(b.remainingDataThisMonth), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
   { key: '4GPayment_15', title: '4G付费', dataIndex: '4GPayment', width: 100 },
-  { key: '4GActivationTime_16', title: '4G激活时间', dataIndex: 'fourGActivationTime', width: 150, sorter: (a, b) => new Date(a.fourGActivationTime).getTime() - new Date(b.fourGActivationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: '4GExpirationTime_17', title: '4G到期时间', dataIndex: 'fourGExpirationTime', width: 150, sorter: (a, b) => new Date(a.fourGExpirationTime).getTime() - new Date(b.fourGExpirationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'serviceAnnualFeeBalance_18', title: '服务年费用余额 (元)', dataIndex: 'serviceAnnualFeeBalance', width: 180, className: 'nowrap-header', sorter: (a, b) => a.serviceAnnualFeeBalance - b.serviceAnnualFeeBalance, sortDirections: ['ascend', 'descend'] },
-  { key: 'asrAnnualUsage_19', title: 'ASR年用量', dataIndex: 'asrAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.asrAnnualUsage) - parseFloat(b.asrAnnualUsage), sortDirections: ['ascend', 'descend'] },
-  { key: 'llmAnnualUsage_20', title: 'LLM年用量', dataIndex: 'llmAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.llmAnnualUsage) - parseFloat(b.llmAnnualUsage), sortDirections: ['ascend', 'descend'] },
-  { key: 'ttsAnnualUsage_21', title: 'TTS年用量', dataIndex: 'ttsAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.ttsAnnualUsage) - parseFloat(b.ttsAnnualUsage), sortDirections: ['ascend', 'descend'] },
-  { key: 'voiceCloneAnnualUsage_22', title: '音色克隆年用量', dataIndex: 'voiceCloneAnnualUsage', width: 150, sorter: (a, b) => parseFloat(a.voiceCloneAnnualUsage) - parseFloat(b.voiceCloneAnnualUsage), sortDirections: ['ascend', 'descend'] },
-  { key: 'registrationTime_23', title: '注册时间', dataIndex: 'registrationTime', width: 150, sorter: (a, b) => new Date(a.registrationTime).getTime() - new Date(b.registrationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: '4GActivationTime_16', title: '4G激活时间', dataIndex: 'fourGActivationTime', width: 150, sorter: (a, b) => new Date(a.fourGActivationTime).getTime() - new Date(b.fourGActivationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: '4GExpirationTime_17', title: '4G到期时间', dataIndex: 'fourGExpirationTime', width: 150, sorter: (a, b) => new Date(a.fourGExpirationTime).getTime() - new Date(b.fourGExpirationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'serviceAnnualFeeBalance_18', title: '服务年费用余额 (元)', dataIndex: 'serviceAnnualFeeBalance', width: 180, className: 'nowrap-header', sorter: (a, b) => a.serviceAnnualFeeBalance - b.serviceAnnualFeeBalance, sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'asrAnnualUsage_19', title: 'ASR年用量', dataIndex: 'asrAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.asrAnnualUsage) - parseFloat(b.asrAnnualUsage), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'llmAnnualUsage_20', title: 'LLM年用量', dataIndex: 'llmAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.llmAnnualUsage) - parseFloat(b.llmAnnualUsage), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'ttsAnnualUsage_21', title: 'TTS年用量', dataIndex: 'ttsAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.ttsAnnualUsage) - parseFloat(b.ttsAnnualUsage), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'voiceCloneAnnualUsage_22', title: '音色克隆年用量', dataIndex: 'voiceCloneAnnualUsage', width: 150, sorter: (a, b) => parseFloat(a.voiceCloneAnnualUsage) - parseFloat(b.voiceCloneAnnualUsage), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'registrationTime_23', title: '注册时间', dataIndex: 'registrationTime', width: 150, sorter: (a, b) => new Date(a.registrationTime).getTime() - new Date(b.registrationTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
   // { key: 'operation_24', title: '操作', dataIndex: '', width: 100, fixed: 'right' },
 ];
 
@@ -281,7 +276,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     fixed: config.fixed,
     sorter: config.sorter,
     sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
+    defaultSortOrder: config.defaultSortOrder,
     customRender: config.customRender
       ? config.customRender
       : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
@@ -350,7 +345,6 @@ for (let i = 0; i < 100; i++) {
     ttsAnnualUsage: `213.55 h`,
     voiceCloneAnnualUsage: `213.55 h`,
     registrationTime: activationTime,
-    updateTime: activationTime,
   });
 }
 
@@ -383,11 +377,6 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 console.log('Initial ipRoleValue:', ipRoleValue.value);
-
-const sorterInfo = ref<any>({
-  columnKey: 'updateTime',
-  order: 'descend',
-});
 
 const pagination = computed(() => ({
   total: rawData.length, 
@@ -429,7 +418,7 @@ const onRefresh = () => {
   }, 500); // Adjust delay as needed
 };
 
-const filteredData = computed(() => {
+const filteredData = computed<DataItem[]>(() => {
   let dataToFilter = rawData;
 
   if (searchInputValue.value) {
@@ -491,46 +480,21 @@ const filteredData = computed(() => {
     dataToFilter = dataToFilter.filter(item => item.fourGPlan === selectedPlan);
   }
 
-  // Sorting logic
-  if (sorterInfo.value && sorterInfo.value.order) {
-    const { columnKey, order } = sorterInfo.value;
-    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-    if (sorterFn) {
-      dataToFilter.sort((a, b) => {
-        const result = sorterFn(a, b);
-        return order === 'ascend' ? result : -result;
-      });
-    }
-  }
-
-  return dataToFilter;
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return dataToFilter.slice(start, end);
 });
 
 const searchInputValue = ref('');
 
 const handleTableChange = (
-  paginationData: any,
+  pagination: any,
   filters: any,
   sorter: any,
 ) => {
-  console.log('Table change:', paginationData, filters, sorter);
-  const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-
-  if (currentSorter && currentSorter.order) {
-    sorterInfo.value = {
-      columnKey: currentSorter.columnKey,
-      order: currentSorter.order,
-    };
-  } else {
-    // When sorting is cleared, revert to default
-    sorterInfo.value = {
-      columnKey: 'updateTime',
-      order: 'descend',
-    };
-  }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
+  console.log('Table change:', pagination, filters, sorter);
+  // You can implement your logic here to handle pagination, filters, and sorter
+  // For example, update currentPage, pageSize, or re-fetch data based on sorting/filtering
 };
 
 const onSettingClick = () => {

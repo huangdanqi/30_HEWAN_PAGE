@@ -6,7 +6,7 @@
 // No script logic needed for a simple title component
 </script>
 
-<style scoped>
+<style scoped> 
 .page-title {
   font-size: 24px;
   font-weight: bold;

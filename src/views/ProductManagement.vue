@@ -1,217 +1,939 @@
 <template>
-  <div class="product-management-container">
-    <ProductManagementTitle />
+  <a-config-provider :locale="customLocale" :theme="{ algorithm: theme.defaultAlgorithm }">
+    <!-- Title -->
+    <div class="title-container">
+      <h2>产品管理</h2>
+    </div>
 
-    <ProductManagementHeader
-      v-model:searchText="searchText"
-      v-model:filterDeviceModel="filterDeviceModel"
-      v-model:filterProductType="filterProductType"
-      v-model:filterIpName="filterIpName"
-      :uniqueDeviceModels="uniqueDeviceModels"
-      :uniqueProductTypes="uniqueProductTypes"
-      :uniqueIpNames="uniqueIpNames"
-      @search="handleSearch"
-      @refresh="fetchData"
-      @create-product="handleCreateProduct"
-      @show-info="handleShowInfo"
-      @configure-columns="showConfigModal"
-    />
+    <!-- select item area -->
+    <div class="top-controls-wrapper">
+      <div class="left-aligned-section">
+        <div class="select-container device-model-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">设备型号:</span>
+          <a-tooltip :title="deviceModelValue.label">
+            <a-select
+              v-model:value="deviceModelValue"
+              style="width: 120px;"
+              :options="deviceModelOptions"
+              @change="handleDeviceModelChange"
+              :allowClear="true"
+              label-in-value
+              class="device-model-select"
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+        <div class="select-container product-type-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">产品类型:</span>
+          <a-tooltip :title="productTypeValue.label">
+            <a-select
+              v-model:value="productTypeValue"
+              style="width: 120px;"
+              :options="productTypeOptions"
+              @change="handleProductTypeChange"
+              :allowClear="true"
+              label-in-value
+              class="product-type-select"
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+        <div class="select-container ip-name-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">IP名称:</span>
+          <a-tooltip :title="ipNameValue.label">
+            <a-select
+              v-model:value="ipNameValue"
+              style="width: 120px;"
+              :options="ipNameOptions"
+              @change="handleIpNameChange"
+              :allowClear="true"
+              label-in-value
+              class="ip-name-select"
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
 
-    <ProductManagementTable
-      :columns="columns"
-      :data="data"
-      :loading="loading"
-      :pagination="pagination"
-      @change="handleTableChange"
-      @edit-record="editRecord"
-      @delete-record="deleteRecord"
-    />
-
-    <!-- Column Configuration Modal -->
-    <a-modal
-      title="Configure Table Columns"
-      v-model:visible="isConfigModalVisible"
-      @cancel="handleConfigModalClose"
-      @ok="handleConfigModalClose"
-    >
-      <div>
-        <h3>
-          Visible Columns
-          <a-button type="link" @click="selectAllColumns" style="float: right;">Select All</a-button>
-        </h3>
-        <a-checkbox-group v-model:value="visibleColumnKeys">
-          <div v-for="column in allColumns" :key="column.key as string">
-            <a-checkbox :value="column.key as string">{{ column.title }}</a-checkbox>
-          </div>
-        </a-checkbox-group>
       </div>
-    </a-modal>
+      <!-- icon area -->
+      <div class="right-aligned-icons">
+          <!-- search area  -->
+          <a-input
+            v-model:value="searchInputValue"
+            placeholder="输入关键字搜索"
+            style="width: 200px"
+          >
+            <template #prefix>
+              <SearchOutlined />
+            </template>
+          </a-input>
+          <a-button type="primary" @click="handleProductCreate">新建产品</a-button>
+          <ReloadOutlined @click="onRefresh" />
+          <a-dropdown>
+            <ColumnHeightOutlined @click.prevent />
+            <template #overlay>
+              <a-menu @click="handleMenuClick">
+                <a-menu-item key="large">宽松</a-menu-item>
+                <a-menu-item key="middle">中等</a-menu-item>
+                <a-menu-item key="small">紧凑</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <a-popover trigger="click" placement="bottomRight">
+  <template #content>
+    <div class="column-setting-panel" style="max-height: 300px; overflow-y: auto;">
+      <div class="setting-section">
+        <div class="section-header" style="display: flex; justify-content: space-between;">
+          <span>列展示</span>
+          <a-button type="link" @click="resetColumns">重置</a-button>
+        </div>
 
-  </div>
+        <draggable
+          v-model="columnOrder"
+          item-key="key"
+          @end="onColumnOrderChange"
+          class="column-checkbox-group"
+        >
+          <template #item="{ element: colKey }">
+            <div class="column-checkbox-item" style="padding: 4px 0;">
+              <a-checkbox
+                :checked="selectedColumnKeys.includes(colKey)"
+                @change="(event: Event) => handleColumnVisibilityChange(colKey, (event.target as HTMLInputElement).checked)"
+              >
+                {{ columnConfigs.find(config => config.key === colKey)?.title }}
+              </a-checkbox>
+            </div>
+          </template>
+        </draggable>
+      </div>
+    </div>
+  </template>
+  <SettingOutlined @click="onSettingClick" />
+</a-popover>
+
+
+      </div>
+    </div>
+      
+    <!-- table area -->
+    <div class="table-container">
+      <a-table
+        :columns="columns"
+        :data-source="filteredData"
+        :pagination="filteredData.length === 0 ? false : pagination"
+        :loading="loading"
+        :size="tableSize"
+        :scroll="{ x: 1000 }"
+        @change="handleTableChange"
+        :showSorterTooltip="false"
+        @edit-record="handleEditRecord"
+      >
+      <template #bodyCell="{ column, record }">
+      <template v-if="column.key === 'operation'">
+        <a-space class="action-cell" direction="horizontal">
+          <a class="edit-link" @click="handleEditRecord(record)">编辑</a>
+          <a-divider type="vertical" />
+          <a-popconfirm
+            title="确定要删除该信息吗?"
+            @confirm="$emit('delete-record', record)"
+          >
+            <a class="danger-link">删除</a>
+          </a-popconfirm>
+        </a-space>
+      </template>
+    </template>
+      </a-table>
+    </div>
+
+    <FirmwareReleaseModal
+      :visible="showReleaseModal"
+      :uniqueDeviceModels="uniqueDeviceModels"
+      @update:visible="handleReleaseModalClose"
+      @submit="handleReleaseModalSubmit"
+    />
+
+    <FirmwareEditModal
+      :visible="showEditModal"
+      :record="editRecord"
+      @update:visible="handleEditModalClose"
+      @submit="handleEditModalSubmit"
+    />
+
+    <ProductCreateModal
+      v-model:visible="showProductCreateModal"
+      :deviceModelOptions="deviceModelOptions"
+      :ipNameOptions="ipNameOptions"
+      @submit="handleProductCreateSubmit"
+    />
+
+  </a-config-provider>
 </template>
+<script lang="ts" setup>
+import type { ColumnsType } from 'ant-design-vue/es/table';
+import { ref, computed, onMounted } from 'vue';
+import zh_CN from 'ant-design-vue/es/locale/zh_CN';
+import { theme, message } from 'ant-design-vue';
+import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import draggable from 'vuedraggable';
+import FirmwareReleaseModal from '@/components/FirmwareReleaseModal.vue';
+import FirmwareEditModal from '@/components/FirmwareEditModal.vue';
+import ProductCreateModal from '@/components/ProductCreateModal.vue';
 
-<script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue';
-import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue';
-import { message } from 'ant-design-vue';
-
-import ProductManagementTitle from '../components/ProductManagementTitle.vue';
-import ProductManagementHeader from '../components/ProductManagementHeader.vue';
-import ProductManagementTable from '../components/ProductManagementTable.vue';
+const customLocale = computed(() => ({
+  ...zh_CN,
+  Pagination: {
+    ...zh_CN.Pagination,
+    page: '', // Override the '页' suffix for quick jumper
+  },
+}));
 
 interface DataItem {
-  key: string;
-  serialNumber: number; // 序号
-  productID: string; // 产品ID
-  productName: string; // 产品名称
-  productType: string; // 产品类型
-  color: string; // 颜色
-  productDetails: string; // 产品详情
-  deviceModel: string; // 设备型号
-  ipName: string; // IP名称
-  creator: string; // 创建人
-  creatorAvatar: string; // 创建人头像
-  creationTime: string; // 创建时间
-  updateTime: string; // 更新时间
+  key: number;
+  productId: string;
+  productName: string;
+  productType: string;
+  color: string;
+  productDetails: string;
+  deviceModel: string;
+  ipName: string;
+  creator: string;
+  createTime: string;
+  updateTime: string;
+  releaseVersion?: string;
+  versionNumber?: string;
 }
 
-const data = ref<DataItem[]>([]);
-const loading = ref(false);
-const searchText = ref('');
-const filterDeviceModel = ref('all');
-const filterProductType = ref('all');
-const filterIpName = ref('all');
-const isConfigModalVisible = ref(false);
-const visibleColumnKeys = ref<string[]>([]);
+// Define column configuration separately from the table columns
+interface ColumnConfig {
+  key: string;
+  title: string;
+  dataIndex: string;
+  width: number;
+  fixed?: 'left' | 'right' | boolean;
+  sorter?: (a: any, b: any) => number;
+  sortDirections?: ('ascend' | 'descend')[];
+  defaultSortOrder?: 'ascend' | 'descend';
+  customRender?: (record: any) => string | number;
+}
 
-const uniqueDeviceModels = ref<string[]>(['HWSZ001', 'HWSZ002']);
-const uniqueProductTypes = ref<string[]>(['盲盒挂件', '玩具']);
-const uniqueIpNames = ref<string[]>(['哆啦A梦', '蜡笔小新']);
+const columnConfigs = [
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }: { index: number }) => index + 1 },
+  { key: 'productId', title: '产品ID', dataIndex: 'productId', width: 120 },
+  { key: 'productName', title: '产品名称', dataIndex: 'productName', width: 180 },
+  { key: 'productType', title: '产品类型', dataIndex: 'productType', width: 120 },
+  { key: 'color', title: '颜色', dataIndex: 'color', width: 100 },
+  { key: 'productDetails', title: '产品详情', dataIndex: 'productDetails', width: 300 },
+  { key: 'deviceModel', title: '设备型号', dataIndex: 'deviceModel', width: 120 },
+  { key: 'ipName', title: 'IP名称', dataIndex: 'ipName', width: 100 },
+  { key: 'creator', title: '创建人', dataIndex: 'creator', width: 80 },
+  { key: 'createTime', title: '创建时间', dataIndex: 'createTime', width: 160, sorter: (a: any, b: any) => a.createTime.localeCompare(b.createTime), sortDirections: ['ascend', 'descend'] },
+  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => a.updateTime.localeCompare(b.updateTime), sortDirections: ['ascend', 'descend'] },
+  { key: 'operation', title: '操作', dataIndex: '', width: 100, fixed: 'right' },
+];
 
-const pagination = reactive<TablePaginationConfig>({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showTotal: (total: number) => `第 ${((pagination.current as number) - 1) * (pagination.pageSize as number) + 1}-${Math.min((pagination.current as number) * (pagination.pageSize as number), total)}条/共 ${total} 条`,
-  showSizeChanger: true,
-  pageSizeOptions: ['10', '20', '50', '100'],
+// Store column order and visibility separately
+const columnOrder = ref<string[]>(columnConfigs.map(config => config.key));
+const selectedColumnKeys = ref<string[]>(columnConfigs.map(config => config.key));
+
+// Create columns from configs
+const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
+  return configs.map(config => ({
+    title: config.title,
+    dataIndex: config.dataIndex,
+    key: config.key,
+    width: config.width,
+    fixed: config.fixed,
+    sorter: config.sorter,
+    sortDirections: config.sortDirections,
+    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
+    defaultSortOrder: config.defaultSortOrder,
+    customRender: config.customRender
+      ? config.customRender
+      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+  })) as ColumnsType;
+};
+
+// Computed property for visible columns
+const columns = computed<ColumnsType>(() => {
+  // Get visible configs based on selected keys and order
+  const visibleConfigs = columnOrder.value
+    .filter(key => selectedColumnKeys.value.includes(key))
+    .map(key => columnConfigs.find(config => config.key === key))
+    .filter(Boolean) as ColumnConfig[];
+
+  // Create columns from visible configs
+  const visibleColumns = createColumnsFromConfigs(visibleConfigs);
+
+  // Sort columns: fixed left, then unfixed, then fixed right
+  return visibleColumns.sort((a, b) => {
+    const fixedOrder = { 'left': 1, undefined: 2, 'right': 3 };
+    const aFixed = fixedOrder[a.fixed as keyof typeof fixedOrder] || 2;
+    const bFixed = fixedOrder[b.fixed as keyof typeof fixedOrder] || 2;
+    return aFixed - bFixed;
+  });
 });
 
-const allColumns: TableColumnType[] = [
-  { title: '序号', dataIndex: 'serialNumber', key: 'serialNumber', fixed: 'left', width: 70 },
-  { title: '产品ID', dataIndex: 'productID', key: 'productID', width: 120 },
-  { title: '产品名称', dataIndex: 'productName', key: 'productName', width: 150 },
-  { title: '产品类型', dataIndex: 'productType', key: 'productType', width: 100 },
-  { title: '颜色', dataIndex: 'color', key: 'color', width: 80 },
-  { title: '产品详情', dataIndex: 'productDetails', key: 'productDetails', width: 200 },
-  { title: '设备型号', dataIndex: 'deviceModel', key: 'deviceModel', width: 120 },
-  { title: 'IP名称', dataIndex: 'ipName', key: 'ipName', width: 100 },
-  { title: '创建人', dataIndex: 'creator', key: 'creator', width: 100 },
-  { title: '创建时间', dataIndex: 'creationTime', key: 'creationTime', width: 150, sorter: true },
-  { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime', width: 150, sorter: true },
+// Generate virtual data for the new columns
+const rawData: DataItem[] = [
   {
-    title: '操作',
-    key: 'operation',
-    fixed: 'right' as const,
-    width: 150,
+    key: 1,
+    productId: 'HWSZ001001',
+    productName: '粉色碳碳富盒挂件',
+    productType: '首盒挂件',
+    color: '荧光粉',
+    productDetails: '布料: 云朵塑 猫兔毛 10毛 33号; ...',
+    deviceModel: 'HWSZ001',
+    ipName: '喵喵',
+    creator: '33',
+    createTime: '2025-7-13 19:25:11',
+    updateTime: '2025-7-13 19:25:11',
+  },
+  {
+    key: 2,
+    productId: 'HWSZ002001',
+    productName: '蓝色碳碳富盒挂件',
+    productType: '次盒挂件',
+    color: '天蓝',
+    productDetails: '布料: 棉 猫兔毛 8毛 22号; ...',
+    deviceModel: 'HWSZ002',
+    ipName: '汪汪',
+    creator: '34',
+    createTime: '2025-8-13 19:25:11',
+    updateTime: '2025-8-13 19:25:11',
+  },
+  {
+    key: 3,
+    productId: 'HWSZ003001',
+    productName: '绿色碳碳富盒挂件',
+    productType: '首盒挂件',
+    color: '草绿',
+    productDetails: '布料: 亚麻 猫兔毛 12毛 44号; ...',
+    deviceModel: 'HWSZ003',
+    ipName: '咩咩',
+    creator: '35',
+    createTime: '2025-9-13 19:25:11',
+    updateTime: '2025-9-13 19:25:11',
+  },
+  {
+    key: 4,
+    productId: 'HWSZ004001',
+    productName: '黄色碳碳富盒挂件',
+    productType: '其他类型',
+    color: '柠檬黄',
+    productDetails: '布料: 丝 猫兔毛 15毛 55号; ...',
+    deviceModel: 'HWSZ004',
+    ipName: '喵喵',
+    creator: '36',
+    createTime: '2025-10-13 19:25:11',
+    updateTime: '2025-10-13 19:25:11',
+  },
+  {
+    key: 5,
+    productId: 'HWSZ005001',
+    productName: '紫色碳碳富盒挂件',
+    productType: '首盒挂件',
+    color: '薰衣草紫',
+    productDetails: '布料: 羊毛 猫兔毛 9毛 66号; ...',
+    deviceModel: 'HWSZ001',
+    ipName: '汪汪',
+    creator: '37',
+    createTime: '2025-11-13 19:25:11',
+    updateTime: '2025-11-13 19:25:11',
+  },
+  {
+    key: 6,
+    productId: 'HWSZ006001',
+    productName: '橙色碳碳富盒挂件',
+    productType: '次盒挂件',
+    color: '橙橘',
+    productDetails: '布料: 棉 猫兔毛 7毛 77号; ...',
+    deviceModel: 'HWSZ002',
+    ipName: '咩咩',
+    creator: '38',
+    createTime: '2025-12-13 19:25:11',
+    updateTime: '2025-12-13 19:25:11',
+  },
+  {
+    key: 7,
+    productId: 'HWSZ007001',
+    productName: '红色碳碳富盒挂件',
+    productType: '其他类型',
+    color: '中国红',
+    productDetails: '布料: 丝 猫兔毛 11毛 88号; ...',
+    deviceModel: 'HWSZ003',
+    ipName: '喵喵',
+    creator: '39',
+    createTime: '2026-1-13 19:25:11',
+    updateTime: '2026-1-13 19:25:11',
+  },
+  {
+    key: 8,
+    productId: 'HWSZ008001',
+    productName: '青色碳碳富盒挂件',
+    productType: '首盒挂件',
+    color: '青蓝',
+    productDetails: '布料: 亚麻 猫兔毛 13毛 99号; ...',
+    deviceModel: 'HWSZ004',
+    ipName: '汪汪',
+    creator: '40',
+    createTime: '2026-2-13 19:25:11',
+    updateTime: '2026-2-13 19:25:11',
+  },
+  {
+    key: 9,
+    productId: 'HWSZ009001',
+    productName: '黑色碳碳富盒挂件',
+    productType: '次盒挂件',
+    color: '墨黑',
+    productDetails: '布料: 棉 猫兔毛 10毛 100号; ...',
+    deviceModel: 'HWSZ001',
+    ipName: '咩咩',
+    creator: '41',
+    createTime: '2026-3-13 19:25:11',
+    updateTime: '2026-3-13 19:25:11',
+  },
+  {
+    key: 10,
+    productId: 'HWSZ010001',
+    productName: '白色碳碳富盒挂件',
+    productType: '其他类型',
+    color: '雪白',
+    productDetails: '布料: 羊毛 猫兔毛 14毛 101号; ...',
+    deviceModel: 'HWSZ002',
+    ipName: '喵喵',
+    creator: '42',
+    createTime: '2026-4-13 19:25:11',
+    updateTime: '2026-4-13 19:25:11',
+  },
+  {
+    key: 11,
+    productId: 'HWSZ011001',
+    productName: '棕色碳碳富盒挂件',
+    productType: '首盒挂件',
+    color: '咖啡棕',
+    productDetails: '布料: 棉 猫兔毛 12毛 102号; ...',
+    deviceModel: 'HWSZ003',
+    ipName: '汪汪',
+    creator: '43',
+    createTime: '2026-5-13 19:25:11',
+    updateTime: '2026-5-13 19:25:11',
+  },
+  {
+    key: 12,
+    productId: 'HWSZ012001',
+    productName: '银色碳碳富盒挂件',
+    productType: '次盒挂件',
+    color: '银灰',
+    productDetails: '布料: 丝 猫兔毛 15毛 103号; ...',
+    deviceModel: 'HWSZ004',
+    ipName: '咩咩',
+    creator: '44',
+    createTime: '2026-6-13 19:25:11',
+    updateTime: '2026-6-13 19:25:11',
   },
 ];
 
-const columns = computed(() => {
-  return allColumns.filter(column => visibleColumnKeys.value.includes(column.key as string));
+console.log('Raw Data:', rawData);
+
+const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
+const productTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
+const ipNameValue = ref({ key: 'all', label: '全部', value: 'all' });
+const releaseVersionValue = ref({ key: 'all', label: '全部', value: 'all' });
+const versionNumberValue = ref({ key: 'all', label: '全部', value: 'all' });
+
+const deviceModelOptions = computed(() => {
+  const unique = Array.from(new Set(rawData.map(item => item.deviceModel)));
+  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
-const fetchData = async () => {
-  loading.value = true;
-  console.log('Fetching product data with filters:', filterDeviceModel.value, filterProductType.value, filterIpName.value, searchText.value);
-  console.log('Pagination:', pagination.current, pagination.pageSize);
+const productTypeOptions = computed(() => {
+  const unique = Array.from(new Set(rawData.map(item => item.productType)));
+  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
+});
 
-  await new Promise(resolve => setTimeout(resolve, 1000));
+const ipNameOptions = computed(() => {
+  const unique = Array.from(new Set(rawData.map(item => item.ipName)));
+  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
+});
 
-  const dummyData: DataItem[] = Array.from({ length: 50 }).map((_, i) => ({
-    key: `product-item-${i}`,
-    serialNumber: i + 1,
-    productID: `HWSZ00${100 + i}`,
-    productName: '粉色啵啵盲盒挂件',
-    productType: '盲盒挂件',
-    color: '荧光粉',
-    productDetails: '布料：云潮望 獭兔毛 10毛 33号；...',
-    deviceModel: 'HWSZ001',
-    ipName: '啵啵',
-    creator: '33',
-    creatorAvatar: '/images/avatar.jpg', // Placeholder for avatar
-    creationTime: '2025-7-13 19:25:11',
-    updateTime: '2025-7-13 19:25:11',
-  }));
+const releaseVersionOptions = computed(() => {
+  const unique = Array.from(new Set(rawData.map(item => item.releaseVersion)));
+  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
+});
 
-  data.value = dummyData.slice(
-    ((pagination.current as number) - 1) * (pagination.pageSize as number),
-    (pagination.current as number) * (pagination.pageSize as number)
-  );
-  pagination.total = dummyData.length;
-  loading.value = false;
+const versionNumberOptions = computed(() => {
+  const unique = Array.from(new Set(rawData.map(item => item.versionNumber)));
+  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
+});
+
+const handleDeviceModelChange = (val: any) => {
+  deviceModelValue.value = !val || !val.value || val.value === 'all'
+    ? { key: 'all', label: '全部', value: 'all' }
+    : val;
 };
 
-const handleSearch = (value: string) => {
-  searchText.value = value;
-  pagination.current = 1;
-  fetchData();
+const handleProductTypeChange = (val: any) => {
+  productTypeValue.value = !val || !val.value || val.value === 'all'
+    ? { key: 'all', label: '全部', value: 'all' }
+    : val;
 };
 
-const handleTableChange = (pag: TablePaginationConfig) => {
-  pagination.current = pag.current || 1;
-  pagination.pageSize = pag.pageSize || 10;
-  fetchData();
+const handleIpNameChange = (val: any) => {
+  ipNameValue.value = !val || !val.value || val.value === 'all'
+    ? { key: 'all', label: '全部', value: 'all' }
+    : val;
 };
 
-const showConfigModal = () => {
-  isConfigModalVisible.value = true;
+const handleReleaseVersionChange = (val: any) => {
+  releaseVersionValue.value = !val || !val.value || val.value === 'all'
+    ? { key: 'all', label: '全部', value: 'all' }
+    : val;
 };
 
-const handleConfigModalClose = () => {
-  isConfigModalVisible.value = false;
+const handleVersionNumberChange = (val: any) => {
+  versionNumberValue.value = !val || !val.value || val.value === 'all'
+    ? { key: 'all', label: '全部', value: 'all' }
+    : val;
 };
 
-const selectAllColumns = () => {
-  visibleColumnKeys.value = allColumns.map(column => column.key as string);
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+console.log('Initial deviceModelValue:', deviceModelValue.value);
+
+const sorterInfo = ref<any>({
+  columnKey: 'updateTime',
+  order: 'descend',
+});
+
+const pagination = computed(() => ({
+  total: rawData.length, 
+  current: currentPage.value,
+  pageSize: pageSize.value,
+  showSizeChanger: true, 
+  pageSizeOptions: ['10', '20', '50'], 
+  showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
+  showQuickJumper: { goButton: '页' }, 
+  onShowSizeChange: (current: number, size: number) => {
+    console.log('onShowSizeChange', current, size);
+    currentPage.value = current;
+    pageSize.value = size;
+  },
+  onChange: (page: number, size: number) => {
+    console.log('onChange', page, size);
+    currentPage.value = page;
+    pageSize.value = size;
+  },
+}));
+
+const onRefresh = () => {
+  console.log('Refresh button clicked!');
+  loading.value = true; // Show loading icon
+  searchInputValue.value = '';
+  currentPage.value = 1;
+  resetColumns(); // Reset column order and visibility
+
+  // Reset all selector values to '全部'
+  deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
+  productTypeValue.value = { key: 'all', label: '全部', value: 'all' };
+  ipNameValue.value = { key: 'all', label: '全部', value: 'all' };
+  releaseVersionValue.value = { key: 'all', label: '全部', value: 'all' };
+  versionNumberValue.value = { key: 'all', label: '全部', value: 'all' };
+
+  // Simulate data fetching
+  setTimeout(() => {
+    loading.value = false; // Hide loading icon after a delay
+  }, 500); // Adjust delay as needed
 };
 
-const handleCreateProduct = () => {
-  message.info('新建产品 functionality to be implemented');
-  // TODO: Implement create product logic
+const filteredData = computed<DataItem[]>(() => {
+  let dataToFilter: DataItem[] = [...rawData];
+
+  if (searchInputValue.value) {
+    const searchTerm = searchInputValue.value.toLowerCase();
+    dataToFilter = dataToFilter.filter((item: DataItem) => {
+      return Object.values(item).some(value =>
+        typeof value === 'string' && value.toLowerCase().includes(searchTerm)
+      );
+    });
+  }
+
+  // Filter by device model
+  if (
+    deviceModelValue.value &&
+    deviceModelValue.value.value !== 'all' &&
+    deviceModelValue.value.value !== ''
+  ) {
+    dataToFilter = dataToFilter.filter(item => item.deviceModel === deviceModelValue.value.value);
+  }
+
+  // Filter by product type
+  if (
+    productTypeValue.value &&
+    productTypeValue.value.value !== 'all' &&
+    productTypeValue.value.value !== ''
+  ) {
+    dataToFilter = dataToFilter.filter(item => item.productType === productTypeValue.value.value);
+  }
+
+  // Filter by IP name
+  if (
+    ipNameValue.value &&
+    ipNameValue.value.value !== 'all' &&
+    ipNameValue.value.value !== ''
+  ) {
+    dataToFilter = dataToFilter.filter(item => item.ipName === ipNameValue.value.value);
+  }
+
+  // Filter by release version
+  if (
+    releaseVersionValue.value &&
+    releaseVersionValue.value.value !== 'all' &&
+    releaseVersionValue.value.value !== ''
+  ) {
+    dataToFilter = dataToFilter.filter(item => item.releaseVersion === releaseVersionValue.value.value);
+  }
+
+  // Filter by version number
+  if (
+    versionNumberValue.value &&
+    versionNumberValue.value.value !== 'all' &&
+    versionNumberValue.value.value !== ''
+  ) {
+    dataToFilter = dataToFilter.filter(item => item.versionNumber === versionNumberValue.value.value);
+  }
+
+  // Sorting logic
+  if (sorterInfo.value && sorterInfo.value.order) {
+    const { columnKey, order } = sorterInfo.value;
+    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
+    if (sorterFn) {
+      dataToFilter.sort((a, b) => {
+        const result = sorterFn(a, b);
+        return order === 'ascend' ? result : -result;
+      });
+    }
+  }
+
+  return dataToFilter;
+});
+
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredData.value.slice(start, end);
+});
+
+const searchInputValue = ref('');
+
+const handleTableChange = (
+  paginationData: any,
+  filters: any,
+  sorter: any,
+) => {
+  console.log('Table change:', paginationData, filters, sorter);
+  const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+
+  if (currentSorter && currentSorter.order) {
+    sorterInfo.value = {
+      columnKey: currentSorter.columnKey,
+      order: currentSorter.order,
+    };
+  } else {
+    // When sorting is cleared, revert to default
+    sorterInfo.value = {
+      columnKey: 'updateTime',
+      order: 'descend',
+    };
+  }
+  
+  // When table changes, we should probably go back to the first page
+  currentPage.value = 1;
 };
 
-const handleShowInfo = () => {
-  message.info('显示信息 functionality to be implemented');
-  // TODO: Implement show info logic
+const onSettingClick = () => {
+  console.log('Setting clicked');
 };
 
-const editRecord = (record: DataItem) => {
-  console.log('Editing record:', record);
-  message.info('编辑 functionality to be implemented');
-  // TODO: Implement edit logic
+const loading = ref(false); // Add a loading state
+
+const tableSize = ref('middle'); // Default table size
+
+const handleMenuClick = ({ key }: { key: string }) => {
+  tableSize.value = key;
 };
 
-const deleteRecord = (record: DataItem) => {
-  console.log('Deleting record:', record);
-  message.info('删除 functionality to be implemented');
-  // TODO: Implement delete logic
+const resetColumns = () => {
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  columnOrder.value = columnConfigs.map(config => config.key);
+};
+
+const onColumnOrderChange = (event: { newIndex: number; oldIndex: number }) => {
+  const { newIndex, oldIndex } = event;
+  const movedColumn = columnOrder.value[oldIndex];
+  const newOrder = [...columnOrder.value];
+  newOrder.splice(oldIndex, 1);
+  newOrder.splice(newIndex, 0, movedColumn);
+  columnOrder.value = newOrder;
+
+  // The selectedColumnKeys should not be altered here, as it maintains visibility state.
+  // Its order is implicitly handled by the 'columns' computed property based on columnOrder.
+};
+
+const handleColumnVisibilityChange = (key: string, checked: boolean) => {
+  if (checked) {
+    if (!selectedColumnKeys.value.includes(key)) {
+      selectedColumnKeys.value.push(key);
+    }
+  } else {
+    selectedColumnKeys.value = selectedColumnKeys.value.filter(k => k !== key);
+  }
+};
+
+const showReleaseModal = ref(false);
+const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.map(item => item.deviceModel))));
+
+const handleVersionRelease = () => {
+  showReleaseModal.value = true;
+};
+const handleReleaseModalClose = () => {
+  showReleaseModal.value = false;
+};
+const handleReleaseModalSubmit = (data: any) => {
+  // You can handle the submit data here
+  showReleaseModal.value = false;
+};
+
+const showEditModal = ref(false);
+const editRecord = ref<any>(null);
+
+const handleEditRecord = (record: any) => {
+  message.info('开发中');
+  // editRecord.value = { ...record };
+  // showEditModal.value = true;
+};
+const handleEditModalClose = () => {
+  showEditModal.value = false;
+  editRecord.value = null;
+};
+const handleEditModalSubmit = (data: any) => {
+  // Update the data in your table as needed
+  showEditModal.value = false;
+  editRecord.value = null;
+};
+
+const showProductCreateModal = ref(false);
+
+const handleProductCreate = () => {
+  showProductCreateModal.value = true;
+};
+
+const handleProductCreateSubmit = (data: any) => {
+  // You can add logic to add the new product to rawData here
+  showProductCreateModal.value = false;
 };
 
 onMounted(() => {
-  fetchData();
-  selectAllColumns(); // Select all columns by default on mount
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
 });
 
-watch([filterDeviceModel, filterProductType, filterIpName], () => {
-  pagination.current = 1;
-  fetchData();
+defineExpose({
+  handleTableChange, // Explicitly expose handleTableChange
 });
 
+console.log('Selected deviceModel:', deviceModelValue.value.value);
+console.log('All versions for this model:', rawData.filter(item => item.deviceModel === deviceModelValue.value.value).map(item => item.versionNumber));
 </script>
-
 <style scoped>
-.product-management-container {
-  padding: 24px;
+#components-table-demo-summary tfoot th,
+#components-table-demo-summary tfoot td {
+  background: #fafafa;
 }
-</style> 
+[data-theme='dark'] #components-table-demo-summary tfoot th,
+[data-theme='dark'] #components-table-demo-summary tfoot td {
+  background: #1d1d1d;
+}
+
+/* Custom style to adjust row height and font size based on table size */
+.ant-table-tbody > tr > td,
+.ant-table-thead > tr > th {
+  font-family: 'PingFang SC', sans-serif; /* Keep font family consistent */
+  white-space: nowrap; /* Prevent text from stacking */
+  text-align: left; /* Ensure left alignment for headers */
+}
+
+.ant-table-wrapper-small .ant-table-tbody > tr > td,
+.ant-table-wrapper-small .ant-table-thead > tr > th {
+  padding: 2px 2px; /* Very compact */
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.ant-table-wrapper-middle .ant-table-tbody > tr > td,
+.ant-table-wrapper-middle .ant-table-thead > tr > th {
+  padding: 8px 8px; /* Medium density */
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ant-table-wrapper-large .ant-table-tbody > tr > td,
+.ant-table-wrapper-large .ant-table-thead > tr > th {
+  padding: 16px 16px; /* Larger, more spacious */
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* title like demo page */
+.title-container {
+   /* Light grey border */
+  padding: 10px 14px; /* Adjusted from 16px 24px * 0.60 */
+  margin-bottom: 10px; /* Adjusted from 16px * 0.60 */
+  background-color: #fff; /* White background */
+  border-radius: 4px; /* Slightly rounded corners */
+}
+
+.title-container h2 {
+  margin: 0; /* Remove default margin from h2 */
+  font-size: 16px; /* Adjusted to 12px */
+  font-weight: 500; /* Adjust font weight if needed */
+  color: rgba(0, 0, 0, 0.85); /* Standard Ant Design text color */
+  text-align: left;
+  font-weight: bold; /* Center the text horizontally */
+}
+
+.top-controls-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.left-aligned-section {
+  display: flex;
+  align-items: center;
+}
+
+.right-aligned-section {
+  display: none;
+}
+
+.right-aligned-icons {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Add space between icons */
+  padding-right: 30px;
+}
+
+.right-aligned-icons > .anticon {
+  padding: 6px 8px; /* Add padding to make them look like buttons */
+  border: 1px solid #d9d9d9; /* Add a subtle border */
+  background-color: #f0f0f0; /* Add a light background */
+  border-radius: 4px; /* Slightly rounded corners */
+  transition: all 0.3s; /* Smooth transition for hover effects */
+  cursor: pointer;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.65);
+   /* Slightly darker grey for better visibility */
+}
+
+.right-aligned-icons > .anticon:hover {
+  border-color: #4096ff; /* Ant Design primary color on hover */
+  color: #4096ff; /* Change icon color on hover */
+  background-color: #e6f7ff; /* Lighter background on hover */
+}
+
+.right-aligned-icons > .anticon:last-child,
+.right-aligned-icons > .ant-btn:last-child,
+.right-aligned-icons > .ant-dropdown:last-child,
+.right-aligned-icons > .ant-popover:last-child {
+  margin-right: 28px; /* Adjust this value for a bigger gap */
+}
+
+html, body {
+  overflow-x: hidden;
+}
+
+.table-container {
+  padding: 10px ;
+  padding-right: 50px;
+}
+
+/* Styling for the custom always-visible placeholder */
+.select-container {
+  position: relative;
+  display: inline-block;
+}
+.select-always-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 7px;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 1;
+  font-size: 13px;
+}
+
+
+:deep(.version-number-select .ant-select-selector) {
+  padding-left: 60px !important;
+}
+
+:deep(.device-model-select .ant-select-selector) {
+  padding-left: 65px !important;
+}
+:deep(.ip-name-select .ant-select-selector) {
+  padding-left: 55px !important;
+}
+
+:deep(.product-type-select .ant-select-selector) {
+  padding-left: 65px !important;
+}
+:deep(.ant-select-selector),
+:deep(.ant-select-dropdown),
+:deep(.ant-select-item),
+:deep(.ant-select-selection-item),
+:deep(.ant-select-item-option-content) {
+  font-size: 12px !important;
+}
+
+/* Add custom style for pagination font size */
+:deep(.ant-pagination) {
+  font-size: 12px !important;
+}
+
+:deep(.ant-input),
+:deep(.ant-btn-primary) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-input::placeholder) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-pagination-options) .ant-select-selector {
+  min-width: unset !important;
+  width: auto !important;
+  padding-left: 4px !important;
+  padding-right: 18px !important; /* keep space for arrow */
+}
+
+/* Make the action buttons horizontal and style '编辑' as blue and bold */
+:deep(.ant-table-cell .action-cell) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 90px;
+}
+:deep(.ant-table-cell .action-cell .edit-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
+}
+:deep(.ant-table-cell .action-cell .danger-link) {
+  color: #ff4d4f !important; /* Ant Design red */
+  font-weight: bold;
+}
+</style>

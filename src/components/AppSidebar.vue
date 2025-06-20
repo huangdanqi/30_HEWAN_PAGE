@@ -67,7 +67,7 @@
             权限管理
           </span>
         </template>
-        <a-menu-item key="11">成员管理</a-menu-item>
+        <a-menu-item key="11" :disabled="isMenuItemDisabled('11')">成员管理</a-menu-item>
 
       </a-sub-menu>
 
@@ -99,7 +99,7 @@ const openKeys = ref<string[]>([]);
 
 const router = useRouter();
 
-const navigableKeys = new Set(['2', '4', '10', '5', '6', '7', '8', '9', '11', '12', '13']);
+const navigableKeys = new Set(['2', '4', '10', '5', '6', '7', '8', '9', '12', '13']);
 
 const isMenuItemDisabled = (key: string) => !navigableKeys.has(key);
 
@@ -122,7 +122,6 @@ const handleMenuClick = (e: any) => {
   else if (e.key === '7') router.push('/toy-production');
   else if (e.key === '8') router.push('/product-list');
   else if (e.key === '9') router.push('/ip-management');
-  else if (e.key === '11') router.push('/account-management');
   else if (e.key === '12') router.push('/demo-page');
   else if (e.key === '13') router.push('/demo-page-2');
 };
@@ -133,4 +132,15 @@ const handleMenuClick = (e: any) => {
 
 <style scoped>
 /* Add sidebar specific styles here if needed */
+:deep(.ant-menu-item-disabled) {
+  color: #bfbfbf !important;
+  background: #f5f5f5 !important;
+  cursor: not-allowed !important;
+}
+:deep(.ant-menu-item-disabled):hover,
+:deep(.ant-menu-item-disabled):active,
+:deep(.ant-menu-item-disabled):focus {
+  color: #bfbfbf !important;
+  background: #f5f5f5 !important;
+}
 </style> 
