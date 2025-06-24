@@ -72,12 +72,6 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true }
       },
       {
-        path: 'account-management',
-        name: 'AccountManagement',
-        component: () => import('../views/AccountManagement.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
         path: 'log-query',
         name: 'LogQuery',
         component: () => import('../views/LogQuery.vue'),

@@ -495,13 +495,11 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 
 const showReleaseModal = ref(false);
 
-const handleVersionRelease = () => {
-  showReleaseModal.value = true;
-};
 const handleReleaseModalClose = () => {
   showReleaseModal.value = false;
 };
-const handleReleaseModalSubmit = (data: any) => {
+
+const handleReleaseModalSubmit = (_data: any) => {
   // You can handle the submit data here
   showReleaseModal.value = false;
 };
@@ -513,15 +511,11 @@ const handleEditClick = () => {
   message.info('开发中');
 };
 
-const handleEditRecord = (record: any) => {
-  editRecord.value = { ...record };
-  showEditModal.value = true;
-};
 const handleEditModalClose = () => {
   showEditModal.value = false;
   editRecord.value = null;
 };
-const handleEditModalSubmit = (data: any) => {
+const handleEditModalSubmit = (_data: any) => {
   // Update the data in your table as needed
   showEditModal.value = false;
   editRecord.value = null;

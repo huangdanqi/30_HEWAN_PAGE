@@ -572,11 +572,6 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
   }
 };
 
-const handleVersionRelease = () => {
-  console.log('版本发布 button clicked!');
-  // Add your version release logic here
-};
-
 const memberTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const memberTypeOptions = computed(() => {

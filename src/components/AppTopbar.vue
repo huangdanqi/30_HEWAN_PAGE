@@ -75,7 +75,7 @@ const handleLogout = () => {
 
 .topbar-left .app-title {
   font-size: 18px;
-  font-weight: bold;
+  font-weight: bold; 
   color: black; /* Changed to black for visibility on white background */
 }
 

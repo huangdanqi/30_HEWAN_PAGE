@@ -1,0 +1,4 @@
+spawn scp -o StrictHostKeyChecking=no -r . root@121.43.196.106:/root/frontendCode/vue3 
+expect "password:" 
+send "aV2[kO2#iX\r" 
+expect eof 

@@ -151,7 +151,7 @@
     <ProductCreateModal
       v-model:visible="showProductCreateModal"
       :deviceModelOptions="deviceModelOptions"
-      :ipNameOptions="ipNameOptions"
+      :ipNameOptions="[]"
       @submit="handleProductCreateSubmit"
     />
 
@@ -163,31 +163,19 @@
       width="400px"
     >
       <a-form layout="vertical">
-        <a-form-item required>
-          <template #label>
-            <span style="color: #ff4d4f">*</span> 产品名称
-          </template>
+        <a-form-item required label="产品名称">
           <a-select placeholder="请选择" />
         </a-form-item>
-        <a-form-item required>
-          <template #label>
-            <span style="color: #ff4d4f">*</span> 生产批次
-          </template>
+        <a-form-item required label="生产批次">
           <a-date-picker style="width: 100%;" placeholder="请选择" />
         </a-form-item>
         <a-form-item label="生产厂家">
           <a-input placeholder="请输入" />
         </a-form-item>
-        <a-form-item required>
-          <template #label>
-            <span style="color: #ff4d4f">*</span> 单价
-          </template>
+        <a-form-item required label="单价">
           <a-input suffix="元" placeholder="请输入" />
         </a-form-item>
-        <a-form-item required>
-          <template #label>
-            <span style="color: #ff4d4f">*</span> 数量
-          </template>
+        <a-form-item required label="数量">
           <a-input suffix="个" placeholder="请输入" />
         </a-form-item>
       </a-form>
@@ -325,23 +313,11 @@ for (let i = 0; i < 12; i++) {
 console.log('Raw Data:', rawData);
 
 const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
-const productTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
-const ipNameValue = ref({ key: 'all', label: '全部', value: 'all' });
 const productNameValue = ref({ key: 'all', label: '全部', value: 'all' });
 const manufacturerValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const deviceModelOptions = computed(() => {
   const unique = Array.from(new Set(rawData.map(item => item.deviceModel)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const productTypeOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.productType)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const ipNameOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.ipName)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
@@ -354,24 +330,6 @@ const manufacturerOptions = computed(() => {
   const unique = Array.from(new Set(rawData.map(item => item.manufacturer)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
-
-const handleDeviceModelChange = (val: any) => {
-  deviceModelValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
-
-const handleProductTypeChange = (val: any) => {
-  productTypeValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
-
-const handleIpNameChange = (val: any) => {
-  ipNameValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
 
 const handleProductNameChange = (val: any) => {
   productNameValue.value = !val || !val.value || val.value === 'all'
@@ -424,8 +382,6 @@ const onRefresh = () => {
 
   // Reset all selector values to '全部'
   deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
-  productTypeValue.value = { key: 'all', label: '全部', value: 'all' };
-  ipNameValue.value = { key: 'all', label: '全部', value: 'all' };
   productNameValue.value = { key: 'all', label: '全部', value: 'all' };
   manufacturerValue.value = { key: 'all', label: '全部', value: 'all' };
 
@@ -489,12 +445,6 @@ const filteredData = computed<DataItem[]>(() => {
   }
 
   return dataToFilter;
-});
-
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredData.value.slice(start, end);
 });
 
 const handleTableChange = (
@@ -564,13 +514,10 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 const showReleaseModal = ref(false);
 const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.map(item => item.deviceModel))));
 
-const handleVersionRelease = () => {
-  showReleaseModal.value = true;
-};
 const handleReleaseModalClose = () => {
   showReleaseModal.value = false;
 };
-const handleReleaseModalSubmit = (data: any) => {
+const handleReleaseModalSubmit = (_data: any) => {
   // You can handle the submit data here
   showReleaseModal.value = false;
 };
@@ -578,16 +525,16 @@ const handleReleaseModalSubmit = (data: any) => {
 const showEditModal = ref(false);
 const editRecord = ref<any>(null);
 
-const handleEditRecord = (record: any) => {
+const handleEditRecord = (_record: any) => {
   message.info('开发中');
-  // editRecord.value = { ...record };
+  // editRecord.value = { ..._record };
   // showEditModal.value = true;
 };
 const handleEditModalClose = () => {
   showEditModal.value = false;
   editRecord.value = null;
 };
-const handleEditModalSubmit = (data: any) => {
+const handleEditModalSubmit = (_data: any) => {
   // Update the data in your table as needed
   showEditModal.value = false;
   editRecord.value = null;
@@ -595,11 +542,7 @@ const handleEditModalSubmit = (data: any) => {
 
 const showProductCreateModal = ref(false);
 
-const handleProductCreate = () => {
-  showProductCreateModal.value = true;
-};
-
-const handleProductCreateSubmit = (data: any) => {
+const handleProductCreateSubmit = (_data: any) => {
   // You can add logic to add the new product to rawData here
   showProductCreateModal.value = false;
 };

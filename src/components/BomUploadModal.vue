@@ -43,7 +43,7 @@ function beforeUpload(file: any) {
   fileList.value = [file];
   return false; // Prevent auto upload
 }
-function handleRemove(file: any) {
+function handleRemove(_file: any) {
   fileList.value = [];
 }
 function customRequest({ onSuccess }: any) {

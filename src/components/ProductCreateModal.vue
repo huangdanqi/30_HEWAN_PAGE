@@ -40,7 +40,8 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import type { FormInstance } from 'ant-design-vue';
-const props = defineProps({
+
+defineProps({
   visible: Boolean,
   deviceModelOptions: { type: Array as () => Array<{ value: string; label: string }>, default: () => [] },
   ipNameOptions: { type: Array as () => Array<{ value: string; label: string }>, default: () => [] },

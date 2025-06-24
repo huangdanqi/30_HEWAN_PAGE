@@ -407,12 +407,6 @@ const filteredData = computed<DataItem[]>(() => {
   return dataToFilter;
 });
 
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredData.value.slice(start, end);
-});
-
 const searchInputValue = ref('');
 
 const handleTableChange = (
@@ -488,7 +482,7 @@ const handleVersionRelease = () => {
 const handleReleaseModalClose = () => {
   showReleaseModal.value = false;
 };
-const handleReleaseModalSubmit = (data: any) => {
+const handleReleaseModalSubmit = (_data: any) => {
   // You can handle the submit data here
   showReleaseModal.value = false;
 };
@@ -504,7 +498,7 @@ const handleEditModalClose = () => {
   showEditModal.value = false;
   editRecord.value = null;
 };
-const handleEditModalSubmit = (data: any) => {
+const handleEditModalSubmit = (_data: any) => {
   // Update the data in your table as needed
   showEditModal.value = false;
   editRecord.value = null;

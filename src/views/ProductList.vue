@@ -135,33 +135,6 @@ const customLocale = computed(() => ({
   },
 }));
 
-interface DataItem {
-  key: number;
-  accountId: string; // 账户ID
-  phoneNumber: string; // 手机号
-  deviceModel: string; // 设备型号
-  deviceId: string; // 设备ID
-  productId: string; // 商品ID
-  ipRole: string; // IP角色
-  productModel: string; // 产品型号
-  currentMemberType: string; // 当前会员类型
-  memberPayment: string; // 会员付费
-  memberActivationTime: string; // 会员激活时间
-  memberExpirationTime: string; // 会员到期时间
-  fourGCardNumber: string; // 4G卡号
-  fourGPlan: string; // 4G套餐
-  remainingDataThisMonth: string; // 当月剩余流量
-  fourGPayment: string; // 4G付费
-  fourGActivationTime: string; // 4G激活时间
-  fourGExpirationTime: string; // 4G到期时间
-  serviceAnnualFeeBalance: number; // 服务年费用余额 (元)
-  asrAnnualUsage: string; // ASR年用量
-  llmAnnualUsage: string; // LLM年用量
-  ttsAnnualUsage: string; // TTS年用量
-  voiceCloneAnnualUsage: string; // 音色克隆年用量
-  registrationTime: string; // 注册时间
-}
-
 // Define the type for the table data
 interface ProductTableRow {
   productId: string;
@@ -365,11 +338,8 @@ const productTypeValue = ref('');
 const colorValue = ref('');
 const memberTypeValue = ref('');
 
-const productIdOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.map(item => item.productId))).map(v => ({ value: v, label: v }))]);
 const productNameOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.map(item => item.productName))).map(v => ({ value: v, label: v }))]);
-const productCodeOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.map(item => item.productCode))).map(v => ({ value: v, label: v }))]);
 const productTypeOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.map(item => item.productType))).map(v => ({ value: v, label: v }))]);
-const colorOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.map(item => item.color))).map(v => ({ value: v, label: v }))]);
 const memberTypeOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.map(item => item.memberType))).map(v => ({ value: v, label: v }))]);
 
 const filteredData = computed(() => {
@@ -415,12 +385,6 @@ const filteredData = computed(() => {
   }
 
   return dataToFilter;
-});
-
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredData.value.slice(start, end);
 });
 
 const currentPage = ref(1);

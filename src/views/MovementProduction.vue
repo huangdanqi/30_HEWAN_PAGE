@@ -171,7 +171,7 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
@@ -276,8 +276,6 @@ const columns = computed<ColumnsType>(() => {
 const rawData: any[] = [];
 const deviceModels = ['HWSZ001', 'HWSZ002', 'HWSZ003'];
 const manufacturers = ['深圳沃能威科技有限公司', '上海智造电子有限公司', '北京创新科技有限公司'];
-const releaseVersions = ['首版', '主版本', '子版本', '修订版'];
-const versionNumbers = ['Z001 V 1.0.0', 'Z002 V 2.0.0', 'Z003 V 3.0.0'];
 const creatorAvatars = [
   'https://randomuser.me/api/portraits/men/33.jpg',
   'https://randomuser.me/api/portraits/men/34.jpg',
@@ -290,7 +288,7 @@ for (let i = 0; i < 12; i++) {
     deviceModel: deviceModels[i % deviceModels.length],
     productionBatch: `2025-06-${10 + (i % 20)}`,
     manufacturer: manufacturers[i % manufacturers.length],
-    burnedFirmware: versionNumbers[i % versionNumbers.length],
+    burnedFirmware: `Z00${i % 4 + 1} V ${i % 3 + 1}.${i % 2 + 1}`,
     unitPrice: 80 + (i % 3) * 5 + 0.75,
     quantity: 500 + i * 10,
     totalPrice: (80 + (i % 3) * 5 + 0.75) * (500 + i * 10) + '',
@@ -309,31 +307,8 @@ const releaseVersionValue = ref({ key: 'all', label: '全部', value: 'all' });
 const versionNumberValue = ref({ key: 'all', label: '全部', value: 'all' });
 const manufacturerValue = ref({ key: 'all', label: '全部', value: 'all' });
 
-const ipRoleOptions = computed(() => {
-  const uniqueIpRoles = Array.from(new Set(rawData.map(item => item.ipRole)));
-  const options = uniqueIpRoles.map(role => ({
-    key: role,
-    value: role,
-    label: role,
-  }));
-  return [
-    { key: 'all', value: 'all', label: '全部' },
-    ...options
-  ];
-});
-
 const deviceModelOptions = computed(() => {
   const unique = Array.from(new Set(rawData.map(item => item.deviceModel)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const releaseVersionOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.releaseVersion)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const versionNumberOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.versionNumber)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
@@ -342,28 +317,8 @@ const manufacturerOptions = computed(() => {
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
-const handleIpRoleChange = (val: any) => {
-  if (!val || !val.value || val.value === 'all') {
-    ipRoleValue.value = { key: 'all', label: '全部', value: 'all' };
-  } else {
-    ipRoleValue.value = val;
-  }
-};
-
 const handleDeviceModelChange = (val: any) => {
   deviceModelValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
-
-const handleReleaseVersionChange = (val: any) => {
-  releaseVersionValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
-
-const handleVersionNumberChange = (val: any) => {
-  versionNumberValue.value = !val || !val.value || val.value === 'all'
     ? { key: 'all', label: '全部', value: 'all' }
     : val;
 };
@@ -461,12 +416,6 @@ const filteredData = computed<DataItem[]>(() => {
   return dataToFilter.slice(start, end);
 });
 
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredData.value.slice(start, end);
-})
-
 const searchInputValue = ref('');
 
 const handleTableChange = (
@@ -536,13 +485,11 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 const showReleaseModal = ref(false);
 const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.map(item => item.deviceModel))));
 
-const handleVersionRelease = () => {
-  showReleaseModal.value = true;
-};
 const handleReleaseModalClose = () => {
   showReleaseModal.value = false;
 };
-const handleReleaseModalSubmit = (data: any) => {
+
+const handleReleaseModalSubmit = (_data: any) => {
   // You can handle the submit data here
   showReleaseModal.value = false;
 };
@@ -573,13 +520,13 @@ const handleEditBatchSubmit = (data: any) => {
 const showBomModal = ref(false);
 const bomRecord = ref<any>(null);
 
-function handleBomUpload(record: any) {
-  console.log('Upload clicked', record);
-  bomRecord.value = record;
+function handleBomUpload(_record: any) {
+  console.log('Upload clicked', _record);
+  bomRecord.value = _record;
   showBomModal.value = true;
 }
 
-function handleBomSubmit(file: any) {
+function handleBomSubmit(_file: any) {
   // Handle the uploaded file for bomRecord.value
   showBomModal.value = false;
 }
@@ -590,17 +537,17 @@ function handleAddBatchClick() {
   showAddBatchModal.value = true;
 }
 
-function handleAddBatchSubmit(data: any) {
+function handleAddBatchSubmit(_data: any) {
   // Add the new batch to rawData
   rawData.unshift({
     key: rawData.length + 1,
-    deviceModel: data.deviceModel,
-    productionBatch: data.productionBatch?.format ? data.productionBatch.format('YYYY-MM-DD') : data.productionBatch,
-    manufacturer: data.manufacturer,
-    burnedFirmware: data.burnedFirmware,
-    unitPrice: data.unitPrice,
-    quantity: data.quantity,
-    totalPrice: (data.unitPrice * data.quantity).toString(),
+    deviceModel: _data.deviceModel,
+    productionBatch: _data.productionBatch?.format ? _data.productionBatch.format('YYYY-MM-DD') : _data.productionBatch,
+    manufacturer: _data.manufacturer,
+    burnedFirmware: _data.burnedFirmware,
+    unitPrice: _data.unitPrice,
+    quantity: _data.quantity,
+    totalPrice: (_data.unitPrice * _data.quantity).toString(),
     creator: 'admin',
     creatorAvatar: '',
     creationTime: new Date().toLocaleString(),

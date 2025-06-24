@@ -92,7 +92,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, defineProps, defineEmits, watch, computed } from 'vue';
-import { InboxOutlined, FileExcelOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined } from '@ant-design/icons-vue';
+import { InboxOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined } from '@ant-design/icons-vue';
 
 const props = defineProps({
   visible: Boolean,
@@ -152,8 +152,8 @@ function handleFinish() {
   emits('finish');
   reset();
 }
-function beforeUpload(file: any) {
-  fileName.value = file.name;
+function beforeUpload(_file: any) {
+  fileName.value = _file.name;
   uploadPercent.value = 0;
   return false; // prevent auto upload
 }

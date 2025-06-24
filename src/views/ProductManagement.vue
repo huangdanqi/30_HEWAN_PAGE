@@ -441,8 +441,6 @@ console.log('Raw Data:', rawData);
 const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
 const productTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
 const ipNameValue = ref({ key: 'all', label: '全部', value: 'all' });
-const releaseVersionValue = ref({ key: 'all', label: '全部', value: 'all' });
-const versionNumberValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const deviceModelOptions = computed(() => {
   const unique = Array.from(new Set(rawData.map(item => item.deviceModel)));
@@ -456,16 +454,6 @@ const productTypeOptions = computed(() => {
 
 const ipNameOptions = computed(() => {
   const unique = Array.from(new Set(rawData.map(item => item.ipName)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const releaseVersionOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.releaseVersion)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
-});
-
-const versionNumberOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.versionNumber)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
@@ -483,18 +471,6 @@ const handleProductTypeChange = (val: any) => {
 
 const handleIpNameChange = (val: any) => {
   ipNameValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
-
-const handleReleaseVersionChange = (val: any) => {
-  releaseVersionValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
-};
-
-const handleVersionNumberChange = (val: any) => {
-  versionNumberValue.value = !val || !val.value || val.value === 'all'
     ? { key: 'all', label: '全部', value: 'all' }
     : val;
 };
@@ -540,8 +516,6 @@ const onRefresh = () => {
   deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
   productTypeValue.value = { key: 'all', label: '全部', value: 'all' };
   ipNameValue.value = { key: 'all', label: '全部', value: 'all' };
-  releaseVersionValue.value = { key: 'all', label: '全部', value: 'all' };
-  versionNumberValue.value = { key: 'all', label: '全部', value: 'all' };
 
   // Simulate data fetching
   setTimeout(() => {
@@ -588,24 +562,6 @@ const filteredData = computed<DataItem[]>(() => {
     dataToFilter = dataToFilter.filter(item => item.ipName === ipNameValue.value.value);
   }
 
-  // Filter by release version
-  if (
-    releaseVersionValue.value &&
-    releaseVersionValue.value.value !== 'all' &&
-    releaseVersionValue.value.value !== ''
-  ) {
-    dataToFilter = dataToFilter.filter(item => item.releaseVersion === releaseVersionValue.value.value);
-  }
-
-  // Filter by version number
-  if (
-    versionNumberValue.value &&
-    versionNumberValue.value.value !== 'all' &&
-    versionNumberValue.value.value !== ''
-  ) {
-    dataToFilter = dataToFilter.filter(item => item.versionNumber === versionNumberValue.value.value);
-  }
-
   // Sorting logic
   if (sorterInfo.value && sorterInfo.value.order) {
     const { columnKey, order } = sorterInfo.value;
@@ -619,12 +575,6 @@ const filteredData = computed<DataItem[]>(() => {
   }
 
   return dataToFilter;
-});
-
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredData.value.slice(start, end);
 });
 
 const searchInputValue = ref('');
@@ -696,13 +646,11 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 const showReleaseModal = ref(false);
 const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.map(item => item.deviceModel))));
 
-const handleVersionRelease = () => {
-  showReleaseModal.value = true;
-};
 const handleReleaseModalClose = () => {
   showReleaseModal.value = false;
 };
-const handleReleaseModalSubmit = (data: any) => {
+
+const handleReleaseModalSubmit = (_data: any) => {
   // You can handle the submit data here
   showReleaseModal.value = false;
 };
@@ -710,16 +658,16 @@ const handleReleaseModalSubmit = (data: any) => {
 const showEditModal = ref(false);
 const editRecord = ref<any>(null);
 
-const handleEditRecord = (record: any) => {
+const handleEditRecord = (_record: any) => {
   message.info('开发中');
-  // editRecord.value = { ...record };
+  // editRecord.value = { ..._record };
   // showEditModal.value = true;
 };
 const handleEditModalClose = () => {
   showEditModal.value = false;
   editRecord.value = null;
 };
-const handleEditModalSubmit = (data: any) => {
+const handleEditModalSubmit = (_data: any) => {
   // Update the data in your table as needed
   showEditModal.value = false;
   editRecord.value = null;
@@ -731,7 +679,7 @@ const handleProductCreate = () => {
   showProductCreateModal.value = true;
 };
 
-const handleProductCreateSubmit = (data: any) => {
+const handleProductCreateSubmit = (_data: any) => {
   // You can add logic to add the new product to rawData here
   showProductCreateModal.value = false;
 };

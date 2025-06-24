@@ -98,7 +98,7 @@
 import { ref, reactive, watch, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import type { UploadChangeParam } from 'ant-design-vue';
-import { InboxOutlined, BarcodeOutlined } from '@ant-design/icons-vue';
+import { InboxOutlined } from '@ant-design/icons-vue';
 import type { FormInstance } from 'ant-design-vue';
 
 // Define component props received from the parent component
@@ -150,7 +150,6 @@ const generatedVersion = computed(() => {
 
 // Computed for deviceModel input length (excluding spaces)
 const deviceModelMaxLength = 15;
-const deviceModelInputLength = computed(() => formState.deviceModel.replace(/\s/g, '').length);
 
 watch(() => formState.deviceModel, (val) => {
   // If over max, trim (excluding spaces)

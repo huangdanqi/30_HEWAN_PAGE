@@ -10,64 +10,91 @@
       <a-sub-menu key="sub1">
         <template #title>
           <span>
-            <appstore-outlined />
             数据透视
           </span>
         </template>
-        <a-menu-item key="1" :disabled="isMenuItemDisabled('1')">BI分析</a-menu-item>
+        <a-menu-item key="1" :disabled="isMenuItemDisabled('1')">
+          <template #icon><bar-chart-outlined /></template>
+          BI分析
+        </a-menu-item>
       </a-sub-menu>
       <a-sub-menu key="sub2">
         <template #title>
           <span>
-            <user-outlined />
             账户信息
           </span>
         </template>
-        <a-menu-item key="2">账户信息</a-menu-item>
-        <a-menu-item key="3" :disabled="isMenuItemDisabled('3')">日志查询</a-menu-item>
+        <a-menu-item key="2">
+          <template #icon><idcard-outlined /></template>
+          账户信息
+        </a-menu-item>
+        <a-menu-item key="3" :disabled="isMenuItemDisabled('3')">
+          <template #icon><file-text-outlined /></template>
+          日志查询
+        </a-menu-item>
       </a-sub-menu>
        <a-sub-menu key="sub3">
         <template #title>
           <span>
-            <laptop-outlined />
             设备管理
           </span>
         </template>
-        <a-menu-item key="4">固件管理</a-menu-item>
-        <a-menu-item key="10">机芯生产</a-menu-item>
-        <a-menu-item key="5">设备OTA</a-menu-item>
+        <a-menu-item key="4">
+          <template #icon><hdd-outlined /></template>
+          固件管理
+        </a-menu-item>
+        <a-menu-item key="10">
+          <template #icon><tool-outlined /></template>
+          机芯生产
+        </a-menu-item>
+        <a-menu-item key="5">
+          <template #icon><swap-outlined /></template>
+          设备OTA
+        </a-menu-item>
       </a-sub-menu>
        <a-sub-menu key="sub4">
         <template #title>
           <span>
-            <setting-outlined />
             商品管理
           </span>
         </template>
-        <a-menu-item key="6">产品管理</a-menu-item>
-        <a-menu-item key="7">玩具生产</a-menu-item>
-        <a-menu-item key="8">商品列表</a-menu-item>
+        <a-menu-item key="6">
+          <template #icon><box-plot-outlined /></template>
+          产品管理
+        </a-menu-item>
+        <a-menu-item key="7">
+          <template #icon><gift-outlined /></template>
+          玩具生产
+        </a-menu-item>
+        <a-menu-item key="8">
+          <template #icon><unordered-list-outlined /></template>
+          商品列表
+        </a-menu-item>
       </a-sub-menu>
 
     <a-sub-menu key="sub5">
         <template #title>
           <span>
-            <setting-outlined />
             IP信息
           </span>
         </template>
-        <a-menu-item key="9">IP管理</a-menu-item>
+        <a-menu-item key="9">
+          <template #icon><apartment-outlined /></template>
+          IP管理
+        </a-menu-item>
 
       </a-sub-menu>
 
       <a-sub-menu key="sub6">
         <template #title>
           <span>
-            <setting-outlined />
             权限管理
           </span>
         </template>
-        <a-menu-item key="11" :disabled="isMenuItemDisabled('11')">成员管理</a-menu-item>
+        <a-menu-item key="11" :disabled="isMenuItemDisabled('11')">
+          <template #icon><team-outlined /></template>
+          成员管理
+        </a-menu-item>
 
       </a-sub-menu>
 
@@ -91,7 +118,20 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { AppstoreOutlined, UserOutlined, LaptopOutlined, SettingOutlined } from '@ant-design/icons-vue';
+import {
+  AppstoreOutlined,
+  BarChartOutlined,
+  IdcardOutlined,
+  FileTextOutlined,
+  HddOutlined,
+  ToolOutlined,
+  SwapOutlined,
+  BoxPlotOutlined,
+  GiftOutlined,
+  UnorderedListOutlined,
+  ApartmentOutlined,
+  TeamOutlined
+} from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 
 const selectedKeys = ref<string[]>([]);

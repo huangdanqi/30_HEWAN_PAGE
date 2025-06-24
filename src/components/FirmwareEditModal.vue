@@ -147,7 +147,6 @@ const generatedVersion = computed(() => {
 });
 
 const deviceModelMaxLength = 15;
-const deviceModelInputLength = computed(() => formState.deviceModel.replace(/\s/g, '').length);
 
 watch(() => formState.deviceModel, (val) => {
   let raw = val.replace(/\s/g, '');
