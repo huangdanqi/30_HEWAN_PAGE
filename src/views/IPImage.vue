@@ -788,8 +788,13 @@ const handleEdit = (record: DataItem) => {
   showEditModal.value = true;
   // Populate edit form with record data
   editForm.value = {
-    ...record,
-    tags: record.tags ? record.tags.split(',').map(tag => tag.trim()) : [],
+    ipName: record.ipName,
+    imageName: record.imageName,
+    scene: record.scene,
+    weather: record.weather,
+    emotion: record.emotion,
+    timePeriod: record.time || '', // Use time as timePeriod
+    tags: '', // Initialize as empty string
     imageFile: null // Clear previous file
   };
   // Reset file progress
@@ -823,6 +828,7 @@ const editForm = ref({
 });
 
 const tagInput = ref<HTMLInputElement>();
+const editFileInput = ref<HTMLInputElement>();
 const showTagInput = ref(false);
 const newTag = ref('');
 const fileUploading = ref(false);
@@ -899,14 +905,16 @@ const removeFile = () => {
 
 const addTag = () => {
   if (newTag.value && newTag.value.trim() && !editForm.value.tags.includes(newTag.value.trim())) {
-    editForm.value.tags.push(newTag.value.trim());
+    editForm.value.tags += (editForm.value.tags ? ', ' : '') + newTag.value.trim();
   }
   showTagInput.value = false;
   newTag.value = '';
 };
 
 const removeTag = (index: number) => {
-  editForm.value.tags.splice(index, 1);
+  const tags = editForm.value.tags.split(', ');
+  tags.splice(index, 1);
+  editForm.value.tags = tags.join(', ');
 };
 
 onMounted(() => {
