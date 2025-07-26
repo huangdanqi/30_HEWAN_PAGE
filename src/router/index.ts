@@ -1,114 +1,121 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
-
-const routes: RouteRecordRaw[] = [
-  {
-    path: '/login',
-    name: 'Login',
-    component: () => import('../views/Login.vue'),
-    meta: { requiresAuth: false }
-  },
-  {
-    path: '/',
-    component: () => import('../layouts/MainLayout.vue'),
-    meta: { requiresAuth: true },
-    children: [
-      {
-        path: '',
-        redirect: '/account'
-      },
-      {
-        path: 'account',
-        name: 'Account',
-        component: () => import('../views/Account.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'products',
-        name: 'Products',
-        component: () => import('../views/Products.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'ota',
-        name: 'OTA',
-        component: () => import('../views/OTA.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'firmware',
-        name: 'Firmware',
-        component: () => import('../views/Firmware.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'movement-production',
-        name: 'MovementProduction',
-        component: () => import('../views/MovementProduction.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'product-management',
-        name: 'ProductManagement',
-        component: () => import('../views/ProductManagement.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'toy-production',
-        name: 'ToyProduction',
-        component: () => import('../views/ToyProduction.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'product-list',
-        name: 'ProductList',
-        component: () => import('../views/ProductList.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'ip-management',
-        name: 'IPManagement',
-        component: () => import('../views/IPManagement.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'log-query',
-        name: 'LogQuery',
-        component: () => import('../views/LogQuery.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'demo-page',
-        name: 'DemoPage',
-        component: () => import('../views/DemoPage.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'demo-page-2',
-        name: 'DemoPage2',
-        component: () => import('../views/DemoPage2.vue'),
-        meta: { requiresAuth: true }
-      }
-    ]
-  }
-]
+import Account from '../views/Account.vue'
+import AgentConfiguration from '../views/AgentConfiguration.vue'
+import ToolConfiguration from '../views/ToolConfiguration.vue'
+import DeviceType from '../views/DeviceType.vue'
+import DeviceProduction from '../views/DeviceProduction.vue'
+import DeviceManagement from '../views/DeviceManagement.vue'
+import Firmware from '../views/Firmware.vue'
+import TableDemo from '../views/TableDemo.vue'
+import ProductType from '../views/ProductType.vue'
+import IPAudio from '../views/IPAudio.vue'
+import IPImage from '../views/IPImage.vue'
+import IPVideo from '../views/IPVideo.vue'
+import MusicResources from '../views/MusicResources.vue'
+import BuiltInAlarm from '../views/BuiltInAlarm.vue'
+import IPManagement from '../views/IPManagement.vue'
+import ModelConfiguration from '../views/ModelConfiguration.vue'
+import ToyProduction from '../views/ToyProduction.vue'
+import ProductList from '../views/ProductList.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
-})
-
-// Navigation guard
-router.beforeEach((to, _from, next) => {
-  const isAuthenticated = localStorage.getItem('token')
-  
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
-  } else if (to.path === '/login' && isAuthenticated) {
-    next('/')
-  } else {
-    next()
-  }
+  routes: [
+  {
+    path: '/',
+        redirect: '/account'
+      },
+      {
+      path: '/account',
+      name: 'account',
+      component: Account
+      },
+      {
+      path: '/agent-configuration',
+      name: 'agent-configuration',
+      component: AgentConfiguration
+      },
+      {
+      path: '/tool-configuration',
+      name: 'tool-configuration',
+      component: ToolConfiguration
+      },
+      {
+      path: '/device-type',
+      name: 'device-type',
+      component: DeviceType
+      },
+      {
+      path: '/device-production',
+      name: 'device-production',
+      component: DeviceProduction
+      },
+      {
+      path: '/device-management',
+      name: 'device-management',
+      component: DeviceManagement
+      },
+      {
+      path: '/firmware',
+      name: 'firmware',
+      component: Firmware
+      },
+      {
+      path: '/table-demo',
+      name: 'table-demo',
+      component: TableDemo
+      },
+      {
+      path: '/product-type',
+      name: 'product-type',
+      component: ProductType
+      },
+      {
+      path: '/ip-audio',
+      name: 'ip-audio',
+      component: IPAudio
+      },
+      {
+      path: '/ip-image',
+      name: 'ip-image',
+      component: IPImage
+      },
+      {
+      path: '/ip-video',
+      name: 'ip-video',
+      component: IPVideo
+      },
+      {
+      path: '/music-resources',
+      name: 'music-resources',
+      component: MusicResources
+      },
+      {
+      path: '/built-in-alarm',
+      name: 'built-in-alarm',
+      component: BuiltInAlarm
+      },
+      {
+      path: '/ip-management',
+      name: 'ip-management',
+      component: IPManagement
+      },
+      {
+      path: '/model-configuration',
+      name: 'model-configuration',
+      component: ModelConfiguration
+      },
+      {
+      path: '/toy-production',
+      name: 'toy-production',
+      component: ToyProduction
+      },
+      {
+      path: '/product-list',
+      name: 'product-list',
+      component: ProductList
+      }
+    ]
 })
 
 export default router 

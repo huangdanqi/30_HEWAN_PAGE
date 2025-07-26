@@ -133,7 +133,9 @@
       <template #bodyCell="{ column, record }">
       <template v-if="column.key === 'operation'">
         <a-space class="action-cell" direction="horizontal">
-          <a class="edit-link" @click="handleEditClick">编辑</a>
+          <a class="view-link">查看</a>
+          <a-divider type="vertical" />
+          <a class="edit-link" @click="handleEditClick(record)">编辑</a>
           <a-divider type="vertical" />
           <a-popconfirm
             title="确定要删除该信息吗?"
@@ -142,6 +144,9 @@
             <a class="danger-link">删除</a>
           </a-popconfirm>
         </a-space>
+      </template>
+      <template v-else-if="column.key === 'updater'">
+        <span>33</span>
       </template>
     </template>
       </a-table>
@@ -153,13 +158,6 @@
       @submit="handleReleaseModalSubmit"
     />
 
-    <FirmwareEditModal
-      :visible="showEditModal"
-      :record="editRecord"
-      @update:visible="handleEditModalClose"
-      @submit="handleEditModalSubmit"
-    />
-
     <a-modal
       v-model:visible="showCreateIpModal"
       title="新建IP"
@@ -169,61 +167,57 @@
       <a-form layout="vertical">
         <a-form-item required>
           <template #label>
-            <span style="color:#ff4d4f">*</span> IP名称
+            IP名称
           </template>
           <a-input placeholder="请输入" />
         </a-form-item>
-        <a-form-item required>
+        <a-form-item key="create-ip-intro-field" required>
           <template #label>
-            <span style="color:#ff4d4f">*</span> IP音频库
-          </template>
-          <a-input placeholder="请输入URL" />
-        </a-form-item>
-        <a-form-item required>
-          <template #label>
-            <span style="color:#ff4d4f">*</span> IP素材库
-          </template>
-          <a-input placeholder="请输入URL" />
-        </a-form-item>
-        <a-form-item required>
-          <template #label>
-            <span style="color:#ff4d4f">*</span> IP介绍
+            IP介绍
           </template>
           <a-textarea placeholder="请输入" rows="4" />
         </a-form-item>
-        <a-form-item label="Agent Basic ID">
-          <a-input placeholder="请输入ID" />
+        <a-form-item label="Agent名称">
+          <a-select placeholder="请选择">
+            <a-select-option value="agent1">啵啵多模态情感陪伴智能体</a-select-option>
+            <a-select-option value="agent2">其他智能体</a-select-option>
+          </a-select>
         </a-form-item>
-        <a-form-item label="Agent Basic API">
-          <a-input placeholder="请输入URL" />
-        </a-form-item>
-        <a-form-item label="Agent Pro ID">
-          <a-input placeholder="请输入ID" />
-        </a-form-item>
-        <a-form-item label="Agent Pro API">
-          <a-input placeholder="请输入URL" />
-        </a-form-item>
-        <a-form-item label="Agent SVIP ID">
-          <a-input placeholder="请输入ID" />
-        </a-form-item>
-        <a-form-item label="Agent SVIP API">
-          <a-input placeholder="请输入URL" />
-        </a-form-item>
-        <a-form-item label="TTS ID">
-          <a-input placeholder="请输入ID" />
-        </a-form-item>
-        <a-form-item label="TTS API">
-          <a-input placeholder="请输入URL" />
-        </a-form-item>
-        <a-form-item label="VCM ID">
-          <a-input placeholder="请输入ID" />
-        </a-form-item>
-        <a-form-item label="VCM API">
-          <a-input placeholder="请输入URL" />
-        </a-form-item>
-        <div style="display: flex; justify-content: center; gap: 16px; margin-top: 24px;">
+        <div style="display: flex; justify-content: flex-end; gap: 16px; margin-top: 24px;">
           <a-button @click="showCreateIpModal = false">取消</a-button>
-          <a-button type="primary">保存</a-button>
+          <a-button type="primary">确定</a-button>
+        </div>
+      </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:visible="showEditModal"
+      title="编辑IP"
+      :footer="null"
+      width="500px"
+    >
+      <a-form layout="vertical" :model="editFormData">
+        <a-form-item required>
+          <template #label>
+           IP名称
+          </template>
+          <a-input v-model:value="editFormData.ipName" placeholder="请输入" />
+        </a-form-item>
+        <a-form-item key="ip-intro-field" required>
+          <template #label>
+           IP介绍
+          </template>
+          <a-textarea v-model:value="editFormData.ipIntro" placeholder="请输入" rows="4" />
+        </a-form-item>
+        <a-form-item label="Agent名称">
+          <a-select v-model:value="editFormData.agentName" placeholder="请选择">
+            <a-select-option value="啵啵多模态情感陪伴智能体">啵啵多模态情感陪伴智能体</a-select-option>
+            <a-select-option value="其他智能体">其他智能体</a-select-option>
+          </a-select>
+        </a-form-item>
+        <div style="display: flex; justify-content: flex-end; gap: 16px; margin-top: 24px;">
+          <a-button @click="showEditModal = false">取消</a-button>
+          <a-button type="primary" @click="handleEditSubmit">确定</a-button>
         </div>
       </a-form>
     </a-modal>
@@ -238,7 +232,6 @@ import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import FirmwareReleaseModal from '@/components/FirmwareReleaseModal.vue';
-import FirmwareEditModal from '@/components/FirmwareEditModal.vue';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -252,15 +245,8 @@ interface DataItem {
   ipId: string;
   ipName: string;
   ipIntro: string;
-  ipFirmware: string;
-  ipData: string;
-  agentBasicId: string;
-  agentBasicApi: string;
-  agentProId: string;
-  agentProApi: string;
-  agentSvipId: string;
-  agentSvipApi: string;
-  creator: string;
+  agentName: string;
+  updater: string;
   createTime: string;
   updateTime: string;
 }
@@ -283,18 +269,11 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'ipId', title: 'IP ID', dataIndex: 'ipId', width: 120 },
   { key: 'ipName', title: 'IP名称', dataIndex: 'ipName', width: 120 },
   { key: 'ipIntro', title: 'IP介绍', dataIndex: 'ipIntro', width: 320 },
-  { key: 'ipFirmware', title: 'IP音频库', dataIndex: 'ipFirmware', width: 250 },
-  { key: 'ipData', title: 'IP素材库', dataIndex: 'ipData', width: 250 },
-  { key: 'agentBasicId', title: 'Agent Basic ID', dataIndex: 'agentBasicId', width: 200 },
-  { key: 'agentBasicApi', title: 'Agent Basic API', dataIndex: 'agentBasicApi', width: 250 },
-  { key: 'agentProId', title: 'Agent Pro ID', dataIndex: 'agentProId', width: 150 },
-  { key: 'agentProApi', title: 'Agent Pro API', dataIndex: 'agentProApi', width: 250 },
-  { key: 'agentSvipId', title: 'Agent SVIP ID', dataIndex: 'agentSvipId', width: 150 },
-  { key: 'agentSvipApi', title: 'Agent SVIP API', dataIndex: 'agentSvipApi', width: 230 },
-  { key: 'creator', title: '创建人', dataIndex: 'creator', width: 80 },
+  { key: 'agentName', title: 'Agent名称', dataIndex: 'agentName', width: 250 },
+  { key: 'updater', title: '更新人', dataIndex: 'updater', width: 100 },
   { key: 'createTime', title: '创建时间', dataIndex: 'createTime', width: 160, sorter: (a: any, b: any) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation', title: '操作', dataIndex: '', width: 100, fixed: 'right' },
+  { key: 'operation', title: '操作', dataIndex: '', width: 200, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -339,22 +318,15 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-// Update the rawData to have different createTime and updateTime values for each row
+// Update the rawData to match the image content
 const rawData = Array.from({ length: 10 }, (_, i) => ({
-  ipId: 'hjwan832nj2r',
-  ipName: '哆啦A梦',
-  ipIntro: '硬核  题库: 白羊座·MBTI: INFP; 画板: 火; 估价: ...',
-  ipFirmware: 'https://example.com/firmware.bin',
-  ipData: 'https://example.com/firmware.bin',
-  agentBasicId: 'hjwan832nj2r',
-  agentBasicApi: 'https://example.com/firmware.bin',
-  agentProId: 'hjwan832nj2r',
-  agentProApi: 'https://example.com/firmware.bin',
-  agentSvipId: 'hjwan832nj2r',
-  agentSvipApi: 'https://example.com/firmware.bin',
-  creator: '33',
-  createTime: `2025-7-13 19:${(25 + i).toString().padStart(2, '0')}:11`,
-  updateTime: `2025-7-13 19:${(30 + i).toString().padStart(2, '0')}:51`,
+  ipId: 'hjhwn832nj2f',
+  ipName: '啵啵',
+  ipIntro: '星座:白羊座;MBTI: INFP;属性:火;性格:...',
+  agentName: '啵啵多模态情感陪伴智能体',
+  updater: '33',
+  createTime: `2025-7-13 19:25:11`,
+  updateTime: `2025-7-13 19:25:11`,
 }));
 
 console.log('Raw Data:', rawData);
@@ -507,18 +479,62 @@ const handleReleaseModalSubmit = (_data: any) => {
 const showEditModal = ref(false);
 const editRecord = ref<any>(null);
 
-const handleEditClick = () => {
-  message.info('开发中');
+const editFormData = ref({
+  ipName: '',
+  ipIntro: '',
+  agentName: ''
+});
+
+const handleEditClick = (record: DataItem) => {
+  editRecord.value = record;
+  // Pre-fill the form with record data
+  editFormData.value = {
+    ipName: record.ipName,
+    ipIntro: record.ipIntro,
+    agentName: record.agentName
+  };
+  showEditModal.value = true;
 };
 
 const handleEditModalClose = () => {
   showEditModal.value = false;
   editRecord.value = null;
+  editFormData.value = {
+    ipName: '',
+    ipIntro: '',
+    agentName: ''
+  };
 };
-const handleEditModalSubmit = (_data: any) => {
-  // Update the data in your table as needed
+
+const handleEditSubmit = () => {
+  // Update the record in the table data
+  if (editRecord.value) {
+    const index = rawData.findIndex(item => item.ipId === editRecord.value.ipId);
+    if (index !== -1) {
+      rawData[index] = {
+        ...rawData[index],
+        ipName: editFormData.value.ipName,
+        ipIntro: editFormData.value.ipIntro,
+        agentName: editFormData.value.agentName,
+        updateTime: new Date().toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })
+      };
+    }
+  }
+  message.success('更新成功');
   showEditModal.value = false;
   editRecord.value = null;
+  editFormData.value = {
+    ipName: '',
+    ipIntro: '',
+    agentName: ''
+  };
 };
 
 const showCreateIpModal = ref(false);
@@ -704,7 +720,12 @@ html, body {
   display: flex;
   align-items: center;
   gap: 4px;
-  min-width: 90px;
+  min-width: 180px;
+  flex-wrap: wrap;
+}
+:deep(.ant-table-cell .action-cell .view-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
 }
 :deep(.ant-table-cell .action-cell .edit-link) {
   color: #1890ff !important; /* Ant Design blue */

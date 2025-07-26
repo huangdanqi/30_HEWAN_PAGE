@@ -11,7 +11,7 @@
       @export="handleExport"
       @settings="handleSettings"
       @apply-filters="handleApplyFilters"
-      @configure-columns="showConfigModal"
+      @configure-columns="showConfigModal"     
     />
 
     <!-- Use the new ProductsTable component -->

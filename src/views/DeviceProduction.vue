@@ -1,0 +1,1476 @@
+<template>
+  <a-config-provider :locale="customLocale" :theme="{ algorithm: theme.defaultAlgorithm }">
+    <!-- Title -->
+    <div class="title-container">
+      <h2>设备生产</h2>
+    </div>
+
+    <!-- Control Bar -->
+    <div class="top-controls-wrapper">
+      <div class="left-aligned-section">
+        <div class="select-container device-model-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">设备型号:</span>
+          <a-tooltip :title="deviceModelValue.label">
+          <a-select
+            v-model:value="deviceModelValue"
+              style="width: 120px;"
+            :options="deviceModelOptions"
+            @change="handleDeviceModelChange"
+            :allowClear="true" 
+            label-in-value
+          >
+            <a-select-option value="all">全部</a-select-option>
+            <!-- If you have dynamic options, add them here -->
+          </a-select>
+          </a-tooltip>
+        </div>
+        <div class="select-container manufacturer-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">生产厂家:</span>
+          <a-tooltip :title="manufacturerValue.label">
+            <a-select
+              v-model:value="manufacturerValue"
+              style="width: 150px;"
+              :options="manufacturerOptions"
+              @change="handleManufacturerChange"
+              :allowClear="true"
+              label-in-value
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+      </div>
+      <!-- icon area -->
+      <div class="right-aligned-icons">
+          <!-- search area  -->
+          <a-input
+            v-model:value="searchInputValue"
+            placeholder="请输入"
+            style="width: 200px"
+          >
+            <template #prefix>
+              <SearchOutlined />
+            </template>
+          </a-input>
+          <a-button type="primary" @click="handleCreateDevice">新建设备</a-button>
+          <ReloadOutlined @click="onRefresh" />
+          <a-dropdown>
+            <ColumnHeightOutlined @click.prevent />
+            <template #overlay>
+              <a-menu @click="handleMenuClick">
+                <a-menu-item key="large">宽松</a-menu-item>
+                <a-menu-item key="middle">中等</a-menu-item>
+                <a-menu-item key="small">紧凑</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <a-popover trigger="click" placement="bottomRight">
+  <template #content>
+    <div class="column-setting-panel" style="max-height: 300px; overflow-y: auto;">
+      <div class="setting-section">
+        <div class="section-header" style="display: flex; justify-content: space-between;">
+          <span>列展示</span>
+          <a-button type="link" @click="resetColumns">重置</a-button>
+        </div>
+
+        <draggable
+          v-model="columnOrder"
+          item-key="key"
+          @end="onColumnOrderChange"
+          class="column-checkbox-group"
+        >
+          <template #item="{ element: colKey }">
+            <div class="column-checkbox-item" style="padding: 4px 0;">
+              <a-checkbox
+                :checked="selectedColumnKeys.includes(colKey)"
+                @change="(event: Event) => handleColumnVisibilityChange(colKey, (event.target as HTMLInputElement).checked)"
+              >
+                {{ columnConfigs.find(config => config.key === colKey)?.title }}
+              </a-checkbox>
+            </div>
+          </template>
+        </draggable>
+      </div>
+    </div>
+  </template>
+  <SettingOutlined @click="onSettingClick" />
+</a-popover>
+
+
+      </div>
+    </div>
+      
+    <!-- table area -->
+    <div class="table-container">
+      <a-table
+        :columns="columns"
+        :data-source="filteredData"
+        :pagination="filteredData.length === 0 ? false : pagination"
+        :loading="loading"
+        :size="tableSize"
+        :scroll="{ x: 1000 }"
+        @change="handleTableChange"
+        :showSorterTooltip="false"
+      >
+      <template #bodyCell="{ column, record }">
+      <template v-if="column.key === 'operation_9'">
+        <a-space class="action-cell" direction="horizontal">
+          <a class="view-link" @click="$emit('view-record', record)">查看</a>
+          <a-divider type="vertical" />
+          <a class="edit-link" @click="handleEditBatch(record)">编辑</a>
+          <a-divider type="vertical" />
+          <a class="upload-link" @click="handleUploadBom(record)">上传</a>
+          <a-divider type="vertical" />
+          <a class="download-link" @click="$emit('download-record', record)">下载</a>
+          <a-divider type="vertical" />
+          <a-popconfirm
+            title="确定要删除该设备吗?"
+            @confirm="$emit('delete-record', record)"
+          >
+            <a class="danger-link">删除</a>
+          </a-popconfirm>
+        </a-space>
+      </template>
+      <template v-else-if="column.key === 'deviceModel_2'">
+        <a class="device-model-link">{{ record.deviceModel }}</a>
+      </template>
+      <template v-else-if="column.key === 'firmwareVersion_5'">
+        <a class="firmware-link">{{ record.firmwareVersion }}</a>
+      </template>
+    </template>
+      </a-table>
+    </div>
+
+    <!-- 新增批次 Modal -->
+    <a-modal
+      v-model:open="showCreateBatchModal"
+      title="新增批次"
+      :width="600"
+      @cancel="handleCreateBatchModalCancel"
+    >
+      <a-form
+        :model="createBatchForm"
+        :rules="createBatchFormRules"
+        layout="vertical"
+        ref="createBatchFormRef"
+      >
+        <a-form-item label="设备型号" name="deviceModel" required>
+          <a-select v-model:value="createBatchForm.deviceModel" placeholder="请选择">
+            <a-select-option value="HWZ001">HWZ001</a-select-option>
+            <a-select-option value="HWZ002">HWZ002</a-select-option>
+            <a-select-option value="HWZ003">HWZ003</a-select-option>
+            <a-select-option value="HWZ004">HWZ004</a-select-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item label="生产批次" name="productionBatch" required>
+          <a-date-picker 
+            v-model:value="createBatchForm.productionBatch" 
+            placeholder="请选择"
+            style="width: 100%"
+          />
+        </a-form-item>
+
+        <a-form-item label="生产厂家" name="manufacturer" required>
+          <a-input v-model:value="createBatchForm.manufacturer" placeholder="请输入" />
+        </a-form-item>
+
+        <a-form-item label="烧录固件" name="burnFirmware" required>
+          <a-select v-model:value="createBatchForm.burnFirmware" placeholder="请选择">
+            <a-select-option value="2001 V 1.0.0">2001 V 1.0.0</a-select-option>
+            <a-select-option value="2001 V 1.1.0">2001 V 1.1.0</a-select-option>
+            <a-select-option value="2001 V 1.2.0">2001 V 1.2.0</a-select-option>
+            <a-select-option value="2001 V 2.0.0">2001 V 2.0.0</a-select-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item label="单价" name="unitPrice" required>
+          <a-input-number 
+            v-model:value="createBatchForm.unitPrice" 
+            placeholder="请输入" 
+            style="width: 100%"
+            :min="0"
+            :precision="2"
+            suffix="元"
+          />
+        </a-form-item>
+
+        <a-form-item label="数量" name="quantity" required>
+          <a-input-number 
+            v-model:value="createBatchForm.quantity" 
+            placeholder="请输入" 
+            style="width: 100%"
+            :min="1"
+            :precision="0"
+            suffix="个"
+          />
+        </a-form-item>
+      </a-form>
+      
+      <template #footer>
+        <div style="text-align: right; padding: 10px 0;">
+          <a-button @click="handleCreateBatchModalCancel">取消</a-button>
+          <a-button type="primary" @click="handleCreateBatchModalConfirm" style="margin-left: 8px;">确定</a-button>
+        </div>
+      </template>
+    </a-modal>
+
+    <!-- 编辑批次 Modal -->
+    <div v-if="showEditBatchModal" class="modal-overlay" @click="showEditBatchModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>编辑批次</h3>
+          <button class="close-button" @click="showEditBatchModal = false">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label>设备型号</label>
+            <select v-model="editBatchForm.deviceModel" class="form-input">
+              <option value="HWSZ001">HWSZ001</option>
+              <option value="HWZ001">HWZ001</option>
+              <option value="HWZ002">HWZ002</option>
+              <option value="HWZ003">HWZ003</option>
+              <option value="HWZ004">HWZ004</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>生产批次</label>
+            <input type="date" v-model="editBatchForm.productionBatch" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>生产厂家</label>
+            <input type="text" v-model="editBatchForm.manufacturer" class="form-input" placeholder="请输入" />
+          </div>
+
+          <div class="form-group">
+            <label>烧录固件</label>
+            <select v-model="editBatchForm.burnFirmware" class="form-input">
+              <option value="Z001 V 1.0.0">Z001 V 1.0.0</option>
+              <option value="Z001 V 1.1.0">Z001 V 1.1.0</option>
+              <option value="Z001 V 1.2.0">Z001 V 1.2.0</option>
+              <option value="Z001 V 2.0.0">Z001 V 2.0.0</option>
+              <option value="2001 V 1.0.0">2001 V 1.0.0</option>
+              <option value="2001 V 1.1.0">2001 V 1.1.0</option>
+              <option value="2001 V 1.2.0">2001 V 1.2.0</option>
+              <option value="2001 V 2.0.0">2001 V 2.0.0</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>单价</label>
+            <div class="input-with-suffix">
+              <input type="number" v-model="editBatchForm.unitPrice" class="form-input" placeholder="请输入" step="0.01" min="0" />
+              <span class="suffix">元</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>数量</label>
+            <div class="input-with-suffix">
+              <input type="number" v-model="editBatchForm.quantity" class="form-input" placeholder="请输入" min="1" />
+              <span class="suffix">个</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showEditBatchModal = false">取消</button>
+          <button class="btn btn-primary" @click="handleEditBatchModalConfirm">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 上传BOM Modal -->
+    <div v-if="showUploadBomModal" class="modal-overlay" @click="showUploadBomModal = false">
+      <div class="modal-content upload-modal" @click.stop>
+        <div class="modal-header">
+          <h3>上传BOM</h3>
+          <button class="close-button" @click="showUploadBomModal = false">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="upload-area" @click="triggerFileInput" @drop="handleFileDrop" @dragover.prevent @dragenter.prevent>
+            <div class="upload-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z" fill="#1890ff"/>
+                <path d="M14 2V8H20" fill="#1890ff"/>
+                <path d="M16 13H8V11H16V13Z" fill="white"/>
+                <path d="M16 17H8V15H16V17Z" fill="white"/>
+                <path d="M10 9H8V7H10V9Z" fill="white"/>
+              </svg>
+            </div>
+            <div class="upload-text">
+              <p>点击或拖拽文件到此区域</p>
+              <p class="upload-hint">支持文件格式: xls, xlsx</p>
+            </div>
+            <input 
+              ref="fileInput" 
+              type="file" 
+              accept=".xls,.xlsx" 
+              style="display: none;" 
+              @change="handleFileSelect"
+            />
+          </div>
+
+          <div v-if="uploadedFile" class="file-status">
+            <div class="file-info">
+              <span class="file-name">{{ uploadedFile.name }}</span>
+              <button class="delete-btn" @click="removeFile">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="#ff4d4f"/>
+                </svg>
+              </button>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+              </div>
+              <span class="progress-text">{{ uploadProgress }}%</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showUploadBomModal = false">取消</button>
+          <button class="btn btn-primary" @click="handleUploadConfirm" :disabled="!uploadedFile">确定</button>
+        </div>
+      </div>
+    </div>
+
+  </a-config-provider>
+</template>
+<script lang="ts" setup>
+import type { ColumnsType } from 'ant-design-vue/es/table';
+import { ref, computed, onMounted, nextTick } from 'vue';
+import zh_CN from 'ant-design-vue/es/locale/zh_CN';
+import { theme, message } from 'ant-design-vue';
+import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import draggable from 'vuedraggable';
+
+const customLocale = computed(() => ({
+  ...zh_CN,
+  Pagination: {
+    ...zh_CN.Pagination,
+    page: '', // Override the '页' suffix for quick jumper
+  },
+}));
+
+interface DataItem {
+  key: number;
+  productionDeviceId: string; // 生产设备ID
+  deviceModel: string; // 设备型号
+  productionBatch: string; // 生产批次
+  manufacturer: string; // 生产厂家
+  firmwareVersion: string; // 固件版本
+  burnFirmware: string; // 烧录固件
+  unitPrice: number; // 单价 (元)
+  quantity: number; // 数量 (个)
+  totalPrice: number; // 总价 (元)
+}
+
+// Define column configuration separately from the table columns
+interface ColumnConfig {
+  key: string;
+  title: string;
+  dataIndex: string;
+  width: number;
+  fixed?: 'left' | 'right' | boolean;
+  sorter?: (a: any, b: any) => number;
+  sortDirections?: ('ascend' | 'descend')[];
+  sortOrder?: 'ascend' | 'descend';
+  defaultSortOrder?: 'ascend' | 'descend';
+  customRender?: (record: any) => string | number;
+  className?: string;
+}
+
+const columnConfigs: ColumnConfig[] = [
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
+  { key: 'productionDeviceId_1', title: '生产设备ID', dataIndex: 'productionDeviceId', width: 150 },
+  { key: 'deviceModel_2', title: '设备型号', dataIndex: 'deviceModel', width: 120 },
+  { key: 'productionBatch_3', title: '生产批次', dataIndex: 'productionBatch', width: 120, sorter: (a, b) => new Date(a.productionBatch).getTime() - new Date(b.productionBatch).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'manufacturer_4', title: '生产厂家', dataIndex: 'manufacturer', width: 200 },
+  { key: 'firmwareVersion_5', title: '固件版本', dataIndex: 'firmwareVersion', width: 150 },
+  { key: 'unitPrice_6', title: '单价 (元)', dataIndex: 'unitPrice', width: 120, sorter: (a, b) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
+  { key: 'quantity_7', title: '数量 (个)', dataIndex: 'quantity', width: 120, sorter: (a, b) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
+  { key: 'totalPrice_8', title: '总价 (元)', dataIndex: 'totalPrice', width: 120, sorter: (a, b) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
+  { key: 'operation_9', title: '操作', dataIndex: '', width: 200, fixed: 'right' },
+];
+
+// Store column order and visibility separately
+const columnOrder = ref<string[]>(columnConfigs.map(config => config.key));
+const selectedColumnKeys = ref<string[]>(columnConfigs.map(config => config.key));
+
+// Create columns from configs
+const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
+  return configs.map(config => ({
+    title: config.title,
+    dataIndex: config.dataIndex,
+    key: config.key,
+    width: config.width,
+    fixed: config.fixed,
+    sorter: config.sorter,
+    sortDirections: config.sortDirections,
+    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
+    customRender: config.customRender
+      ? config.customRender
+      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+    className: config.className,
+  })) as ColumnsType;
+};
+
+// Computed property for visible columns
+const columns = computed<ColumnsType>(() => {
+  // Get visible configs based on selected keys and order
+  const visibleConfigs = columnOrder.value
+    .filter(key => selectedColumnKeys.value.includes(key))
+    .map(key => columnConfigs.find(config => config.key === key))
+    .filter(Boolean) as ColumnConfig[];
+
+  // Create columns from visible configs
+  const visibleColumns = createColumnsFromConfigs(visibleConfigs);
+
+  // Sort columns: fixed left, then unfixed, then fixed right
+  return visibleColumns.sort((a, b) => {
+    const fixedOrder = { 'left': 1, undefined: 2, 'right': 3 };
+    const aFixed = fixedOrder[a.fixed as keyof typeof fixedOrder] || 2;
+    const bFixed = fixedOrder[b.fixed as keyof typeof fixedOrder] || 2;
+    return aFixed - bFixed;
+  });
+});
+
+const rawData: DataItem[] = [];
+const deviceModels = ['HWZ001', 'HWZ002', 'HWZ003', 'HWZ004'];
+const manufacturers = ['第一天德科技有限公司', '深圳市华为技术有限公司', '深圳市中兴通讯股份有限公司', '深圳市大疆创新科技有限公司'];
+const firmwareVersions = ['2001 V 1.0.0', '2001 V 1.1.0', '2001 V 1.2.0', '2001 V 2.0.0'];
+
+for (let i = 0; i < 994; i++) {
+  const date = new Date(2025, 5, 30); // Example base date
+  date.setDate(date.getDate() + (i % 30)); // Vary date by day for each record
+
+  const productionBatch = date.toISOString().slice(0, 10); // YYYY-MM-DD format
+
+  rawData.push({
+    key: i + 1,
+    productionDeviceId: `hjhwrn632q2f`,
+    deviceModel: deviceModels[i % deviceModels.length],
+    productionBatch: productionBatch,
+    manufacturer: manufacturers[i % manufacturers.length],
+    firmwareVersion: firmwareVersions[i % firmwareVersions.length],
+    burnFirmware: firmwareVersions[i % firmwareVersions.length], // Assuming burnFirmware is the same as firmwareVersion for now
+    unitPrice: 86.75 + (i % 10),
+    quantity: 500 + (i % 100),
+    totalPrice: (86.75 + (i % 10)) * (500 + (i % 100)),
+  });
+}
+
+console.log('Raw Data:', rawData);
+
+const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
+
+const deviceModelOptions = computed(() => {
+  const uniqueDeviceModels = Array.from(new Set(rawData.map(item => item.deviceModel)));
+  const options = uniqueDeviceModels.map(model => ({
+    key: model,
+    value: model,
+    label: model,
+  }));
+  return [
+    { key: 'all', value: 'all', label: '全部' },
+    ...options
+  ];
+});
+
+const handleDeviceModelChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    deviceModelValue.value = val;
+  }
+};
+
+const manufacturerValue = ref({ key: 'all', label: '全部', value: 'all' });
+
+const manufacturerOptions = computed(() => {
+  const uniqueManufacturers = Array.from(new Set(rawData.map(item => item.manufacturer)));
+  const options = uniqueManufacturers.map(manufacturer => ({
+    key: manufacturer,
+    value: manufacturer,
+    label: manufacturer,
+  }));
+  return [
+    { key: 'all', value: 'all', label: '全部' },
+    ...options
+  ];
+});
+
+const handleManufacturerChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    manufacturerValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    manufacturerValue.value = val;
+  }
+};
+
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+const sorterInfo = ref<any>({
+  columnKey: 'productionBatch',
+  order: 'descend',
+});
+
+const pagination = computed(() => ({
+  total: rawData.length, 
+  current: currentPage.value,
+  pageSize: pageSize.value,
+  showSizeChanger: true, 
+  pageSizeOptions: ['10', '20', '50'], 
+  showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
+  showQuickJumper: { goButton: '页' }, 
+  onShowSizeChange: (current: number, size: number) => {
+    console.log('onShowSizeChange', current, size);
+    currentPage.value = current;
+    pageSize.value = size;
+  },
+  onChange: (page: number, size: number) => {
+    console.log('onChange', page, size);
+    currentPage.value = page;
+    pageSize.value = size;
+  },
+}));
+
+const onRefresh = () => {
+  console.log('Refresh button clicked!');
+  loading.value = true; // Show loading icon
+  searchInputValue.value = '';
+  currentPage.value = 1;
+  resetColumns(); // Reset column order and visibility
+
+  // Reset all selector values to '全部'
+  deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
+  manufacturerValue.value = { key: 'all', label: '全部', value: 'all' };
+
+  // Simulate data fetching
+  setTimeout(() => {
+    loading.value = false; // Hide loading icon after a delay
+  }, 500); // Adjust delay as needed
+};
+
+const filteredData = computed(() => {
+  let dataToFilter = rawData;
+
+  if (searchInputValue.value) {
+    const searchTerm = searchInputValue.value.toLowerCase();
+    dataToFilter = dataToFilter.filter((item: DataItem) => {
+      return Object.values(item).some(value =>
+        typeof value === 'string' && value.toLowerCase().includes(searchTerm)
+      );
+    });
+  }
+
+  // Filter by Device Model
+  if (
+    deviceModelValue.value &&
+    deviceModelValue.value.value !== 'all' &&
+    deviceModelValue.value.value !== ''
+  ) {
+    const selectedDeviceModel = deviceModelValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.deviceModel === selectedDeviceModel);
+  }
+
+  // Filter by Manufacturer
+  if (
+    manufacturerValue.value &&
+    manufacturerValue.value.value !== 'all' &&
+    manufacturerValue.value.value !== ''
+  ) {
+    const selectedManufacturer = manufacturerValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.manufacturer === selectedManufacturer);
+  }
+
+  // Sorting logic
+  if (sorterInfo.value && sorterInfo.value.order) {
+    const { columnKey, order } = sorterInfo.value;
+    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
+    if (sorterFn) {
+      dataToFilter.sort((a, b) => {
+        const result = sorterFn(a, b);
+        return order === 'ascend' ? result : -result;
+      });
+    }
+  }
+
+  return dataToFilter;
+});
+
+const searchInputValue = ref('');
+
+const handleTableChange = (
+  paginationData: any,
+  filters: any,
+  sorter: any,
+) => {
+  console.log('Table change:', paginationData, filters, sorter);
+  const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+
+  if (currentSorter && currentSorter.order) {
+    sorterInfo.value = {
+      columnKey: currentSorter.columnKey,
+      order: currentSorter.order,
+    };
+  } else {
+    // When sorting is cleared, revert to default
+    sorterInfo.value = {
+      columnKey: 'productionBatch',
+      order: 'descend',
+    };
+  }
+  
+  // When table changes, we should probably go back to the first page
+  currentPage.value = 1;
+};
+
+const onSettingClick = () => {
+  console.log('Setting clicked');
+};
+
+const loading = ref(false); // Add a loading state
+
+const tableSize = ref('middle'); // Default table size
+
+const handleMenuClick = ({ key }: { key: string }) => {
+  tableSize.value = key;
+};
+
+const resetColumns = () => {
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  columnOrder.value = columnConfigs.map(config => config.key);
+};
+
+const onColumnOrderChange = (event: { newIndex: number; oldIndex: number }) => {
+  const { newIndex, oldIndex } = event;
+  const movedColumn = columnOrder.value[oldIndex];
+  const newOrder = [...columnOrder.value];
+  newOrder.splice(oldIndex, 1);
+  newOrder.splice(newIndex, 0, movedColumn);
+  columnOrder.value = newOrder;
+
+  // The selectedColumnKeys should not be altered here, as it maintains visibility state.
+  // Its order is implicitly handled by the 'columns' computed property based on columnOrder.
+};
+
+const handleColumnVisibilityChange = (key: string, checked: boolean) => {
+  if (checked) {
+    if (!selectedColumnKeys.value.includes(key)) {
+      selectedColumnKeys.value.push(key);
+    }
+  } else {
+    selectedColumnKeys.value = selectedColumnKeys.value.filter(k => k !== key);
+  }
+};
+
+const handleCreateDevice = () => {
+  console.log('Create device button clicked');
+  showCreateBatchModal.value = true;
+};
+
+// Create batch modal state variables
+const showCreateBatchModal = ref(false);
+const createBatchForm = ref({
+  deviceModel: '',
+  productionBatch: null,
+  manufacturer: '',
+  burnFirmware: '',
+  unitPrice: null,
+  quantity: null
+});
+
+const createBatchFormRules = {
+  deviceModel: [{ required: true, message: '请选择设备型号', trigger: 'change' }],
+  productionBatch: [{ required: true, message: '请选择生产批次', trigger: 'change' }],
+  manufacturer: [{ required: true, message: '请输入生产厂家', trigger: 'blur' }],
+  burnFirmware: [{ required: true, message: '请选择烧录固件', trigger: 'change' }],
+  unitPrice: [{ required: true, message: '请输入单价', trigger: 'blur' }],
+  quantity: [{ required: true, message: '请输入数量', trigger: 'blur' }]
+};
+
+const createBatchFormRef = ref();
+
+// Create batch modal handlers
+const handleCreateBatchModalCancel = () => {
+  showCreateBatchModal.value = false;
+  createBatchFormRef.value?.resetFields();
+  // Reset form data
+  createBatchForm.value = {
+    deviceModel: '',
+    productionBatch: null,
+    manufacturer: '',
+    burnFirmware: '',
+    unitPrice: null,
+    quantity: null
+  };
+};
+
+const handleCreateBatchModalConfirm = async () => {
+  try {
+    await createBatchFormRef.value?.validate();
+    console.log('Create batch form data:', createBatchForm.value);
+    // Here you would typically send the data to your API
+    showCreateBatchModal.value = false;
+    createBatchFormRef.value?.resetFields();
+  } catch (error) {
+    console.error('Form validation failed:', error);
+  }
+};
+
+// Edit batch modal state variables
+const showEditBatchModal = ref(false);
+const editBatchForm = ref({
+  deviceModel: '',
+  productionBatch: '',
+  manufacturer: '',
+  burnFirmware: '',
+  unitPrice: 0,
+  quantity: 0
+});
+
+const editBatchFormRules = {
+  deviceModel: [{ required: true, message: '请选择设备型号', trigger: 'change' }],
+  productionBatch: [{ required: true, message: '请选择生产批次', trigger: 'change' }],
+  manufacturer: [{ required: true, message: '请输入生产厂家', trigger: 'blur' }],
+  burnFirmware: [{ required: true, message: '请选择烧录固件', trigger: 'change' }],
+  unitPrice: [{ required: true, message: '请输入单价', trigger: 'blur' }],
+  quantity: [{ required: true, message: '请输入数量', trigger: 'blur' }]
+};
+
+const editBatchFormRef = ref();
+
+// Edit batch modal handlers
+const handleEditBatchModalCancel = () => {
+  console.log('Cancel button clicked');
+  showEditBatchModal.value = false;
+  editBatchFormRef.value?.resetFields();
+  // Reset form data
+  editBatchForm.value = {
+    deviceModel: '',
+    productionBatch: '',
+    manufacturer: '',
+    burnFirmware: '',
+    unitPrice: 0,
+    quantity: 0
+  };
+  console.log('Modal closed, form reset');
+};
+
+const handleEditBatchModalConfirm = async () => {
+  try {
+    await editBatchFormRef.value?.validate();
+    console.log('Edit batch form data:', editBatchForm.value);
+    // Here you would typically send the data to your API
+    showEditBatchModal.value = false;
+    editBatchFormRef.value?.resetFields();
+  } catch (error) {
+    console.error('Form validation failed:', error);
+  }
+};
+
+const handleEditBatch = async (record: DataItem) => {
+  console.log('Edit batch clicked for record:', record);
+  
+  // Pre-fill the form with data from the selected row
+  editBatchForm.value = {
+    deviceModel: record.deviceModel || 'HWSZ001',
+    productionBatch: record.productionBatch || '2025-07-25',
+    manufacturer: record.manufacturer || '深圳天德胜技术有限公司',
+    burnFirmware: record.burnFirmware || 'Z001 V 1.0.0',
+    unitPrice: record.unitPrice || 86.15,
+    quantity: record.quantity || 500
+  };
+  
+  console.log('Form pre-filled:', editBatchForm.value);
+  
+  // Open the modal
+  showEditBatchModal.value = true;
+  console.log('Modal opened:', showEditBatchModal.value);
+};
+
+// Upload BOM modal state variables
+const showUploadBomModal = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
+const uploadedFile = ref<File | null>(null);
+const uploadProgress = ref(0);
+
+const triggerFileInput = () => {
+  fileInput.value?.click();
+};
+
+const handleFileDrop = (event: DragEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+    const file = event.dataTransfer.files[0];
+    if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel') {
+      uploadedFile.value = file;
+      uploadProgress.value = 0;
+      console.log('File dropped:', file.name);
+    } else {
+      message.error('请选择Excel文件 (xls, xlsx)');
+      uploadedFile.value = null;
+    }
+  }
+};
+
+const handleFileSelect = (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (file) {
+    if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel') {
+      uploadedFile.value = file;
+      uploadProgress.value = 0;
+      console.log('File selected:', file.name);
+    } else {
+      message.error('请选择Excel文件 (xls, xlsx)');
+      uploadedFile.value = null;
+    }
+  }
+};
+
+const removeFile = () => {
+  uploadedFile.value = null;
+  uploadProgress.value = 0;
+  console.log('File removed');
+};
+
+const handleUploadConfirm = () => {
+  if (!uploadedFile.value) {
+    message.error('请选择要上传的文件');
+    return;
+  }
+
+  // Simulate upload progress
+  uploadProgress.value = 0;
+  const interval = setInterval(() => {
+    uploadProgress.value += 10;
+    if (uploadProgress.value >= 100) {
+      clearInterval(interval);
+      message.success('文件上传成功！');
+      showUploadBomModal.value = false;
+      uploadedFile.value = null;
+      uploadProgress.value = 0;
+    }
+  }, 100);
+};
+
+const handleUploadBom = (record: DataItem) => {
+  console.log('Upload BOM clicked for record:', record);
+  // Pre-fill the form with data from the selected row
+  showUploadBomModal.value = true;
+  // You might want to set uploadedFile.value here if you want to pre-select a file
+  // For now, it will be empty until a file is dropped or selected.
+};
+
+onMounted(() => {
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+});
+
+defineExpose({
+  handleTableChange, // Explicitly expose handleTableChange
+});
+</script>
+<style scoped>
+#components-table-demo-summary tfoot th,
+#components-table-demo-summary tfoot td {
+  background: #fafafa;
+}
+[data-theme='dark'] #components-table-demo-summary tfoot th,
+[data-theme='dark'] #components-table-demo-summary tfoot td {
+  background: #1d1d1d;
+}
+
+/* Custom style to adjust row height and font size based on table size */
+.ant-table-tbody > tr > td,
+.ant-table-thead > tr > th {
+  font-family: 'PingFang SC', sans-serif; /* Keep font family consistent */
+  white-space: nowrap; /* Prevent text from stacking */
+  text-align: left; /* Ensure left alignment for headers */
+}
+
+.ant-table-wrapper-small .ant-table-tbody > tr > td,
+.ant-table-wrapper-small .ant-table-thead > tr > th {
+  padding: 2px 2px; /* Very compact */
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.ant-table-wrapper-middle .ant-table-tbody > tr > td,
+.ant-table-wrapper-middle .ant-table-thead > tr > th {
+  padding: 8px 8px; /* Medium density */
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ant-table-wrapper-large .ant-table-tbody > tr > td,
+.ant-table-wrapper-large .ant-table-thead > tr > th {
+  padding: 16px 16px; /* Larger, more spacious */
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* title like demo page */
+.title-container {
+   /* Light grey border */
+  padding: 10px 14px; /* Adjusted from 16px 24px * 0.60 */
+  margin-bottom: 10px; /* Adjusted from 16px * 0.60 */
+  background-color: #fff; /* White background */
+  border-radius: 4px; /* Slightly rounded corners */
+}
+
+.title-container h2 {
+  margin: 0; /* Remove default margin from h2 */
+  font-size: 16px; /* Adjusted to 12px */
+  font-weight: 500; /* Adjust font weight if needed */
+  color: rgba(0, 0, 0, 0.85); /* Standard Ant Design text color */
+  text-align: left;
+  font-weight: bold; /* Center the text horizontally */
+}
+
+.top-controls-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.left-aligned-section {
+  display: flex;
+  align-items: center;
+}
+
+.right-aligned-section {
+  display: none;
+}
+
+.right-aligned-icons {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Add space between icons */
+  padding-right: 30px;
+}
+
+.right-aligned-icons > .anticon {
+  padding: 6px 8px; /* Add padding to make them look like buttons */
+  border: 1px solid #d9d9d9; /* Add a subtle border */
+  background-color: #f0f0f0; /* Add a light background */
+  border-radius: 4px; /* Slightly rounded corners */
+  transition: all 0.3s; /* Smooth transition for hover effects */
+  cursor: pointer;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.65);
+   /* Slightly darker grey for better visibility */
+}
+
+.right-aligned-icons > .anticon:hover {
+  border-color: #4096ff; /* Ant Design primary color on hover */
+  color: #4096ff; /* Change icon color on hover */
+  background-color: #e6f7ff; /* Lighter background on hover */
+}
+
+.right-aligned-icons > .anticon:last-child,
+.right-aligned-icons > .ant-btn:last-child,
+.right-aligned-icons > .ant-dropdown:last-child,
+.right-aligned-icons > .ant-popover:last-child {
+  margin-right: 28px; /* Adjust this value for a bigger gap */
+}
+
+html, body {
+  overflow-x: hidden;
+}
+
+.table-container {
+  padding: 10px ;
+  padding-right: 50px;
+}
+
+/* Styling for the custom always-visible placeholder */
+.select-container {
+  position: relative;
+  display: inline-block;
+}
+.select-always-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 7px;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 1;
+  font-size: 13px;
+}
+:deep(.ant-select-selector) {
+  padding-left: 100px !important;
+}
+
+:deep(.ant-select-selector),
+:deep(.ant-select-dropdown),
+:deep(.ant-select-item),
+:deep(.ant-select-selection-item),
+:deep(.ant-select-item-option-content) {
+  font-size: 12px !important;
+}
+
+/* Add custom style for pagination font size */
+:deep(.ant-pagination) {
+  font-size: 12px !important;
+}
+
+:deep(.ant-input),
+:deep(.ant-btn-primary) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-input::placeholder) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-pagination-options) .ant-select-selector {
+  min-width: unset !important;
+  width: auto !important;
+  padding-left: 4px !important;
+  padding-right: 18px !important; /* keep space for arrow */
+}
+
+/* Make the action buttons horizontal and style links */
+:deep(.ant-table-cell .action-cell) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 180px;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+:deep(.ant-table-cell .action-cell .view-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+:deep(.ant-table-cell .action-cell .edit-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+:deep(.ant-table-cell .action-cell .upload-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+:deep(.ant-table-cell .action-cell .download-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+:deep(.ant-table-cell .action-cell .danger-link) {
+  color: #ff4d4f !important; /* Ant Design red */
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+:deep(.device-model-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+:deep(.firmware-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+:deep(.device-model-select .ant-select-selector) {
+  padding-left: 70px !important;
+}
+
+:deep(.manufacturer-select .ant-select-selector) {
+  padding-left: 80px !important;
+}
+
+:deep(.nowrap-header) {
+  white-space: nowrap !important;
+}
+
+/* Remove all padding and ensure text is flush left for form inputs */
+:deep(.ant-input) {
+  padding-left: 0 !important;
+  text-align: left !important;
+}
+
+:deep(.ant-input::placeholder) {
+  padding-left: 0 !important;
+  text-align: left !important;
+}
+
+/* Remove all padding and ensure text is flush left for select dropdowns */
+:deep(.ant-select-selection-item) {
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+:deep(.ant-select-selection-item > span) {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+:deep(.ant-select-selector) {
+  padding-left: 8px !important;
+}
+
+:deep(.ant-select-selection-search) {
+  padding-left: 0 !important;
+}
+
+:deep(.ant-select-selection-placeholder) {
+  padding-left: 0 !important;
+}
+
+:deep(.ant-select-selection-overflow) {
+  padding-left: 0 !important;
+}
+
+:deep(.ant-select-selection-overflow-item) {
+  padding-left: 0 !important;
+}
+
+/* Override any remaining padding */
+:deep(.ant-select-selection-item) {
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+/* Additional override for modal forms */
+:deep(.ant-modal .ant-select-selection-item) {
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+:deep(.ant-modal .ant-select-selection-item > span) {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+:deep(.ant-modal .ant-input) {
+  padding-left: 0 !important;
+  text-align: left !important;
+}
+
+/* Input number fields */
+:deep(.ant-input-number-input) {
+  padding-left: 0 !important;
+  text-align: left !important;
+}
+
+:deep(.ant-input-number-input::placeholder) {
+  padding-left: 0 !important;
+  text-align: left !important;
+}
+
+/* Ensure modal is visible */
+:deep(.ant-modal) {
+  z-index: 1000 !important;
+}
+
+:deep(.ant-modal-mask) {
+  z-index: 999 !important;
+}
+
+/* Modal overlay and content styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it's above other content */
+}
+
+.modal-content {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f8f8;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+  text-align: left;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #888;
+  transition: color 0.3s;
+}
+
+.close-button:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.modal-body .form-group {
+  margin-bottom: 20px;
+}
+
+.modal-body .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.modal-body .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.modal-body .form-group label::before {
+  content: "* ";
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+.modal-body .form-group .form-input {
+  width: 100%;
+  padding: 8px 0 8px 0; /* Remove left and right padding, keep top/bottom */
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+  text-align: left;
+  text-indent: 0; /* Remove any text indentation */
+}
+
+.modal-body .form-group .form-input:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.modal-body .form-group .input-with-suffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.modal-body .form-group .input-with-suffix .form-input {
+  flex: 1;
+  padding-right: 30px; /* Make space for suffix */
+}
+
+.modal-body .form-group .suffix {
+  position: absolute;
+  right: 8px;
+  color: #666;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid #eee;
+  background-color: #f8f8f8;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-secondary {
+  background-color: #fff;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.btn-primary {
+  background-color: #1890ff;
+  color: #fff;
+  border-color: #1890ff;
+}
+
+.btn-primary:hover {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+/* Upload BOM Modal Specific Styles */
+.upload-modal .modal-content {
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.upload-area {
+  width: 100%;
+  height: 200px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #fafafa;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.upload-area:hover {
+  border-color: #4096ff;
+  background-color: #e6f7ff;
+}
+
+.upload-area.drag-over {
+  border-color: #4096ff;
+  background-color: #e6f7ff;
+}
+
+.upload-icon {
+  margin-bottom: 10px;
+}
+
+.upload-text {
+  text-align: center;
+  color: #555;
+  font-size: 14px;
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: #888;
+  margin-top: 5px;
+}
+
+.file-status {
+  width: 100%;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: #ff4d4f;
+  font-size: 18px;
+  transition: color 0.3s;
+}
+
+.delete-btn:hover {
+  color: #ff7875;
+}
+
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #1890ff;
+  border-radius: 4px;
+  transition: width 0.3s ease-in-out;
+}
+
+.progress-text {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+</style> 
