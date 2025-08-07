@@ -468,6 +468,10 @@ const router = useRouter();
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
+// Debug logging
+console.log('IPAudio.vue - VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+console.log('IPAudio.vue - API_BASE_URL:', API_BASE_URL);
+
 const customLocale = computed(() => ({
   ...zh_CN,
   Pagination: {
@@ -544,11 +548,14 @@ const audioElements = ref<Map<number, HTMLAudioElement>>(new Map()); // Store au
 
 const fetchData = async () => {
   console.log('fetchData called');
+  console.log('API_BASE_URL:', API_BASE_URL);
+  const url = `${API_BASE_URL}/ipaudio?page=1&pageSize=1000`;
+  console.log('Calling URL:', url);
   loading.value = true;
   try {
     console.log('Calling IPaudio endpoint');
     // Request all data without pagination parameters
-    const response = await axios.get(`${API_BASE_URL}/ipaudio?page=1&pageSize=1000`);
+    const response = await axios.get(url);
     console.log('IPaudio response:', response.data);
     // Add key property to each item for table identification
     rawData.value = response.data.data.map((item: any) => ({
