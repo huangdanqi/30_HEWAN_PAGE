@@ -2,14 +2,36 @@ import axios from 'axios'
 import type { AxiosInstance, AxiosResponse } from 'axios'
 import { message } from 'ant-design-vue'
 
-// Create axios instance
-const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+// Get the base API URL from environment variable
+const getBaseApiUrl = () => {
+  return import.meta.env.VITE_API_BASE_URL || '/api';
+};
+
+// Construct API URL - avoid double /api paths
+export const constructApiUrl = (endpoint: string) => {
+  const baseUrl = getBaseApiUrl();
+  if (baseUrl.endsWith('/api')) {
+    return `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  } else {
+    return `${baseUrl}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  }
+};
+
+// Create axios instance with proper base URL
+const api: any = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
-})
+});
+
+// Add request interceptor to handle URL construction
+api.interceptors.request.use((config: any) => {
+  if (config.url && !config.url.startsWith('http')) {
+    config.url = constructApiUrl(config.url);
+  }
+  return config;
+});
 
 // Request interceptor
 api.interceptors.request.use(

@@ -462,10 +462,12 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
 
 const router = useRouter();
 
+// API base URL - handle cases where environment variable already includes /api
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Debug logging
@@ -549,7 +551,9 @@ const audioElements = ref<Map<number, HTMLAudioElement>>(new Map()); // Store au
 const fetchData = async () => {
   console.log('fetchData called');
   console.log('API_BASE_URL:', API_BASE_URL);
-  const url = `${API_BASE_URL}/ipaudio?page=1&pageSize=1000`;
+  
+  // Use utility function to construct URL
+  const url = constructApiUrl('ipaudio?page=1&pageSize=1000');
   console.log('Calling URL:', url);
   loading.value = true;
   try {
@@ -844,7 +848,7 @@ const handleAudition = (record: DataItem) => {
 
   if (!audioElement) {
     // Construct the full URL for the audio file using the backend server
-    const audioUrl = `${API_BASE_URL}${record.audioFileAddress}`;
+    const audioUrl = constructApiUrl(record.audioFileAddress);
     console.log('Audio URL:', audioUrl);
     
     audioElement = new Audio(audioUrl);
