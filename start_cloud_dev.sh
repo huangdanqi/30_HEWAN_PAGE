@@ -36,7 +36,7 @@ fi
 
 # Set environment variables for cloud deployment
 export NODE_ENV=development
-export VITE_API_BASE_URL=http://127.0.0.1:2829
+export VITE_API_BASE_URL=http://$PUBLIC_IP:2829
 export VITE_PORT=2830
 export VITE_HOST=0.0.0.0
 
@@ -44,9 +44,12 @@ echo "🌐 Server will be accessible at:"
 echo "   Local: http://localhost:2830"
 echo "   Public: http://$PUBLIC_IP:2830"
 echo ""
-echo "⚠️  Make sure port 2830 is open in your firewall!"
-echo "   For Ubuntu/Debian: sudo ufw allow 2830"
-echo "   For CentOS/RHEL: sudo firewall-cmd --permanent --add-port=2830/tcp && sudo firewall-cmd --reload"
+echo "🔗 Backend API will be accessible at:"
+echo "   http://$PUBLIC_IP:2829"
+echo ""
+echo "⚠️  Make sure ports 2830 and 2829 are open in your firewall!"
+echo "   For Ubuntu/Debian: sudo ufw allow 2830 && sudo ufw allow 2829"
+echo "   For CentOS/RHEL: sudo firewall-cmd --permanent --add-port=2830/tcp --add-port=2829/tcp && sudo firewall-cmd --reload"
 echo ""
 
 # Check if port is already in use
@@ -61,7 +64,8 @@ echo "🎯 Starting development server..."
 echo "   Press Ctrl+C to stop the server"
 echo ""
 echo "💡 IMPORTANT: Use the Public IP address above to access from outside:"
-echo "   http://$PUBLIC_IP:2830"
+echo "   Frontend: http://$PUBLIC_IP:2830"
+echo "   Backend:  http://$PUBLIC_IP:2829"
 echo ""
 
 # Use npx to ensure we're using the local vite installation

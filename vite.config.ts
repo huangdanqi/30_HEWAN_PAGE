@@ -20,7 +20,7 @@ export default defineConfig({
     strictPort: true, // Fail if port is already in use
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:2829', // Use localhost since both are on same server
+        target: process.env.VITE_API_BASE_URL || 'http://127.0.0.1:2829', // Use environment variable or fallback to localhost
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path,

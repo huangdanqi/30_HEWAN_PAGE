@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
 
 // Import database configuration
 import pool from './config/database.js';
@@ -100,6 +101,15 @@ app.get('/api/health', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
+  
+  // Get public IP for external access
+  exec('curl -s --max-time 3 ifconfig.me 2>/dev/null || curl -s --max-time 3 ipinfo.io/ip 2>/dev/null || curl -s --max-time 3 icanhazip.com 2>/dev/null || echo "localhost"', (error, stdout, stderr) => {
+    const publicIP = stdout.trim();
+    if (publicIP && publicIP !== 'localhost') {
+      console.log(`Public access: http://${publicIP}:${PORT}/api/health`);
+    }
+  });
+  
   console.log(`API Endpoints:`);
   console.log(`  - Basic Account Data: http://localhost:${PORT}/api/accounts/basic`);
   console.log(`  - Membership Data: http://localhost:${PORT}/api/accounts/membership`);
