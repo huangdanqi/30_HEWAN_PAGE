@@ -3,11 +3,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Clean the password (remove quotes if present)
+let password = process.env.DB_PASSWORD || 'h05010501';
+if (password.startsWith('"') && password.endsWith('"')) {
+  password = password.slice(1, -1);
+}
+if (password.startsWith("'") && password.endsWith("'")) {
+  password = password.slice(1, -1);
+}
+
 // Database connection pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'h05010501',
+  password: password,
   database: process.env.DB_NAME || 'page_test',
   charset: process.env.DB_CHARSET || 'utf8mb4',
   supportBigNumbers: true,
@@ -33,6 +42,7 @@ const testConnection = async () => {
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
       database: process.env.DB_NAME,
+      passwordLength: password.length,
       // Don't log the password for security
     });
   }
