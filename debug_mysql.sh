@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Debug MySQL Connection Script
-# This script helps troubleshoot MySQL connection issues
+# This script helps troubleshoot MySQL connection issues WITHOUT resetting passwords
 
-echo "🔍 Debugging MySQL Connection"
-echo "============================="
+echo "🔍 Debugging MySQL Connection (No Password Reset)"
+echo "================================================"
 
 # Check if MySQL is running
 echo "📝 Step 1: Checking MySQL service..."
@@ -41,6 +41,9 @@ echo "📝 Step 4: Checking MySQL user authentication..."
 if [ "$SUDO_ACCESS" = true ]; then
     echo "Checking authentication methods for root user:"
     sudo mysql -e "SELECT user, host, plugin FROM mysql.user WHERE user='root';"
+    echo ""
+    echo "Checking if root user has password:"
+    sudo mysql -e "SELECT user, host, authentication_string FROM mysql.user WHERE user='root';"
 else
     echo "Cannot check authentication methods without sudo access"
 fi
@@ -56,6 +59,7 @@ PASSWORDS=(
     "\"aV2[kO2#iX\""
 )
 
+WORKING_PASSWORD=""
 for i in "${!PASSWORDS[@]}"; do
     echo "   Testing password format $((i+1)): ${PASSWORDS[$i]}"
     if mysql -u root -p"${PASSWORDS[$i]}" -e "SELECT 1;" 2>/dev/null; then
@@ -84,18 +88,24 @@ if [ -n "$WORKING_PASSWORD" ]; then
 else
     echo "❌ No working password found"
     echo ""
-    echo "🔧 Manual steps to fix:"
-    echo "1. Reset MySQL root password:"
-    echo "   sudo mysql -u root"
-    echo "   ALTER USER 'root'@'localhost' IDENTIFIED BY 'aV2[kO2#iX';"
-    echo "   FLUSH PRIVILEGES;"
-    echo "   EXIT;"
+    echo "🔍 Additional diagnostics..."
+    
+    # Check if root user exists and has any authentication
+    if [ "$SUDO_ACCESS" = true ]; then
+        echo "Checking root user details:"
+        sudo mysql -e "SELECT user, host, plugin, authentication_string FROM mysql.user WHERE user='root';"
+        
+        echo ""
+        echo "Checking if there are any authentication issues:"
+        sudo mysql -e "SHOW GRANTS FOR 'root'@'localhost';"
+    fi
+    
     echo ""
-    echo "2. Or try connecting with sudo:"
-    echo "   sudo mysql -u root"
-    echo "   ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'aV2[kO2#iX';"
-    echo "   FLUSH PRIVILEGES;"
-    echo "   EXIT;"
+    echo "💡 Possible solutions (without resetting password):"
+    echo "1. Check if the password contains special characters that need escaping"
+    echo "2. Verify the exact password format in MySQL"
+    echo "3. Check if there are multiple root users with different hosts"
+    echo "4. Try connecting with different authentication methods"
 fi
 
 echo ""
@@ -110,7 +120,8 @@ if [ -n "$WORKING_PASSWORD" ]; then
     echo "2. Test the connection again: node test_db_connection.js"
     echo "3. Start your servers"
 else
-    echo "1. Reset MySQL password using the manual steps above"
-    echo "2. Test the connection again"
-    echo "3. Start your servers"
+    echo "1. Check the exact password format in your MySQL configuration"
+    echo "2. Try connecting manually with: mysql -u root -p"
+    echo "3. Check if there are any special characters that need escaping"
+    echo "4. Verify the password in your .env files matches exactly"
 fi 
