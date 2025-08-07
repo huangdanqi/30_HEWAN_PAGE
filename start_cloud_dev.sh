@@ -30,7 +30,14 @@ export VITE_API_BASE_URL=http://127.0.0.1:2829
 export VITE_PORT=2830
 
 # Get the public IP address
-PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || echo "localhost")
+echo "🌐 Detecting public IP address..."
+PUBLIC_IP=$(curl -s --max-time 5 ifconfig.me 2>/dev/null || curl -s --max-time 5 ipinfo.io/ip 2>/dev/null || curl -s --max-time 5 icanhazip.com 2>/dev/null || echo "localhost")
+
+# If we can't get public IP, try to get it from the server
+if [ "$PUBLIC_IP" = "localhost" ] || [ -z "$PUBLIC_IP" ]; then
+    # Try to get IP from network interfaces
+    PUBLIC_IP=$(ip route get 8.8.8.8 | awk '{print $7; exit}' 2>/dev/null || echo "localhost")
+fi
 
 echo "🌐 Server will be accessible at:"
 echo "   Local: http://localhost:2830"
@@ -41,10 +48,17 @@ echo "   For Ubuntu/Debian: sudo ufw allow 2830"
 echo "   For CentOS/RHEL: sudo firewall-cmd --permanent --add-port=2830/tcp && sudo firewall-cmd --reload"
 echo ""
 
+# Check if port is already in use
+if netstat -tuln | grep -q ":2830 "; then
+    echo "⚠️  Port 2830 is already in use. Stopping existing process..."
+    sudo pkill -f "vite.*2830" 2>/dev/null || true
+    sleep 2
+fi
+
 # Start the development server
 echo "🎯 Starting development server..."
 echo "   Press Ctrl+C to stop the server"
 echo ""
 
 # Use npx to ensure we're using the local vite installation
-npx vite --port 2830 --host 
+npx vite --port 2830 --host 0.0.0.0 
