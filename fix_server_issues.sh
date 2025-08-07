@@ -24,19 +24,19 @@ fi
 echo ""
 echo "📝 Step 2: Checking MySQL user and database..."
 # Check if the database exists
-if mysql -u root -p'h05010501' -e "USE page_test;" 2>/dev/null; then
+if mysql -u root -p'aV2[kO2#iX' -e "USE page_test;" 2>/dev/null; then
     echo "✅ Database 'page_test' exists"
 else
     echo "⚠️  Database 'page_test' does not exist. Creating it..."
-    mysql -u root -p'h05010501' -e "CREATE DATABASE IF NOT EXISTS page_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    mysql -u root -p'aV2[kO2#iX' -e "CREATE DATABASE IF NOT EXISTS page_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 fi
 
 # Check if user has proper permissions
-if mysql -u root -p'h05010501' -e "SHOW GRANTS FOR 'root'@'localhost';" 2>/dev/null | grep -q "ALL PRIVILEGES"; then
+if mysql -u root -p'aV2[kO2#iX' -e "SHOW GRANTS FOR 'root'@'localhost';" 2>/dev/null | grep -q "ALL PRIVILEGES"; then
     echo "✅ User 'root' has proper permissions"
 else
     echo "⚠️  Setting up user permissions..."
-    mysql -u root -p'h05010501' -e "GRANT ALL PRIVILEGES ON page_test.* TO 'root'@'localhost'; FLUSH PRIVILEGES;"
+    mysql -u root -p'aV2[kO2#iX' -e "GRANT ALL PRIVILEGES ON page_test.* TO 'root'@'localhost'; FLUSH PRIVILEGES;"
 fi
 
 echo ""
@@ -51,7 +51,7 @@ else
     cat > .env << EOF
 DB_HOST=localhost
 DB_USER=root
-DB_PASSWORD=h05010501
+DB_PASSWORD=aV2[kO2#iX
 DB_NAME=page_test
 PORT=2829
 DB_CHARSET=utf8mb4
@@ -101,7 +101,7 @@ else
     echo ""
     echo "🔧 Manual steps to fix database:"
     echo "1. Check MySQL password: sudo mysql -u root -p"
-    echo "2. Reset password if needed: ALTER USER 'root'@'localhost' IDENTIFIED BY 'h05010501';"
+    echo "2. Reset password if needed: ALTER USER 'root'@'localhost' IDENTIFIED BY 'aV2[kO2#iX';"
     echo "3. Create database: CREATE DATABASE IF NOT EXISTS page_test;"
     echo "4. Grant permissions: GRANT ALL PRIVILEGES ON page_test.* TO 'root'@'localhost';"
 fi
