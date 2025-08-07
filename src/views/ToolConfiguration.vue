@@ -32,6 +32,7 @@
             v-model:value="searchInputValue"
             placeholder="输入关键字搜索"
             style="width: 200px"
+            @input="handleSearchChange"
           >
             <template #prefix>
               <SearchOutlined />
@@ -98,7 +99,7 @@
         :showSorterTooltip="false"
       >
       <template #bodyCell="{ column, record }">
-      <template v-if="column.key === 'operation_9'">
+      <template v-if="column.key === 'operation_14'">
         <a-space class="action-cell" direction="horizontal">
           <a class="view-link" @click="$emit('view-record', record)">查看</a>
           <a-divider type="vertical" />
@@ -111,6 +112,18 @@
             <a class="danger-link">删除</a>
           </a-popconfirm>
         </a-space>
+      </template>
+      <template v-if="column.key === 'apiAddress_4'">
+        <span>{{ record.apiAddress || '-' }}</span>
+      </template>
+      <template v-if="column.key === 'localToolFilePath_5'">
+        <span>{{ record.localToolFilePath || '-' }}</span>
+      </template>
+      <template v-if="column.key === 'accumulatedUsage_9'">
+        <span>{{ record.accumulatedUsage }}次</span>
+      </template>
+      <template v-if="column.key === 'accumulatedCost_10'">
+        <span>{{ record.accumulatedCost }}元</span>
       </template>
     </template>
       </a-table>
@@ -403,7 +416,12 @@ import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, PlusOutlined, MinusOutlined, MinusCircleOutlined} from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 import draggable from 'vuedraggable';
+import axios from 'axios';
+
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -414,15 +432,20 @@ const customLocale = computed(() => ({
 }));
 
 interface DataItem {
-  key: number;
+  id: number;
   toolId: string; // 工具ID
   toolType: string; // 工具类型
   toolName: string; // 工具名称
-  apiType: string; // API类型
-  localToolFilePath: string; // 本地工具文件路径
+  apiAddress: string; // API地址
+  localToolFilePath: string; // 本地工具文件目录
+  purchaseTime: string; // 购买时间
+  activationTime: string; // 启用时间
+  expirationTime: string; // 到期时间
+  accumulatedUsage: number; // 累积使用量
+  accumulatedCost: number; // 累积费用
+  updater: string; // 更新人
   createdAt: string; // 创建时间
   updatedAt: string; // 更新时间
-  updater: string; // 更新人
 }
 
 // Define column configuration separately from the table columns
@@ -437,6 +460,7 @@ interface ColumnConfig {
   sortOrder?: 'ascend' | 'descend';
   defaultSortOrder?: 'ascend' | 'descend';
   customRender?: (record: any) => string | number;
+  customCell?: (record: any) => any;
   className?: string;
 }
 
@@ -445,12 +469,17 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'toolId_1', title: '工具ID', dataIndex: 'toolId', width: 150 },
   { key: 'toolType_2', title: '工具类型', dataIndex: 'toolType', width: 120 },
   { key: 'toolName_3', title: '工具名称', dataIndex: 'toolName', width: 120 },
-  { key: 'apiType_4', title: 'API类型', dataIndex: 'apiType', width: 200 },
-  { key: 'localToolFilePath_5', title: '本地工具文件路径', dataIndex: 'localToolFilePath', width: 200 },
-  { key: 'createdAt_6', title: '创建时间', dataIndex: 'createdAt', width: 150, sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updatedAt_7', title: '更新时间', dataIndex: 'updatedAt', width: 150, sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updater_8', title: '更新人', dataIndex: 'updater', width: 100 },
-  { key: 'operation_9', title: '操作', dataIndex: '', width: 150, fixed: 'right' },
+  { key: 'apiAddress_4', title: 'API地址', dataIndex: 'apiAddress', width: 200 },
+  { key: 'localToolFilePath_5', title: '本地工具文件目录', dataIndex: 'localToolFilePath', width: 200 },
+  { key: 'purchaseTime_6', title: '购买时间', dataIndex: 'purchaseTime', width: 150, sorter: (a, b) => new Date(a.purchaseTime).getTime() - new Date(b.purchaseTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'activationTime_7', title: '启用时间', dataIndex: 'activationTime', width: 150, sorter: (a, b) => new Date(a.activationTime).getTime() - new Date(b.activationTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'expirationTime_8', title: '到期时间', dataIndex: 'expirationTime', width: 150, sorter: (a, b) => new Date(a.expirationTime).getTime() - new Date(b.expirationTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'accumulatedUsage_9', title: '累积使用量', dataIndex: 'accumulatedUsage', width: 120 },
+  { key: 'accumulatedCost_10', title: '累积费用', dataIndex: 'accumulatedCost', width: 120 },
+  { key: 'updater_11', title: '更新人', dataIndex: 'updater', width: 100 },
+  { key: 'createdAt_12', title: '创建时间', dataIndex: 'createdAt', width: 150, sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'updatedAt_13', title: '更新时间', dataIndex: 'updatedAt', width: 150, sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'operation_14', title: '操作', dataIndex: '', width: 180, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -495,43 +524,62 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-const rawData: DataItem[] = [];
-const toolTypes = ['百度ASR', '静音检测', '语音活动检测', '微软TTS', '阿里TTS', '讯飞TTS'];
-const toolNames = ['Bing搜索', 'RAG工具', '天气查询', '知识库查询'];
-const apiTypes = ['https://example.com/firmware.bin', 'https://api.example.com/search', 'https://weather.api.com', ''];
-const localToolFilePaths = ['example/firmware.bin', 'tools/search.bin', 'tools/weather.bin', ''];
+// Data fetching from MySQL
+const rawData = ref<DataItem[]>([]);
 
-for (let i = 0; i < 1000; i++) {
-  const date = new Date(2025, 6, 13, 19, 25, 11); // Example base date
-  date.setDate(date.getDate() + i); // Vary date by day for each record
-  date.setHours(date.getHours() + (i % 24)); // Vary hours
-  date.setMinutes(date.getMinutes() + (i % 60)); // Vary minutes
-  date.setSeconds(date.getSeconds() + (i % 60)); // Vary seconds
-
-  const createdAt = date.toISOString().slice(0, 19).replace('T', ' ');
-  const updatedDate = new Date(date);
-  updatedDate.setHours(date.getHours() + 2);
-  const updatedAt = updatedDate.toISOString().slice(0, 19).replace('T', ' ');
-
-  rawData.push({
-    key: i + 1,
-    toolId: `tjhwx800y${21 + i}`,
-    toolType: toolTypes[i % toolTypes.length],
-    toolName: toolNames[i % toolNames.length],
-    apiType: apiTypes[i % apiTypes.length],
-    localToolFilePath: localToolFilePaths[i % localToolFilePaths.length],
-    createdAt: createdAt,
-    updatedAt: updatedAt,
-    updater: '30',
-  });
-}
-
-console.log('Raw Data:', rawData);
+const fetchData = async () => {
+  console.log('fetchData called');
+  loading.value = true;
+  try {
+    console.log('Calling tool-configuration endpoint');
+    const response = await axios.get(`${API_BASE_URL}/tool-configuration?page=${currentPage.value}&pageSize=${pageSize.value}`);
+    console.log('Tool configuration response:', response.data);
+    
+    if (response.data.success && response.data.data) {
+      totalCount.value = response.data.total || response.data.data.length;
+      rawData.value = response.data.data.map((item: any) => ({
+        ...item,
+        accumulatedUsage: item.accumulatedUsage || 0,
+        accumulatedCost: item.accumulatedCost || 0
+      }));
+    } else {
+      message.error('获取数据失败：服务器返回无效数据');
+      rawData.value = [];
+      totalCount.value = 0;
+    }
+  } catch (error: any) {
+    console.error('Error fetching data:', error);
+    
+    // Handle different types of errors
+    if (error.response) {
+      // Server responded with error status
+      if (error.response.status === 404) {
+        message.error('错误：工具配置表不存在，请检查数据库');
+      } else if (error.response.status === 500) {
+        message.error('错误：数据库连接失败或表结构错误');
+      } else {
+        message.error(`获取数据失败：${error.response.data?.message || '服务器错误'}`);
+      }
+    } else if (error.request) {
+      // Network error
+      message.error('错误：无法连接到服务器，请检查网络连接');
+    } else {
+      // Other errors
+      message.error('错误：获取数据时发生未知错误');
+    }
+    
+    // Set empty data instead of fallback data
+    rawData.value = [];
+    totalCount.value = 0;
+  } finally {
+    loading.value = false;
+  }
+};
 
 const toolTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const toolTypeOptions = computed(() => {
-  const uniqueToolTypes = Array.from(new Set(rawData.map(item => item.toolType)));
+  const uniqueToolTypes = Array.from(new Set(rawData.value.map(item => item.toolType)));
   const options = uniqueToolTypes.map(type => ({
     key: type,
     value: type,
@@ -549,10 +597,14 @@ const handleToolTypeChange = (val: any) => {
   } else {
     toolTypeValue.value = val;
   }
+  // Reset to first page when filter changes
+  currentPage.value = 1;
+  fetchData();
 };
 
 const currentPage = ref(1);
 const pageSize = ref(10);
+const totalCount = ref(0);
 
 console.log('Initial toolTypeValue:', toolTypeValue.value);
 
@@ -562,7 +614,7 @@ const sorterInfo = ref<any>({
 });
 
 const pagination = computed(() => ({
-  total: rawData.length, 
+  total: totalCount.value,
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true, 
@@ -573,11 +625,13 @@ const pagination = computed(() => ({
     console.log('onShowSizeChange', current, size);
     currentPage.value = current;
     pageSize.value = size;
+    fetchData(); // Fetch new data when page size changes
   },
   onChange: (page: number, size: number) => {
     console.log('onChange', page, size);
     currentPage.value = page;
     pageSize.value = size;
+    fetchData(); // Fetch new data when page changes
   },
 }));
 
@@ -591,14 +645,12 @@ const onRefresh = () => {
   // Reset all selector values to '全部'
   toolTypeValue.value = { key: 'all', label: '全部', value: 'all' };
 
-  // Simulate data fetching
-  setTimeout(() => {
-    loading.value = false; // Hide loading icon after a delay
-  }, 500); // Adjust delay as needed
+  // Fetch fresh data from MySQL
+  fetchData();
 };
 
 const filteredData = computed(() => {
-  let dataToFilter = rawData;
+  let dataToFilter = rawData.value;
 
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
@@ -636,14 +688,34 @@ const filteredData = computed(() => {
 
 const searchInputValue = ref('');
 
+// Watch for search input changes
+const searchTimeout = ref<NodeJS.Timeout | null>(null);
+const handleSearchChange = () => {
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  searchTimeout.value = setTimeout(() => {
+    currentPage.value = 1;
+    fetchData();
+  }, 500);
+};
+
 const handleTableChange = (
   paginationData: any,
   filters: any,
   sorter: any,
 ) => {
   console.log('Table change:', paginationData, filters, sorter);
+  
+  // Handle pagination changes
+  if (paginationData) {
+    currentPage.value = paginationData.current || 1;
+    pageSize.value = paginationData.pageSize || 10;
+    fetchData(); // Fetch new data when pagination changes
+  }
+  
+  // Handle sorting changes
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-
   if (currentSorter && currentSorter.order) {
     sorterInfo.value = {
       columnKey: currentSorter.columnKey,
@@ -656,9 +728,6 @@ const handleTableChange = (
       order: 'descend',
     };
   }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
 };
 
 const onSettingClick = () => {
@@ -751,22 +820,59 @@ const handleCreateToolModalCancel = () => {
 const handleCreateToolModalConfirm = async () => {
   try {
     await createToolFormRef.value?.validate();
-    console.log('Create tool form data:', {
+    
+    // Generate a unique tool ID
+    const toolId = 'tool_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Prepare the data for the API
+    const toolData = {
+      toolId: toolId,
       toolType: selectedToolType.value,
       toolName: toolName.value,
-      accessType: accessType.value,
-      apiAddress: apiAddress.value,
-      localToolFilePath: localToolFilePath.value,
-      billingUnit: billingUnit.value,
-      unitCost: unitCost.value,
-      authFields: authFields.value,
-      customFields: customFields.value
-    });
-    // Here you would typically send the data to your API
-    showCreateToolModal.value = false;
-    createToolFormRef.value?.resetFields();
-  } catch (error) {
-    console.error('Form validation failed:', error);
+      apiAddress: accessType.value === 'api' ? apiAddress.value : null,
+      localToolFilePath: accessType.value === 'local' ? localToolFilePath.value : null,
+      purchaseTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // Current time
+      activationTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // Current time
+      expirationTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' '), // 1 year from now
+      accumulatedUsage: 0,
+      accumulatedCost: 0.00,
+      updater: '管理员' // Default updater
+    };
+
+    console.log('Creating tool configuration:', toolData);
+    
+    // Send POST request to create new tool
+    const response = await axios.post(`${API_BASE_URL}/tool-configuration`, toolData);
+    
+    if (response.data.success) {
+      message.success('工具创建成功！');
+      showCreateToolModal.value = false;
+      createToolFormRef.value?.resetFields();
+      
+      // Reset form data
+      selectedToolType.value = '';
+      toolName.value = '';
+      accessType.value = 'api';
+      apiAddress.value = '';
+      localToolFilePath.value = '';
+      billingUnit.value = '';
+      unitCost.value = '';
+      authFields.value = [];
+      customFields.value = [];
+      activeCollapseKeys.value = [];
+      
+      // Refresh the table data to show the new record
+      fetchData();
+    } else {
+      message.error('创建失败：' + (response.data.message || '未知错误'));
+    }
+  } catch (error: any) {
+    console.error('Error creating tool:', error);
+    if (error.response?.data?.message) {
+      message.error('创建失败：' + error.response.data.message);
+    } else {
+      message.error('创建失败：网络错误或服务器错误');
+    }
   }
 };
 
@@ -811,8 +917,8 @@ const handleEditTool = (record: DataItem) => {
   // Pre-fill the form with data from the selected row
   editToolType.value = record.toolType;
   editToolName.value = record.toolName;
-  editAccessType.value = record.apiType ? 'api' : 'local';
-  editApiAddress.value = record.apiType || '';
+  editAccessType.value = record.apiAddress ? 'api' : 'local';
+  editApiAddress.value = record.apiAddress || '';
   editLocalToolFilePath.value = record.localToolFilePath || '';
   editBillingUnit.value = 'h'; // Default value
   editUnitCost.value = '3'; // Default value
@@ -890,8 +996,11 @@ const removeEditCustomField = (index: number) => {
   editCustomFields.value.splice(index, 1);
 };
 
+// Hyperlink functions
+
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  fetchData(); // Fetch from MySQL
 });
 
 defineExpose({

@@ -190,6 +190,7 @@ import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import axios from 'axios';
 import FirmwareReleaseModal from '@/components/FirmwareReleaseModal.vue';
 import FirmwareEditModal from '@/components/FirmwareEditModal.vue';
 import ProductCreateModal from '@/components/ProductCreateModal.vue';
@@ -290,44 +291,108 @@ const columns = computed<ColumnsType>(() => {
 });
 
 // Generate virtual data for the new columns
-const rawData: DataItem[] = [];
-for (let i = 0; i < 12; i++) {
-  rawData.push({
-    key: i + 1,
-    productId: 'HWSZ00100' + (i % 3 + 1),
-    productName: ['粉色碳碳富盒挂件', '蓝色小熊玩偶', '绿色恐龙模型'][i % 3],
-    productionBatch: '2025-06-' + (10 + i),
-    manufacturer: ['扬州中韵工艺品有限公司', '深圳乐高玩具厂', '广州童趣玩具公司'][i % 3],
-    unitPrice: [25.8, 30.5, 18.2][i % 3],
-    quantity: [200, 150, 300][i % 3],
-    totalPrice: ["5,160", "4,575", "5,460"][i % 3],
-    creator: ['33', '44', '55'][i % 3],
-    createTime: '2025-7-13 19:25:' + (10 + i),
-    updateTime: '2025-7-13 19:30:' + (10 + i),
-    deviceModel: ['A100', 'B200', 'C300'][i % 3],
-    productType: ['益智', '毛绒', '模型'][i % 3],
-    ipName: ['迪士尼', '漫威', '宝可梦'][i % 3],
-  } as any);
-}
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
+const total = ref(0); // New ref for total items
 
-console.log('Raw Data:', rawData);
+// API base URL
+const API_BASE_URL = '/api';
+
+// API functions
+const fetchToyProductionData = async () => {
+  try {
+    loading.value = true;
+    console.log('Fetching toy production data with page:', currentPage.value, 'pageSize:', pageSize.value);
+    
+    const response = await axios.get(`${API_BASE_URL}/toy-production-hyphen`, {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value
+      }
+    });
+    
+    console.log('API Response:', response.data);
+    
+    if (response.data && response.data.data) {
+      // Server-side pagination response
+      rawData.value = response.data.data.map((item: any, index: number) => {
+        console.log(`Item ${index}:`, item);
+        return {
+          ...item,
+          key: item.id || index + 1
+        };
+      });
+      console.log('Processed rawData:', rawData.value);
+      
+      // Update pagination info from server
+      if (response.data.pagination) {
+        currentPage.value = response.data.pagination.current;
+        pageSize.value = response.data.pagination.pageSize;
+        total.value = response.data.pagination.total;
+        
+        console.log('Updated pagination - current:', currentPage.value, 'pageSize:', pageSize.value, 'total:', total.value);
+      }
+    } else if (response.data && Array.isArray(response.data)) {
+      // Fallback for old API format
+      rawData.value = response.data.map((item: any, index: number) => {
+        console.log(`Item ${index}:`, item);
+        return {
+          ...item,
+          key: item.id || index + 1
+        };
+      });
+      total.value = response.data.length;
+      console.log('Processed rawData:', rawData.value);
+    } else {
+      message.error('获取数据失败：服务器返回无效数据');
+      rawData.value = [];
+      total.value = 0;
+    }
+  } catch (error: any) {
+    console.error('Error fetching toy production data:', error);
+    
+    // Handle different types of errors
+    if (error.response) {
+      // Server responded with error status
+      if (error.response.status === 404) {
+        message.error('错误：玩具生产表不存在，请检查数据库');
+      } else if (error.response.status === 500) {
+        message.error('错误：数据库连接失败或表结构错误');
+      } else {
+        message.error(`获取数据失败：${error.response.data?.message || '服务器错误'}`);
+      }
+    } else if (error.request) {
+      // Network error
+      message.error('错误：无法连接到服务器，请检查网络连接');
+    } else {
+      // Other errors
+      message.error('错误：获取数据时发生未知错误');
+    }
+    
+    // Set empty data instead of fallback data
+    rawData.value = [];
+    total.value = 0;
+  } finally {
+    loading.value = false;
+  }
+};
 
 const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
 const productNameValue = ref({ key: 'all', label: '全部', value: 'all' });
 const manufacturerValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const deviceModelOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.deviceModel)));
+  const unique = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
 const productNameOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.productName)));
+  const unique = Array.from(new Set(rawData.value.map(item => item.productName)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
 const manufacturerOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.manufacturer)));
+  const unique = Array.from(new Set(rawData.value.map(item => item.manufacturer)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
@@ -354,7 +419,7 @@ const sorterInfo = ref<any>({
 });
 
 const pagination = computed(() => ({
-  total: filteredData.value.length, 
+  total: total.value, 
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true, 
@@ -365,11 +430,13 @@ const pagination = computed(() => ({
     console.log('onShowSizeChange', current, size);
     currentPage.value = current;
     pageSize.value = size;
+    fetchToyProductionData(); // Fetch fresh data when page size changes
   },
   onChange: (page: number, size: number) => {
     console.log('onChange', page, size);
     currentPage.value = page;
     pageSize.value = size;
+    fetchToyProductionData(); // Fetch fresh data when page changes
   },
 }));
 
@@ -385,10 +452,8 @@ const onRefresh = () => {
   productNameValue.value = { key: 'all', label: '全部', value: 'all' };
   manufacturerValue.value = { key: 'all', label: '全部', value: 'all' };
 
-  // Simulate data fetching
-  setTimeout(() => {
-    loading.value = false; // Hide loading icon after a delay
-  }, 500); // Adjust delay as needed
+  // Fetch fresh data from API
+  fetchToyProductionData();
 };
 
 const searchInputValue = ref('');
@@ -403,7 +468,7 @@ watch(searchInputValue, (val) => {
 });
 
 const filteredData = computed<DataItem[]>(() => {
-  let dataToFilter: DataItem[] = [...rawData];
+  let dataToFilter: DataItem[] = [...rawData.value];
 
   if (debouncedSearchValue.value) {
     const searchTerm = debouncedSearchValue.value.toLowerCase();
@@ -453,6 +518,15 @@ const handleTableChange = (
   sorter: any,
 ) => {
   console.log('Table change:', paginationData, filters, sorter);
+  
+  // Handle pagination changes - this is handled by the pagination handlers
+  if (paginationData && (paginationData.current !== currentPage.value || paginationData.pageSize !== pageSize.value)) {
+    currentPage.value = paginationData.current;
+    pageSize.value = paginationData.pageSize;
+    fetchToyProductionData(); // Fetch fresh data when pagination changes
+    return; // Exit early to avoid duplicate calls
+  }
+  
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
 
   if (currentSorter && currentSorter.order) {
@@ -460,23 +534,20 @@ const handleTableChange = (
       columnKey: currentSorter.columnKey,
       order: currentSorter.order,
     };
+    fetchToyProductionData(); // Fetch fresh data when sorting changes
   } else {
     // When sorting is cleared, revert to default
     sorterInfo.value = {
       columnKey: 'updateTime',
       order: 'descend',
     };
+    fetchToyProductionData(); // Fetch fresh data when sorting is cleared
   }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
 };
 
 const onSettingClick = () => {
   console.log('Setting clicked');
 };
-
-const loading = ref(false); // Add a loading state
 
 const tableSize = ref('middle'); // Default table size
 
@@ -512,7 +583,7 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 };
 
 const showReleaseModal = ref(false);
-const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.map(item => item.deviceModel))));
+const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.value.map(item => item.deviceModel))));
 
 const handleReleaseModalClose = () => {
   showReleaseModal.value = false;
@@ -555,6 +626,7 @@ const handleBatchOk = () => {
 
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  fetchToyProductionData(); // Fetch data on component mount
 });
 
 defineExpose({

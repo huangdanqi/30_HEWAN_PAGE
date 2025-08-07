@@ -126,9 +126,10 @@
       width="600px"
     >
       <a-form layout="vertical">
+        <!-- 1. 模型类型 (Model Type) -->
         <a-form-item required>
           <template #label>
-             模型类型
+            模型类型
           </template>
           <a-select v-model:value="selectedModelType" placeholder="请选择" @change="handleModelTypeChange">
             <a-select-option value="VAD">VAD</a-select-option>
@@ -143,67 +144,84 @@
           </a-select>
         </a-form-item>
         
+        <!-- 2. 模型名称 (Model Name) -->
         <a-form-item required>
           <template #label>
             模型名称
           </template>
-          <a-input placeholder="请输入" v-model:value="modelName" />
+          <a-input 
+            placeholder="请输入" 
+            v-model:value="modelName" 
+            :maxlength="15"
+            show-count
+          />
         </a-form-item>
 
-        <!-- TTS specific fields -->
-        <template v-if="selectedModelType === 'TTS'">
-          <a-form-item required>
-            <template #label>
-              音色ID
-            </template>
-            <a-input placeholder="请输入" />
-          </a-form-item>
-          <a-form-item required>
-            <template #label>
-               音色名称
-            </template>
-            <a-input placeholder="请输入" />
-          </a-form-item>
-        </template>
-
+        <!-- 3. 访问信息 (Access Information) -->
         <a-form-item required>
           <template #label>
-             访问地址
+            访问信息
           </template>
           <a-radio-group v-model:value="accessType">
-            <a-radio value="api">API调用模型</a-radio>
             <a-radio value="local">本地模型</a-radio>
+            <a-radio value="api">API调用模型</a-radio>
           </a-radio-group>
         </a-form-item>
 
+        <!-- 4. API地址 (API Address) - Conditional -->
         <a-form-item required v-if="accessType === 'api'">
           <template #label>
             API地址
           </template>
-          <a-input placeholder="请输入URL" />
+          <a-input placeholder="请输入URL" v-model:value="apiUrl" />
         </a-form-item>
 
+        <!-- 5. 本地模型文件目录 (Local Model File Directory) - Conditional -->
         <a-form-item required v-if="accessType === 'local'">
           <template #label>
             本地模型文件目录
           </template>
-          <a-input placeholder="请输入" />
+          <a-input placeholder="请输入" v-model:value="localModelFileDir" />
         </a-form-item>
 
-        <a-form-item required v-if="accessType === 'api'">
+        <!-- 6. 计费单位 (Billing Unit) - Conditional for API -->
+        <a-form-item v-if="accessType === 'api'">
           <template #label>
-             计费单位
+            计费单位
           </template>
-          <a-input placeholder="请输入" />
+          <a-input placeholder="请输入" v-model:value="billingUnit" />
         </a-form-item>
 
-        <a-form-item required v-if="accessType === 'api'">
+        <!-- 7. 单位费用 (Unit Cost) - Conditional for API -->
+        <a-form-item v-if="accessType === 'api'">
           <template #label>
             单位费用
           </template>
-          <a-input placeholder="请输入" suffix="元" style="text-align: right;" />
+          <a-input placeholder="请输入" suffix="元" style="text-align: right;" v-model:value="unitCost" />
         </a-form-item>
 
+        <!-- 8. 音色ID (Voice ID) - Conditional for TTS, IP VCM, User VCM -->
+        <a-form-item required v-if="['TTS', 'IP VCM', 'User VCM'].includes(selectedModelType)">
+          <template #label>
+            音色ID
+          </template>
+          <a-input placeholder="请输入" v-model:value="voiceId" />
+        </a-form-item>
+
+        <!-- 9. 音色名称 (Voice Name) - Conditional for TTS, IP VCM, User VCM -->
+        <a-form-item required v-if="['TTS', 'IP VCM', 'User VCM'].includes(selectedModelType)">
+          <template #label>
+            音色名称
+          </template>
+          <a-input 
+            placeholder="请输入" 
+            v-model:value="voiceName" 
+            :maxlength="15"
+            show-count
+          />
+        </a-form-item>
+
+        <!-- 10. 认证信息 (Authentication Information) - Available for both local and API models -->
         <a-collapse v-model:activeKey="activeCollapseKeys" ghost>
           <template #expandIcon="{ isActive }">
             <PlusOutlined v-if="!isActive" style="color: #1890ff; font-weight: bold; font-size: 16px;" />
@@ -211,15 +229,15 @@
           </template>
           <a-collapse-panel key="auth" header="认证信息">
             <div v-for="(field, index) in authFields" :key="index" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-              <a-form-item required style="flex: 1; margin-bottom: 0;">
+              <a-form-item style="flex: 1; margin-bottom: 0;">
                 <template #label>
-                 字段名
+                  字段名
                 </template>
                 <a-input placeholder="请输入" v-model:value="field.fieldName" />
               </a-form-item>
-              <a-form-item required style="flex: 1; margin-bottom: 0;">
+              <a-form-item style="flex: 1; margin-bottom: 0;">
                 <template #label>
-                   值
+                  值
                 </template>
                 <a-input placeholder="请输入" v-model:value="field.value" />
               </a-form-item>
@@ -242,15 +260,16 @@
             </div>
           </a-collapse-panel>
 
+          <!-- 11. 自定义参数 (Custom Parameters) - Available for both local and API models -->
           <a-collapse-panel key="custom" header="自定义参数">
             <div v-for="(field, index) in customFields" :key="index" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-              <a-form-item required style="flex: 1; margin-bottom: 0;">
+              <a-form-item style="flex: 1; margin-bottom: 0;">
                 <template #label>
                   字段名
                 </template>
                 <a-input placeholder="请输入" v-model:value="field.fieldName" />
               </a-form-item>
-              <a-form-item required style="flex: 1; margin-bottom: 0;">
+              <a-form-item style="flex: 1; margin-bottom: 0;">
                 <template #label>
                  值
                 </template>
@@ -276,9 +295,14 @@
           </a-collapse-panel>
         </a-collapse>
 
+        <!-- 12. 后台导入 (Backend Import) - Info text -->
+        <div style="margin-top: 16px; padding: 12px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #666;">
+          音色复刻模型可通过外部服务接口导入
+        </div>
+
         <div style="display: flex; justify-content: flex-end; gap: 16px; margin-top: 24px;">
           <a-button @click="showCreateModelModal = false">取消</a-button>
-          <a-button type="primary" @click="handleConfirmCreate">确定</a-button>
+          <a-button type="primary" @click="handleConfirmCreate" :loading="loading">确定</a-button>
         </div>
       </a-form>
     </a-modal>
@@ -457,6 +481,8 @@ import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, PlusOutlined, MinusCircleOutlined, MinusOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import axios from 'axios'; // Added axios import
+import { useRouter } from 'vue-router';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -467,19 +493,19 @@ const customLocale = computed(() => ({
 }));
 
 interface DataItem {
-  key: number;
+  id: number;
   modelId: string;
   modelType: string;
   modelName: string;
-  voiceId: string;
-  voiceName: string;
+  containerId: string;
+  versionNumber: string;
   apiUrl: string;
   localModelFileDir: string;
-  remainingCalls: number;
-  leaseTime: string;
-  startTime: string;
-  expirationTime: string;
-  paymentUnit: string;
+  remainingTrainingTimes: number;
+  buildTime: string;
+  enableTime: string;
+  disableTime: string;
+  billingUnit: string;
   unitCost: number;
   accumulatedUsage: string;
   accumulatedCost: string;
@@ -505,22 +531,22 @@ interface ColumnConfig {
 
 const columnConfigs: ColumnConfig[] = [
   { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
-  { key: 'modelId', title: '模型ID', dataIndex: 'modelId', width: 150 },
-  { key: 'modelType', title: '模型类型', dataIndex: 'modelType', width: 120 },
-  { key: 'modelName', title: '模型名称', dataIndex: 'modelName', width: 150 },
-  { key: 'voiceId', title: '音色ID', dataIndex: 'voiceId', width: 150 },
-  { key: 'voiceName', title: '音色名称', dataIndex: 'voiceName', width: 150 },
-  { key: 'apiUrl', title: 'API url', dataIndex: 'apiUrl', width: 250 },
-  { key: 'localModelFileDir', title: '本地模型文件目录', dataIndex: 'localModelFileDir', width: 200 },
-  { key: 'remainingCalls', title: '剩余调用次数', dataIndex: 'remainingCalls', width: 120, sorter: (a, b) => a.remainingCalls - b.remainingCalls, sortDirections: ['ascend', 'descend'] },
-  { key: 'leaseTime', title: '租赁时间', dataIndex: 'leaseTime', width: 160, sorter: (a, b) => new Date(a.leaseTime).getTime() - new Date(b.leaseTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'startTime', title: '启动时间', dataIndex: 'startTime', width: 160, sorter: (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'expirationTime', title: '到期时间', dataIndex: 'expirationTime', width: 160, sorter: (a, b) => new Date(a.expirationTime).getTime() - new Date(b.expirationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'paymentUnit', title: '付费单位', dataIndex: 'paymentUnit', width: 100 },
+  { key: 'modelId', title: '模型 ID', dataIndex: 'modelId', width: 150, sorter: (a, b) => a.modelId.localeCompare(b.modelId), sortDirections: ['ascend', 'descend'] },
+  { key: 'modelType', title: '模型类型', dataIndex: 'modelType', width: 120, sorter: (a, b) => a.modelType.localeCompare(b.modelType), sortDirections: ['ascend', 'descend'] },
+  { key: 'modelName', title: '模型名称', dataIndex: 'modelName', width: 150, sorter: (a, b) => a.modelName.localeCompare(b.modelName), sortDirections: ['ascend', 'descend'] },
+  { key: 'containerId', title: '音色ID', dataIndex: 'containerId', width: 150, sorter: (a, b) => a.containerId.localeCompare(b.containerId), sortDirections: ['ascend', 'descend'] },
+  { key: 'versionNumber', title: '音色名称', dataIndex: 'versionNumber', width: 150, sorter: (a, b) => a.versionNumber.localeCompare(b.versionNumber), sortDirections: ['ascend', 'descend'] },
+  { key: 'apiUrl', title: 'API url', dataIndex: 'apiUrl', width: 250, sorter: (a, b) => a.apiUrl.localeCompare(b.apiUrl), sortDirections: ['ascend', 'descend'] },
+  { key: 'localModelFileDir', title: '本地模型文件目录', dataIndex: 'localModelFileDir', width: 200, sorter: (a, b) => a.localModelFileDir.localeCompare(b.localModelFileDir), sortDirections: ['ascend', 'descend'] },
+  { key: 'remainingTrainingTimes', title: '剩余训练次数', dataIndex: 'remainingTrainingTimes', width: 120, sorter: (a, b) => a.remainingTrainingTimes - b.remainingTrainingTimes, sortDirections: ['ascend', 'descend'] },
+  { key: 'buildTime', title: '购买时间', dataIndex: 'buildTime', width: 160, sorter: (a, b) => new Date(a.buildTime).getTime() - new Date(b.buildTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'enableTime', title: '启用时间', dataIndex: 'enableTime', width: 160, sorter: (a, b) => new Date(a.enableTime).getTime() - new Date(b.enableTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'disableTime', title: '到期时间', dataIndex: 'disableTime', width: 160, sorter: (a, b) => new Date(a.disableTime).getTime() - new Date(b.disableTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'billingUnit', title: '计费单位', dataIndex: 'billingUnit', width: 100, sorter: (a, b) => a.billingUnit.localeCompare(b.billingUnit), sortDirections: ['ascend', 'descend'] },
   { key: 'unitCost', title: '单位费用 (元)', dataIndex: 'unitCost', width: 120, sorter: (a, b) => a.unitCost - b.unitCost, sortDirections: ['ascend', 'descend'] },
-  { key: 'accumulatedUsage', title: '累计使用量', dataIndex: 'accumulatedUsage', width: 120 },
-  { key: 'accumulatedCost', title: '累计费用 (元)', dataIndex: 'accumulatedCost', width: 120 },
-  { key: 'updater', title: '更新人', dataIndex: 'updater', width: 80 },
+  { key: 'accumulatedUsage', title: '累计使用量', dataIndex: 'accumulatedUsage', width: 120, sorter: (a, b) => a.accumulatedUsage.localeCompare(b.accumulatedUsage), sortDirections: ['ascend', 'descend'] },
+  { key: 'accumulatedCost', title: '累计费用 (元)', dataIndex: 'accumulatedCost', width: 120, sorter: (a, b) => a.accumulatedCost.localeCompare(b.accumulatedCost), sortDirections: ['ascend', 'descend'] },
+  { key: 'updater', title: '更新人', dataIndex: 'updater', width: 80, sorter: (a, b) => a.updater.localeCompare(b.updater), sortDirections: ['ascend', 'descend'] },
   { key: 'createTime', title: '创建时间', dataIndex: 'createTime', width: 160, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a, b) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'operation', title: '操作', dataIndex: '', width: 200, fixed: 'right' },
@@ -574,53 +600,37 @@ const columns = computed<ColumnsType>(() => {
 });
 
 // Generate sample data based on the image
-const rawData: DataItem[] = [];
-const modelTypes = ['user VCM', 'system VCM'];
-const voiceNames = ['啵啵的音色', '其他音色'];
-const paymentUnits = ['h', 'd', 'm'];
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
 
-try {
-  for (let i = 0; i < 43; i++) {
-    const date = new Date(2025, 6, 13, 19, 25, 11); // Base date from image
-    date.setDate(date.getDate() + i); // Vary date by day for each record
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
 
-    const baseTime = date.toISOString().slice(0, 19).replace('T', ' ');
-    const expirationDate = new Date(date);
-    expirationDate.setDate(date.getDate() + 30); // 30 days later
-    const expirationTime = expirationDate.toISOString().slice(0, 19).replace('T', ' ');
-
-    rawData.push({
-      key: i + 1,
-      modelId: 'hjhwn832nj2f',
-      modelType: modelTypes[i % modelTypes.length],
-      modelName: '啵啵多模态',
-      voiceId: 'hjhwn832nj2f',
-      voiceName: voiceNames[i % voiceNames.length],
-      apiUrl: i % 2 === 0 ? 'https://example.com/firmware.bin' : '-',
-      localModelFileDir: i % 2 === 1 ? 'example/firmware.bin' : '-',
-      remainingCalls: 8,
-      leaseTime: baseTime,
-      startTime: baseTime,
-      expirationTime: expirationTime,
-      paymentUnit: paymentUnits[i % paymentUnits.length],
-      unitCost: 10,
-      accumulatedUsage: '106 h',
-      accumulatedCost: '45元',
-      updater: '33',
-      createTime: baseTime,
-      updateTime: baseTime,
-    });
+// Fetch data from MySQL database
+const fetchData = async () => {
+  console.log('fetchData called');
+  loading.value = true;
+  try {
+    console.log('Calling model-configuration endpoint');
+    // Request all data without pagination parameters
+    const response = await axios.get(`${API_BASE_URL}/model-configuration?page=1&pageSize=1000`);
+    console.log('Model configuration response:', response.data);
+    // Add key property to each item for table identification
+    rawData.value = response.data.data.map((item: any) => ({
+      ...item,
+      key: item.id // Use id as key for table rows
+    }));
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    loading.value = false;
   }
-} catch (error) {
-  console.error('Error generating data:', error);
-}
-
-console.log('Raw Data:', rawData);
+};
 
 const modelTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const modelTypeOptions = computed(() => {
-  const uniqueModelTypes = Array.from(new Set(rawData.map(item => item.modelType)));
+  const uniqueModelTypes = Array.from(new Set(rawData.value.map(item => item.modelType)));
   const options = uniqueModelTypes.map(type => ({
     key: type,
     value: type,
@@ -644,29 +654,32 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sorterInfo = ref<any>({
-  columnKey: 'updateTime',
-  order: 'descend',
+  columnKey: null,
+  order: null,
 });
 
-const pagination = computed(() => ({
-  total: totalFilteredData.value, 
-  current: currentPage.value,
-  pageSize: pageSize.value,
-  showSizeChanger: true, 
-  pageSizeOptions: ['10', '20', '50'], 
-  showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
-  showQuickJumper: { goButton: '页' }, 
-  onShowSizeChange: (current: number, size: number) => {
-    console.log('onShowSizeChange', current, size);
-    currentPage.value = 1; // Reset to first page when changing page size
-    pageSize.value = size;
-  },
-  onChange: (page: number, size: number) => {
-    console.log('onChange', page, size);
-    currentPage.value = page;
-    pageSize.value = size;
-  },
-}));
+const pagination = computed(() => {
+  console.log('Pagination computed - currentPage:', currentPage.value, 'pageSize:', pageSize.value, 'total:', totalFilteredData.value);
+  return {
+    total: totalFilteredData.value, 
+    current: currentPage.value,
+    pageSize: pageSize.value,
+    showSizeChanger: true, 
+    pageSizeOptions: ['10', '20', '50'], 
+    showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
+    showQuickJumper: { goButton: '页' }, 
+    onShowSizeChange: (current: number, size: number) => {
+      console.log('onShowSizeChange', current, size);
+      currentPage.value = 1; // Reset to first page when changing page size
+      pageSize.value = size;
+    },
+    onChange: (page: number, size: number) => {
+      console.log('onChange', page, size);
+      currentPage.value = page;
+      pageSize.value = size;
+    },
+  };
+});
 
 const onRefresh = () => {
   console.log('Refresh button clicked!');
@@ -675,6 +688,7 @@ const onRefresh = () => {
   currentPage.value = 1;
   resetColumns();
   modelTypeValue.value = { key: 'all', label: '全部', value: 'all' };
+  fetchData(); // Re-fetch data from database
 
   setTimeout(() => {
     loading.value = false;
@@ -683,7 +697,7 @@ const onRefresh = () => {
 
 const filteredData = computed(() => {
   try {
-    let dataToFilter = rawData;
+    let dataToFilter = rawData.value;
 
     if (searchInputValue.value) {
       const searchTerm = searchInputValue.value.toLowerCase();
@@ -704,7 +718,7 @@ const filteredData = computed(() => {
       dataToFilter = dataToFilter.filter(item => item.modelType === currentModelType);
     }
 
-    // Sorting logic
+    // Sorting logic using Ant Design sorter
     if (sorterInfo.value && sorterInfo.value.order) {
       const { columnKey, order } = sorterInfo.value;
       const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
@@ -714,6 +728,13 @@ const filteredData = computed(() => {
           return order === 'ascend' ? result : -result;
         });
       }
+    } else {
+      // Default sorting by updateTime in descending order
+      dataToFilter.sort((a, b) => {
+        const dateA = new Date(a.updateTime).getTime();
+        const dateB = new Date(b.updateTime).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      });
     }
 
     return dataToFilter;
@@ -726,7 +747,7 @@ const filteredData = computed(() => {
 // Computed property for total count of filtered data (before pagination)
 const totalFilteredData = computed(() => {
   try {
-    let dataToFilter = rawData;
+    let dataToFilter = rawData.value;
 
     if (searchInputValue.value) {
       const searchTerm = searchInputValue.value.toLowerCase();
@@ -759,7 +780,17 @@ const paginatedData = computed(() => {
   try {
     const startIndex = (currentPage.value - 1) * pageSize.value;
     const endIndex = startIndex + pageSize.value;
-    return filteredData.value.slice(startIndex, endIndex);
+    const result = filteredData.value.slice(startIndex, endIndex);
+    
+    console.log('paginatedData computed:');
+    console.log('- currentPage:', currentPage.value);
+    console.log('- pageSize:', pageSize.value);
+    console.log('- startIndex:', startIndex);
+    console.log('- endIndex:', endIndex);
+    console.log('- filteredData length:', filteredData.value.length);
+    console.log('- result length:', result.length);
+    
+    return result;
   } catch (error) {
     console.error('Error in paginatedData computed:', error);
     return [];
@@ -771,23 +802,44 @@ const handleTableChange = (
   filters: any,
   sorter: any,
 ) => {
-  console.log('Table change:', paginationData, filters, sorter);
+  console.log('=== handleTableChange called ===');
+  console.log('paginationData:', paginationData);
+  console.log('filters:', filters);
+  console.log('sorter:', sorter);
+  
+  // Handle pagination changes
+  if (paginationData && (paginationData.current !== currentPage.value || paginationData.pageSize !== pageSize.value)) {
+    console.log('Pagination change detected');
+    console.log('Old - currentPage:', currentPage.value, 'pageSize:', pageSize.value);
+    console.log('New - currentPage:', paginationData.current, 'pageSize:', paginationData.pageSize);
+    
+    currentPage.value = paginationData.current;
+    pageSize.value = paginationData.pageSize;
+    
+    console.log('Updated - currentPage:', currentPage.value, 'pageSize:', pageSize.value);
+  }
+  
+  // Handle sorting changes
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-
   if (currentSorter && currentSorter.order) {
+    console.log('Sorting change detected');
     sorterInfo.value = {
       columnKey: currentSorter.columnKey,
       order: currentSorter.order,
     };
+    // Only reset to first page when sorting changes, not when pagination changes
+    if (!paginationData) {
+      console.log('Resetting to first page due to sorting change');
+      currentPage.value = 1;
+    }
   } else {
     sorterInfo.value = {
-      columnKey: 'updateTime',
-      order: 'descend',
+      columnKey: null,
+      order: null,
     };
   }
   
-  // Reset to first page when sorting changes
-  currentPage.value = 1;
+  console.log('=== handleTableChange end ===');
 };
 
 const resetColumns = () => {
@@ -816,7 +868,6 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 
 // Add back missing reactive variables
 const searchInputValue = ref('');
-const loading = ref(false);
 const tableSize = ref('middle');
 const showCreateModelModal = ref(false);
 const showEditModelModal = ref(false);
@@ -850,11 +901,14 @@ const removeCustomField = (index: number) => {
 const editForm = ref({
   selectedModelType: '',
   modelName: '',
+  containerId: '',
+  versionNumber: '',
   voiceId: '',
   voiceName: '',
   accessType: 'api',
   apiUrl: '',
   localModelFileDir: '',
+  billingUnit: '',
   paymentUnit: '',
   unitCost: '',
   activeCollapseKeys: ['auth', 'custom'] as string[],
@@ -887,11 +941,11 @@ const handleEditClick = (record: DataItem) => {
   // Populate edit form with record data
   editForm.value.selectedModelType = record.modelType;
   editForm.value.modelName = record.modelName;
-  editForm.value.voiceId = record.voiceId;
-  editForm.value.voiceName = record.voiceName;
+  editForm.value.containerId = record.containerId;
+  editForm.value.versionNumber = record.versionNumber;
   editForm.value.apiUrl = record.apiUrl;
   editForm.value.localModelFileDir = record.localModelFileDir;
-  editForm.value.paymentUnit = record.paymentUnit;
+  editForm.value.billingUnit = record.billingUnit;
   editForm.value.unitCost = record.unitCost.toString();
   
   // Determine access type based on data
@@ -915,33 +969,206 @@ watch(() => editForm.value.accessType, (newValue) => {
   }
 });
 
-const handleConfirmCreate = () => {
-  message.success('新建模型成功！');
-  showCreateModelModal.value = false;
+// Add back modal form reactive variables
+const selectedModelType = ref('');
+const accessType = ref('api');
+const activeCollapseKeys = ref<string[]>([]);
+const modelName = ref('');
+const voiceId = ref('');
+const voiceName = ref('');
+const apiUrl = ref('');
+const localModelFileDir = ref('');
+const billingUnit = ref('');
+const unitCost = ref('');
+
+// Import auth store for dynamic username
+import { useAuthStore } from '../stores/auth';
+const authStore = useAuthStore();
+
+// Form validation and submission
+const handleConfirmCreate = async () => {
+  console.log('=== CREATE MODEL START ===');
+  console.log('Form data:', {
+    selectedModelType: selectedModelType.value,
+    modelName: modelName.value,
+    accessType: accessType.value,
+    apiUrl: apiUrl.value,
+    localModelFileDir: localModelFileDir.value,
+    billingUnit: billingUnit.value,
+    unitCost: unitCost.value,
+    authFields: authFields.value,
+    customFields: customFields.value
+  });
+
+  // Validation
+  if (!selectedModelType.value) {
+    message.error('请选择模型类型');
+    return;
+  }
+
+  if (!modelName.value || modelName.value.trim() === '') {
+    message.error('请输入模型名称');
+    return;
+  }
+
+  if (modelName.value.length > 15) {
+    message.error('模型名称不能超过15个字符');
+    return;
+  }
+
+  // Validate access information
+  if (accessType.value === 'api') {
+    if (!apiUrl.value || apiUrl.value.trim() === '') {
+      message.error('请输入API地址');
+      return;
+    }
+  } else if (accessType.value === 'local') {
+    if (!localModelFileDir.value || localModelFileDir.value.trim() === '') {
+      message.error('请输入本地模型文件目录');
+      return;
+    }
+  }
+
+  // Validate voice fields for TTS, IP VCM, User VCM
+  if (['TTS', 'IP VCM', 'User VCM'].includes(selectedModelType.value)) {
+    if (!voiceId.value || voiceId.value.trim() === '') {
+      message.error('请输入音色ID');
+      return;
+    }
+    if (!voiceName.value || voiceName.value.trim() === '') {
+      message.error('请输入音色名称');
+      return;
+    }
+    if (voiceName.value.length > 15) {
+      message.error('音色名称不能超过15个字符');
+      return;
+    }
+  }
+
+  // Validate auth fields
+  for (let i = 0; i < authFields.value.length; i++) {
+    const field = authFields.value[i];
+    if (field.fieldName && field.value) {
+      // If both field name and value are provided, they should be valid
+      if (!field.fieldName.trim() || !field.value.trim()) {
+        message.error('认证信息字段名和值不能为空');
+        return;
+      }
+    }
+    // If either field name or value is empty, that's fine (optional fields)
+  }
+
+  // Validate custom fields
+  for (let i = 0; i < customFields.value.length; i++) {
+    const field = customFields.value[i];
+    if (field.fieldName && field.value) {
+      // If both field name and value are provided, they should be valid
+      if (!field.fieldName.trim() || !field.value.trim()) {
+        message.error('自定义参数字段名和值不能为空');
+        return;
+      }
+    }
+    // If either field name or value is empty, that's fine (optional fields)
+  }
+
+  try {
+    loading.value = true;
+    console.log('Validation passed, preparing to submit...');
+
+    // Debug username from AppTopbar.vue
+    console.log('Auth store user:', authStore.user);
+    console.log('Username from AppTopbar:', authStore.user?.name || authStore.user?.username || '管理员');
+
+    // Prepare data for submission
+    const formData = {
+      modelType: selectedModelType.value,
+      modelName: modelName.value,
+      voiceId: voiceId.value,
+      voiceName: voiceName.value,
+      accessType: accessType.value,
+      apiUrl: apiUrl.value,
+      localModelFileDir: localModelFileDir.value,
+      billingUnit: billingUnit.value,
+      unitCost: parseFloat(unitCost.value) || 0,
+      authFields: authFields.value,
+      customFields: customFields.value,
+      updater: authStore.user?.name || authStore.user?.username || '管理员'
+    };
+
+    console.log('Submitting form data:', JSON.stringify(formData, null, 2));
+    console.log('Username being sent as updater:', formData.updater);
+    console.log('API URL:', `${API_BASE_URL}/model-configuration`);
+
+    const response = await axios.post(`${API_BASE_URL}/model-configuration`, formData);
+    
+    console.log('=== CREATE MODEL SUCCESS ===');
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+
+    if (response.data.success) {
+      message.success('新建模型成功！');
+      showCreateModelModal.value = false;
+      resetCreateForm();
+      fetchData(); // Refresh the data
+    } else {
+      message.error('创建失败: ' + (response.data.error || '未知错误'));
+    }
+  } catch (error: any) {
+    console.log('=== CREATE MODEL ERROR ===');
+    console.error('Error creating model:', error);
+    console.error('Error response:', error.response);
+    console.error('Error message:', error.message);
+    console.error('Error status:', error.response?.status);
+    console.error('Error data:', error.response?.data);
+    console.error('Error config:', error.config);
+    message.error('创建失败: ' + (error.response?.data?.error || error.message || '未知错误'));
+  } finally {
+    loading.value = false;
+    console.log('=== CREATE MODEL END ===');
+  }
 };
+
+const resetCreateForm = () => {
+  selectedModelType.value = '';
+  modelName.value = '';
+  voiceId.value = '';
+  voiceName.value = '';
+  accessType.value = 'api';
+  apiUrl.value = '';
+  localModelFileDir.value = '';
+  billingUnit.value = '';
+  unitCost.value = '';
+  activeCollapseKeys.value = [];
+  authFields.value = [{ fieldName: '', value: '' }];
+  customFields.value = [{ fieldName: '', value: '' }];
+};
+
+// Watch for access type changes to control collapse state
+watch(accessType, (newValue) => {
+  // Always show auth and custom sections for both local and API models
+  activeCollapseKeys.value = ['auth', 'custom'];
+});
 
 const handleConfirmEdit = () => {
   message.success('编辑模型成功！');
   showEditModelModal.value = false;
 };
 
-// Add back modal form reactive variables
-const selectedModelType = ref('');
-const accessType = ref('api');
-const activeCollapseKeys = ref<string[]>([]);
-const modelName = ref('');
-
-// Watch for access type changes to control collapse state
-watch(accessType, (newValue) => {
-  if (newValue === 'api') {
-    activeCollapseKeys.value = ['auth', 'custom'];
-  } else {
-    activeCollapseKeys.value = [];
-  }
-});
-
 onMounted(() => {
   console.log('ModelConfiguration component mounted');
+  console.log('Auth store state:', {
+    user: authStore.user,
+    isAuthenticated: authStore.isAuthenticated(),
+    token: authStore.token
+  });
+  
+  // Set a test user if not authenticated
+  if (!authStore.isAuthenticated()) {
+    console.log('No user authenticated, setting test user...');
+    authStore.setLoggedInState('测试用户');
+  }
+  
+  fetchData(); // Call fetchData on mount
 });
 
 defineExpose({

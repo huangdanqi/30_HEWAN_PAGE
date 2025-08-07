@@ -1,94 +1,130 @@
 <template>
   <a-modal
     :visible="visible"
-    title="编辑固件信息"
+    title="版本编辑"
     :footer="null"
     @cancel="handleCancel"
-    width="600px"
+    width="700px"
+    :maskClosable="false"
   >
-    <a-steps :current="currentStep">
-      <a-step title="信息编辑" />
-      <a-step title="固件上传" />
+    <!-- Progress Steps -->
+    <a-steps :current="currentStep" style="margin-bottom: 24px;">
+      <a-step title="版本选择" />
+      <a-step title="文件上传" />
     </a-steps>
 
     <div class="steps-content">
+      <!-- Step 1: Version Selection -->
       <div v-if="currentStep === 0">
         <a-form :model="formState" :rules="rules" ref="step1Form" layout="vertical">
-          <a-form-item label="首版发布" name="isFirstRelease">
-            <a-radio-group v-model:value="formState.isFirstRelease">
-              <a-radio :value="true">是</a-radio>
-              <a-radio :value="false">否</a-radio>
-            </a-radio-group>
-          </a-form-item>
-
           <a-form-item label="设备型号" name="deviceModel">
             <a-input
               v-model:value="formState.deviceModel"
-              :placeholder="`请输入（最多15个字符，不含空格）`"
-              v-if="formState.isFirstRelease"
-              :maxlength="30"
+              placeholder="设备型号"
+              :disabled="isRestricted"
             />
-            <a-select v-model:value="formState.deviceModel" placeholder="请选择" v-else>
-              <a-select-option v-for="model in uniqueDeviceModels" :key="model" :value="model">{{ model }}</a-select-option>
-            </a-select>
           </a-form-item>
 
-          <a-form-item label="发布版本" name="releaseType" v-if="!formState.isFirstRelease">
-            <a-radio-group v-model:value="formState.releaseType">
+          <a-form-item label="发布版本" name="releaseType">
+            <a-radio-group v-model:value="formState.releaseType" :disabled="isRestricted">
               <a-radio value="major">主版本</a-radio>
               <a-radio value="minor">子版本</a-radio>
               <a-radio value="revision">修订版</a-radio>
             </a-radio-group>
-            <p style="margin-top: 8px;">本次将发布为 {{ generatedVersion }} 版本</p>
+            <div style="margin-top: 8px; color: #1890ff; font-weight: bold;">
+              本次发布版本为 {{ generatedVersion }} 版本
+            </div>
           </a-form-item>
 
           <a-form-item label="内容描述" name="contentDescription">
             <a-textarea
               v-model:value="formState.contentDescription"
-              :placeholder="'请输入（最多10000个字符，不含空格）'"
+              placeholder="请输入本次发布的功能变化"
               :rows="4"
-              :maxlength="10020"
+              :maxlength="2000"
+              show-count
             />
           </a-form-item>
         </a-form>
       </div>
 
+      <!-- Step 2: File Upload -->
       <div v-if="currentStep === 1">
         <a-upload-dragger
           name="file"
           :multiple="false"
-          action="/upload.do"
+          :action="uploadAction"
+          :headers="uploadHeaders"
+          :data="uploadData"
+          :before-upload="beforeUpload"
           @change="handleUploadChange"
           @drop="handleDrop"
+          :disabled="isRestricted"
+          :file-list="fileList"
+          class="upload-dragger-centered"
         >
           <p class="ant-upload-drag-icon">
             <inbox-outlined />
           </p>
           <p class="ant-upload-text">点击或拖拽文件到此区域</p>
           <p class="ant-upload-hint">
-            请按照模板上传文件进行设备导入。支持文件格式: .xls, .xlsx。
+            请将固件包上传至服务器，支持文件格式：.xls, .xlsx
           </p>
         </a-upload-dragger>
 
-        <div v-if="fileList.length > 0" style="margin-top: 16px;">
-          <div v-for="file in fileList" :key="file.uid">
-            <a-progress :percent="file.percent || 0" />
-            <span>{{ file.name }}</span>
+        <!-- File Progress - Only show when upload is completed -->
+        <div v-if="fileList.length > 0 && fileList[0].status === 'done'" style="margin-top: 16px;">
+          <div v-for="file in fileList" :key="file.uid" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #d9d9d9; border-radius: 6px; margin-bottom: 8px; background-color: #fafafa;">
+            <div style="flex: 1;">
+              <div style="font-weight: bold; display: flex; align-items: center; margin-bottom: 8px;">
+                <paper-clip-outlined style="margin-right: 8px; color: #1890ff;" />
+                {{ file.name }}
+              </div>
+              <a-progress 
+                :percent="100" 
+                size="small" 
+                status="success"
+                :show-info="false"
+              />
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <a-button 
+                type="text" 
+                danger 
+                @click="removeFile(file.uid)"
+                :disabled="isRestricted"
+                size="small"
+              >
+                <delete-outlined />
+              </a-button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Action Buttons -->
     <div class="steps-action">
-      <a-button v-if="currentStep < 1" type="primary" @click="nextStep">下一步</a-button>
+      <a-button @click="handleCancel">取消</a-button>
       <a-button v-if="currentStep > 0" style="margin-left: 8px" @click="prevStep">上一步</a-button>
+      <a-button 
+        v-if="currentStep < 1" 
+        type="primary" 
+        style="margin-left: 8px" 
+        @click="nextStep"
+        :loading="loading"
+      >
+        下一步
+      </a-button>
       <a-button
         v-if="currentStep === 1"
         type="primary"
         @click="handleSubmit"
         style="margin-left: 8px"
+        :loading="loading"
+        :disabled="fileList.length === 0"
       >
-        确定
+        发布
       </a-button>
     </div>
   </a-modal>
@@ -98,13 +134,13 @@
 import { ref, reactive, watch, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import type { UploadChangeParam } from 'ant-design-vue';
-import { InboxOutlined } from '@ant-design/icons-vue';
+import { InboxOutlined, DeleteOutlined, PaperClipOutlined } from '@ant-design/icons-vue';
 import type { FormInstance } from 'ant-design-vue';
+import axios from 'axios';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
   record: { type: Object, default: null },
-  uniqueDeviceModels: { type: Array as () => string[], default: () => [] },
 });
 
 const emits = defineEmits(['update:visible', 'submit']);
@@ -112,94 +148,85 @@ const emits = defineEmits(['update:visible', 'submit']);
 const currentStep = ref(0);
 const step1Form = ref<FormInstance | null>(null);
 const fileList = ref<any[]>([]);
+const loading = ref(false);
 
+// Form state
 const formState = reactive({
-  isFirstRelease: true,
   deviceModel: '',
   releaseType: 'major',
   contentDescription: '',
 });
 
+// Validation rules
 const rules = {
   deviceModel: [{ required: true, message: '请选择设备型号' }],
-  contentDescription: [{ required: true, message: '请输入内容描述' }],
-  isFirstRelease: [{ required: true, message: '请选择是否首版发布' }],
   releaseType: [{ required: true, message: '请选择发布版本' }],
+  contentDescription: [{ required: true, message: '请输入内容描述' }],
 };
 
+// Check if editing is restricted (firmware is factory burning or latest updatable version)
+const isRestricted = computed(() => {
+  if (!props.record) return false;
+  return props.record.isFactoryBurning || props.record.isLatestUpdatable;
+});
+
+// Upload configuration
+const uploadAction = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:2829'}/api/firmware/upload`;
+const uploadHeaders = {
+  // Add any required headers for authentication
+};
+const uploadData = computed(() => ({
+  deviceModel: formState.deviceModel,
+  releaseType: formState.releaseType,
+}));
+
+// Generate version number
 const generatedVersion = computed(() => {
+  if (!formState.deviceModel) return '';
+  
   const baseVersion = '1.0.0';
   const parts = baseVersion.split('.').map(Number);
-  if (formState.isFirstRelease) {
-    return `V ${parts[0]}.0.0`;
-  } else {
-    switch (formState.releaseType) {
-      case 'major':
-        return `V ${parts[0] + 1}.0.0`;
-      case 'minor':
-        return `V ${parts[0]}.${parts[1] + 1}.0`;
-      case 'revision':
-        return `V ${parts[0]}.${parts[1]}.${parts[2] + 1}`;
-      default:
-        return `V ${baseVersion}`;
-    }
+  
+  switch (formState.releaseType) {
+    case 'major':
+      return `${formState.deviceModel} V ${parts[0] + 1}.0.0`;
+    case 'minor':
+      return `${formState.deviceModel} V ${parts[0]}.${parts[1] + 1}.0`;
+    case 'revision':
+      return `${formState.deviceModel} V ${parts[0]}.${parts[1]}.${parts[2] + 1}`;
+    default:
+      return `${formState.deviceModel} V ${baseVersion}`;
   }
 });
 
-const deviceModelMaxLength = 15;
-
-watch(() => formState.deviceModel, (val) => {
-  let raw = val.replace(/\s/g, '');
-  if (raw.length > deviceModelMaxLength) {
-    let count = 0;
-    let result = '';
-    for (let c of val) {
-      if (c !== ' ') count++;
-      if (count > deviceModelMaxLength) break;
-      result += c;
-    }
-    formState.deviceModel = result;
-  }
-});
-
-watch(() => formState.isFirstRelease, (newVal) => {
-  if (newVal) {
-    formState.releaseType = 'major';
-  }
-  formState.deviceModel = '';
-});
-
-watch(() => formState.contentDescription, (val) => {
-  let raw = val.replace(/\s/g, '');
-  if (raw.length > 10000) {
-    let count = 0;
-    let result = '';
-    for (let c of val) {
-      if (c !== ' ') count++;
-      if (count > 10000) break;
-      result += c;
-    }
-    formState.contentDescription = result;
-  }
-});
-
+// Watch for record changes
 watch(() => props.record, (newRecord) => {
   if (newRecord) {
-    // Pre-fill form fields from record
-    formState.isFirstRelease = newRecord.isFirstRelease ?? true;
-    formState.deviceModel = newRecord.deviceModel ?? '';
-    formState.releaseType = newRecord.releaseType ?? 'major';
-    formState.contentDescription = newRecord.contentDescription ?? '';
-    // Optionally handle fileList if you want to pre-fill uploads
+    formState.deviceModel = newRecord.deviceModel || '';
+    formState.releaseType = newRecord.releaseType || 'major';
+    formState.contentDescription = newRecord.description || newRecord.contentDescription || '';
+    
+    // Pre-fill file list if editing
+    if (newRecord.fileAddress) {
+      fileList.value = [{
+        uid: '-1',
+        name: newRecord.fileAddress.split('/').pop() || 'firmware.bin',
+        status: 'done',
+        url: newRecord.fileAddress,
+        percent: 100
+      }];
+    }
   }
 }, { immediate: true });
 
+// Navigation methods
 const nextStep = async () => {
   try {
     await step1Form.value?.validateFields();
     currentStep.value++;
   } catch (error) {
     console.error('Validation Failed:', error);
+    message.error('请完成必填项');
   }
 };
 
@@ -207,41 +234,100 @@ const prevStep = () => {
   currentStep.value--;
 };
 
-const handleSubmit = () => {
-  message.success('固件信息编辑成功!');
-  emits('submit', { formState: { ...formState }, files: fileList.value });
-  handleCancel();
+// File upload methods
+const beforeUpload = (file: File) => {
+  const isValidFormat = /\.(xls|xlsx)$/i.test(file.name);
+  if (!isValidFormat) {
+    message.error('只支持 .xls, .xlsx 格式的文件!');
+    return false;
+  }
+  
+  const isLt100M = file.size / 1024 / 1024 < 100;
+  if (!isLt100M) {
+    message.error('文件大小不能超过 100MB!');
+    return false;
+  }
+  
+  return true;
+};
+
+const handleUploadChange = (info: UploadChangeParam) => {
+  let resFileList = [...info.fileList];
+  resFileList = resFileList.slice(-1); // Only allow one file
+  
+  resFileList = resFileList.map(file => {
+    if (file.response) {
+      file.url = file.response.url;
+      // Ensure status is set to 'done' when upload is successful
+      if (file.response.success) {
+        file.status = 'done';
+        file.percent = 100;
+      }
+    }
+    return file;
+  });
+  
+  fileList.value = resFileList;
+  
+  if (info.file.status === 'done') {
+    message.success(`${info.file.name} 文件上传成功`);
+  } else if (info.file.status === 'error') {
+    message.error(`${info.file.name} 文件上传失败`);
+  }
+};
+
+const handleDrop = (e: DragEvent) => {
+  console.log('Dropped files', e);
+};
+
+const removeFile = (uid: string) => {
+  if (isRestricted.value) {
+    message.warning('当前固件版本已被选为出厂烧录版本或最新可更新版本，无法删除文件');
+    return;
+  }
+  fileList.value = fileList.value.filter(file => file.uid !== uid);
+};
+
+// Submit method
+const handleSubmit = async () => {
+  if (fileList.value.length === 0) {
+    message.error('请上传固件文件');
+    return;
+  }
+  
+  loading.value = true;
+  try {
+    const submitData = {
+      deviceModel: formState.deviceModel,
+      releaseType: formState.releaseType,
+      contentDescription: formState.contentDescription,
+      versionNumber: generatedVersion.value,
+      fileAddress: fileList.value[0].url || fileList.value[0].response?.url,
+      isEdit: true,
+      originalRecord: props.record
+    };
+    
+    // Call API to update firmware
+    const response = await axios.put(`/api/firmware/${props.record?.id}`, submitData);
+    
+    message.success('固件编辑成功!');
+    emits('submit', submitData);
+    handleCancel();
+  } catch (error) {
+    console.error('Submit failed:', error);
+    message.error('操作失败，请重试');
+  } finally {
+    loading.value = false;
+  }
 };
 
 const handleCancel = () => {
   currentStep.value = 0;
-  formState.isFirstRelease = true;
   formState.deviceModel = '';
   formState.releaseType = 'major';
   formState.contentDescription = '';
   fileList.value = [];
   emits('update:visible', false);
-};
-
-const handleUploadChange = (info: UploadChangeParam) => {
-  let resFileList = [...info.fileList];
-  resFileList = resFileList.slice(-1);
-  resFileList = resFileList.map(file => {
-    if (file.response) {
-      file.url = file.response.url;
-    }
-    return file;
-  });
-  fileList.value = resFileList;
-  if (info.file.status === 'done') {
-    message.success(`${info.file.name} 文件上传成功.`);
-  } else if (info.file.status === 'error') {
-    message.error(`${info.file.name} 文件上传失败.`);
-  }
-};
-
-const handleDrop = (e: DragEvent) => {
-  console.log(e);
 };
 </script>
 
@@ -251,7 +337,7 @@ const handleDrop = (e: DragEvent) => {
   border: 1px dashed #e9e9e9;
   border-radius: 6px;
   background-color: #fafafa;
-  min-height: 200px;
+  min-height: 300px;
   text-align: left;
   padding: 20px;
   font-family: 'PingFang SC', sans-serif;
@@ -259,7 +345,7 @@ const handleDrop = (e: DragEvent) => {
 
 .steps-action {
   margin-top: 24px;
-  text-align: left;
+  text-align: right;
   font-family: 'PingFang SC', sans-serif;
 }
 
@@ -289,5 +375,64 @@ const handleDrop = (e: DragEvent) => {
 
 :deep(.ant-modal-body) {
   text-align: left !important;
+}
+
+/* Center upload content */
+:deep(.upload-dragger-centered) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  text-align: center;
+  height: 100%;
+  padding: 40px 20px;
+}
+
+:deep(.upload-dragger-centered .ant-upload-drag-icon) {
+  margin-bottom: 16px;
+  font-size: 48px;
+  color: #1890ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+:deep(.upload-dragger-centered .ant-upload-text) {
+  margin-bottom: 8px;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.85);
+  text-align: center;
+}
+
+:deep(.upload-dragger-centered .ant-upload-hint) {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+:deep(.upload-dragger-centered .ant-upload) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+:deep(.upload-dragger-centered .ant-upload-drag) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+}
+
+:deep(.upload-dragger-centered .ant-upload-btn) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 </style> 

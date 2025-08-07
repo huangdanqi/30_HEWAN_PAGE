@@ -104,7 +104,7 @@
     <div class="table-container">
       <a-table
         :columns="columns"
-        :data-source="filteredData"
+        :data-source="paginatedData"
         :pagination="filteredData.length === 0 ? false : pagination"
         :loading="loading"
         :size="tableSize"
@@ -119,7 +119,7 @@
           <a-divider type="vertical" />
           <a class="edit-link" @click="openEditModal(record)">编辑</a>
           <a-divider type="vertical" />
-          <a class="danger-link" @click="$emit('delete-record', record)">删除</a>
+          <a class="danger-link" @click="handleDeleteRecord(record)">删除</a>
         </a-space>
       </template>
       <template v-else-if="column.key === 'deviceModel_4'">
@@ -141,6 +141,16 @@
       </template>
     </template>
       </a-table>
+      
+      <!-- No data message -->
+      <div v-if="showNoDataMessage" class="no-data-message">
+        <a-empty 
+          :description="noDataMessage"
+          :image="Empty.PRESENTED_IMAGE_SIMPLE"
+        >
+          <a-button type="primary" @click="clearSearch">清除搜索</a-button>
+        </a-empty>
+      </div>
     </div>
 
     <!-- Device Import Modal -->
@@ -377,11 +387,19 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import { useRoute } from 'vue-router';
+import { Empty } from 'ant-design-vue';
+import axios from 'axios';
+
+const route = useRoute();
+
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -392,8 +410,8 @@ const customLocale = computed(() => ({
 }));
 
 interface DataItem {
-  key: number;
-  serialNumber: string; // 序号
+  id?: number;
+  key?: number;
   deviceId: string; // 设备ID
   boundSubAccount: string; // 绑定子账户
   deviceModel: string; // 设备型号
@@ -413,7 +431,6 @@ interface DataItem {
   creator: string; // 创建人
   createTime: string; // 创建时间
   updateTime: string; // 更新时间
-  operation?: string; // 操作
 }
 
 // Define column configuration separately from the table columns
@@ -497,53 +514,109 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-const rawData: DataItem[] = [];
-const deviceModels = ['HW2001'];
-const manufacturers = ['深圳天德胜科技有限公司'];
+// Replace static data with reactive data
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
 
-// Generate sample data to match the image
-for (let i = 0; i < 43; i++) {
-  const deviceId = `0075A1B2SZTDS25061982X${i.toString().padStart(2, '0')}`;
-  const snCode = `SZTDS25061982X${i.toString().padStart(2, '0')}`;
-  const chipId = `ESP32-0075A1B${i.toString().padStart(2, '0')}`;
-  const wifiMac = `DC:54:75:62:${i.toString().padStart(2, '0')}:70`;
-  const bluetoothMac = `DC:54:75:62:${i.toString().padStart(2, '0')}:70`;
-  const bluetoothName = `ZBMU 001 250619X${i.toString().padStart(2, '0')}`;
-  const cellularId = `353801003${i.toString().padStart(4, '0')}74`;
-  const fourGCard = `147762943${i.toString().padStart(3, '0')}36`;
-  const cpuSerial = `0xFFFFFF${(107 - i).toString(16).toUpperCase()}`;
+// API functions
+const fetchDeviceManagement = async () => {
+  try {
+    loading.value = true;
+    console.log('Fetching device management data...');
+    
+    const response = await axios.get(`${API_BASE_URL}/device-management`);
+    
+    if (response.data && Array.isArray(response.data)) {
+      // Transform the data to match the DataItem interface
+      rawData.value = response.data.map((item: any, index: number) => ({
+        id: item.id,
+        key: index + 1,
+        deviceId: item.deviceId || item.device_id || '-',
+        boundSubAccount: item.boundSubAccount || item.bound_sub_account || '-',
+        deviceModel: item.deviceModel || item.device_model || '-',
+        productionBatch: item.productionBatch || item.production_batch || '-',
+        manufacturer: item.manufacturer || '-',
+        initialFirmware: item.initialFirmware || item.initial_firmware || '-',
+        latestFirmware: item.latestFirmware || item.latest_firmware || '-',
+        currentFirmwareVersion: item.currentFirmwareVersion || item.current_firmware_version || '-',
+        serialNumberCode: item.serialNumberCode || item.serial_number_code || '-',
+        chipId: item.chipId || item.chip_id || '-',
+        wifiMacAddress: item.wifiMacAddress || item.wifi_mac_address || '-',
+        bluetoothMacAddress: item.bluetoothMacAddress || item.bluetooth_mac_address || '-',
+        bluetoothName: item.bluetoothName || item.bluetooth_name || '-',
+        cellularNetworkId: item.cellularNetworkId || item.cellular_network_id || '-',
+        fourGCardNumber: item.fourGCardNumber || item.four_g_card_number || '-',
+        cpuSerialNumber: item.cpuSerialNumber || item.cpu_serial_number || '-',
+        creator: item.creator || '-',
+        createTime: item.createTime || item.create_time || '-',
+        updateTime: item.updateTime || item.update_time || '-'
+      }));
+      
+      console.log('Device management data loaded:', rawData.value.length, 'records');
+    } else {
+      console.error('Invalid response format:', response.data);
+      // Fallback to static data if API fails
+      const fallbackData: DataItem[] = [
+        { key: 1, deviceId: '0075A1B2SZTDS25061982X01', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X01', chipId: 'ESP32-0075A1B01', wifiMacAddress: 'DC:54:75:62:01:70', bluetoothMacAddress: 'DC:54:75:62:01:70', bluetoothName: 'ZBMU 001 250619X01', cellularNetworkId: '353801003000174', fourGCardNumber: '14776294300136', cpuSerialNumber: '0xFFFFFF6B', creator: '33', createTime: '2025-07-13 10:25:11', updateTime: '2025-07-13 10:25:11' },
+        { key: 2, deviceId: '0075A1B2SZTDS25061982X02', boundSubAccount: '-', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X02', chipId: 'ESP32-0075A1B02', wifiMacAddress: 'DC:54:75:62:02:70', bluetoothMacAddress: 'DC:54:75:62:02:70', bluetoothName: 'ZBMU 001 250619X02', cellularNetworkId: '353801003000274', fourGCardNumber: '14776294300236', cpuSerialNumber: '0xFFFFFF6A', creator: '33', createTime: '2025-07-14 11:25:12', updateTime: '2025-07-14 11:25:12' },
+        { key: 3, deviceId: '0075A1B2SZTDS25061982X03', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X03', chipId: 'ESP32-0075A1B03', wifiMacAddress: 'DC:54:75:62:03:70', bluetoothMacAddress: 'DC:54:75:62:03:70', bluetoothName: 'ZBMU 001 250619X03', cellularNetworkId: '353801003000374', fourGCardNumber: '14776294300336', cpuSerialNumber: '0xFFFFFF69', creator: '33', createTime: '2025-07-15 12:25:13', updateTime: '2025-07-15 12:25:13' },
+        { key: 4, deviceId: '0075A1B2SZTDS25061982X04', boundSubAccount: '-', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X04', chipId: 'ESP32-0075A1B04', wifiMacAddress: 'DC:54:75:62:04:70', bluetoothMacAddress: 'DC:54:75:62:04:70', bluetoothName: 'ZBMU 001 250619X04', cellularNetworkId: '353801003000474', fourGCardNumber: '14776294300436', cpuSerialNumber: '0xFFFFFF68', creator: '33', createTime: '2025-07-16 13:25:14', updateTime: '2025-07-16 13:25:14' },
+        { key: 5, deviceId: '0075A1B2SZTDS25061982X05', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X05', chipId: 'ESP32-0075A1B05', wifiMacAddress: 'DC:54:75:62:05:70', bluetoothMacAddress: 'DC:54:75:62:05:70', bluetoothName: 'ZBMU 001 250619X05', cellularNetworkId: '353801003000574', fourGCardNumber: '14776294300536', cpuSerialNumber: '0xFFFFFF67', creator: '33', createTime: '2025-07-17 14:25:15', updateTime: '2025-07-17 14:25:15' },
+      ];
+      rawData.value = fallbackData;
+    }
+  } catch (error) {
+    console.error('Error fetching device management:', error);
+    // Fallback to static data if API fails
+    const fallbackData: DataItem[] = [
+      { key: 1, deviceId: '0075A1B2SZTDS25061982X01', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X01', chipId: 'ESP32-0075A1B01', wifiMacAddress: 'DC:54:75:62:01:70', bluetoothMacAddress: 'DC:54:75:62:01:70', bluetoothName: 'ZBMU 001 250619X01', cellularNetworkId: '353801003000174', fourGCardNumber: '14776294300136', cpuSerialNumber: '0xFFFFFF6B', creator: '33', createTime: '2025-07-13 10:25:11', updateTime: '2025-07-13 10:25:11' },
+      { key: 2, deviceId: '0075A1B2SZTDS25061982X02', boundSubAccount: '-', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X02', chipId: 'ESP32-0075A1B02', wifiMacAddress: 'DC:54:75:62:02:70', bluetoothMacAddress: 'DC:54:75:62:02:70', bluetoothName: 'ZBMU 001 250619X02', cellularNetworkId: '353801003000274', fourGCardNumber: '14776294300236', cpuSerialNumber: '0xFFFFFF6A', creator: '33', createTime: '2025-07-14 11:25:12', updateTime: '2025-07-14 11:25:12' },
+      { key: 3, deviceId: '0075A1B2SZTDS25061982X03', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X03', chipId: 'ESP32-0075A1B03', wifiMacAddress: 'DC:54:75:62:03:70', bluetoothMacAddress: 'DC:54:75:62:03:70', bluetoothName: 'ZBMU 001 250619X03', cellularNetworkId: '353801003000374', fourGCardNumber: '14776294300336', cpuSerialNumber: '0xFFFFFF69', creator: '33', createTime: '2025-07-15 12:25:13', updateTime: '2025-07-15 12:25:13' },
+      { key: 4, deviceId: '0075A1B2SZTDS25061982X04', boundSubAccount: '-', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X04', chipId: 'ESP32-0075A1B04', wifiMacAddress: 'DC:54:75:62:04:70', bluetoothMacAddress: 'DC:54:75:62:04:70', bluetoothName: 'ZBMU 001 250619X04', cellularNetworkId: '353801003000474', fourGCardNumber: '14776294300436', cpuSerialNumber: '0xFFFFFF68', creator: '33', createTime: '2025-07-16 13:25:14', updateTime: '2025-07-16 13:25:14' },
+      { key: 5, deviceId: '0075A1B2SZTDS25061982X05', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X05', chipId: 'ESP32-0075A1B05', wifiMacAddress: 'DC:54:75:62:05:70', bluetoothMacAddress: 'DC:54:75:62:05:70', bluetoothName: 'ZBMU 001 250619X05', cellularNetworkId: '353801003000574', fourGCardNumber: '14776294300536', cpuSerialNumber: '0xFFFFFF67', creator: '33', createTime: '2025-07-17 14:25:15', updateTime: '2025-07-17 14:25:15' },
+    ];
+    rawData.value = fallbackData;
+  } finally {
+    loading.value = false;
+  }
+};
 
-  rawData.push({
-    key: i + 1,
-    serialNumber: (i + 1).toString(),
-    deviceId: deviceId,
-    boundSubAccount: i % 2 === 0 ? '183****7953' : '-',
-    deviceModel: deviceModels[0],
-    productionBatch: '2025-06-30',
-    manufacturer: manufacturers[0],
-    initialFirmware: 'HW2001 V 1.0.1',
-    latestFirmware: 'HW2001 V 2.0.1',
-    currentFirmwareVersion: 'HW2001 V 1.3.0',
-    serialNumberCode: snCode,
-    chipId: chipId,
-    wifiMacAddress: wifiMac,
-    bluetoothMacAddress: bluetoothMac,
-    bluetoothName: bluetoothName,
-    cellularNetworkId: cellularId,
-    fourGCardNumber: fourGCard,
-    cpuSerialNumber: cpuSerial,
-    creator: '33',
-    createTime: '2025-7-13 19:25:11',
-    updateTime: '2025-7-13 19:25:11',
-  });
-}
+const createDeviceManagement = async (deviceManagementData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/device-management`, deviceManagementData);
+    await fetchDeviceManagement(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error creating device management:', error);
+    throw error;
+  }
+};
 
-console.log('Raw Data:', rawData);
+const updateDeviceManagement = async (id: number, deviceManagementData: Partial<DataItem>) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/device-management/${id}`, deviceManagementData);
+    await fetchDeviceManagement(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error updating device management:', error);
+    throw error;
+  }
+};
+
+const deleteDeviceManagement = async (id: number) => {
+  try {
+    await axios.delete(`${API_BASE_URL}/device-management/${id}`);
+    await fetchDeviceManagement(); // Refresh data
+  } catch (error) {
+    console.error('Error deleting device management:', error);
+    throw error;
+  }
+};
 
 const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const deviceModelOptions = computed(() => {
-  const uniqueDeviceModels = Array.from(new Set(rawData.map(item => item.deviceModel)));
+  const uniqueDeviceModels = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
   const options = uniqueDeviceModels.map(model => ({
     key: model,
     value: model,
@@ -561,12 +634,14 @@ const handleDeviceModelChange = (val: any) => {
   } else {
     deviceModelValue.value = val;
   }
+  // Reset to first page when filter changes
+  currentPage.value = 1;
 };
 
 const manufacturerValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const manufacturerOptions = computed(() => {
-  const uniqueManufacturers = Array.from(new Set(rawData.map(item => item.manufacturer)));
+  const uniqueManufacturers = Array.from(new Set(rawData.value.map(item => item.manufacturer)));
   const options = uniqueManufacturers.map(manufacturer => ({
     key: manufacturer,
     value: manufacturer,
@@ -584,6 +659,8 @@ const handleManufacturerChange = (val: any) => {
   } else {
     manufacturerValue.value = val;
   }
+  // Reset to first page when filter changes
+  currentPage.value = 1;
 };
 
 const currentPage = ref(1);
@@ -595,7 +672,7 @@ const sorterInfo = ref<any>({
 });
 
 const pagination = computed(() => ({
-  total: rawData.length, 
+  total: filteredData.value.length, 
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true, 
@@ -604,7 +681,7 @@ const pagination = computed(() => ({
   showQuickJumper: { goButton: '页' }, 
   onShowSizeChange: (current: number, size: number) => {
     console.log('onShowSizeChange', current, size);
-    currentPage.value = current;
+    currentPage.value = 1; // Reset to first page when changing page size
     pageSize.value = size;
   },
   onChange: (page: number, size: number) => {
@@ -616,23 +693,14 @@ const pagination = computed(() => ({
 
 const onRefresh = () => {
   console.log('Refresh button clicked!');
-  loading.value = true; // Show loading icon
   searchInputValue.value = '';
   currentPage.value = 1;
   resetColumns(); // Reset column order and visibility
-
-  // Reset all selector values to '全部'
-  deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
-  manufacturerValue.value = { key: 'all', label: '全部', value: 'all' };
-
-  // Simulate data fetching
-  setTimeout(() => {
-    loading.value = false; // Hide loading icon after a delay
-  }, 500); // Adjust delay as needed
+  fetchDeviceManagement(); // Fetch fresh data from API
 };
 
 const filteredData = computed(() => {
-  let dataToFilter = rawData;
+  let dataToFilter = rawData.value;
 
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
@@ -678,16 +746,61 @@ const filteredData = computed(() => {
   return dataToFilter;
 });
 
+// Computed property for paginated data
+const paginatedData = computed(() => {
+  const startIndex = (currentPage.value - 1) * pageSize.value;
+  const endIndex = startIndex + pageSize.value;
+  return filteredData.value.slice(startIndex, endIndex);
+});
+
 const searchInputValue = ref('');
 
+// Handle search parameter from URL
+onMounted(() => {
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+  }
+  fetchDeviceManagement(); // Fetch data on component mount
+});
+
+// Computed property to show no data message
+const showNoDataMessage = computed(() => {
+  return searchInputValue.value && filteredData.value.length === 0;
+});
+
+// Computed property for no data message
+const noDataMessage = computed(() => {
+  if (searchInputValue.value && filteredData.value.length === 0) {
+    return `未找到包含 "${searchInputValue.value}" 的数据`;
+  }
+  return '';
+});
+
+const clearSearch = () => {
+  searchInputValue.value = '';
+  currentPage.value = 1; // Reset to first page when clearing search
+};
+
+// Watch for search input changes to reset pagination
+watch(searchInputValue, () => {
+  currentPage.value = 1; // Reset to first page when search changes
+});
+
 const handleTableChange = (
-  _paginationData: any,
+  paginationData: any,
   _filters: any,
   sorter: any,
 ) => {
-  console.log('Table change:', _paginationData, _filters, sorter);
+  console.log('Table change:', paginationData, _filters, sorter);
+  
+  // Handle pagination changes
+  if (paginationData) {
+    currentPage.value = paginationData.current || 1;
+    pageSize.value = paginationData.pageSize || 10;
+  }
+  
+  // Handle sorting changes
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-
   if (currentSorter && currentSorter.order) {
     sorterInfo.value = {
       columnKey: currentSorter.columnKey,
@@ -700,16 +813,11 @@ const handleTableChange = (
       order: 'descend',
     };
   }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
 };
 
 const onSettingClick = () => {
   console.log('Setting clicked');
 };
-
-const loading = ref(false); // Add a loading state
 
 const tableSize = ref('middle'); // Default table size
 
@@ -911,7 +1019,7 @@ const handleEditProductionBatchChange = () => {
   }
 };
 
-const handleEditConfirm = () => {
+const handleEditConfirm = async () => {
   // Validate form
   if (!editForm.value.deviceModel || !editForm.value.productionBatch || !editForm.value.manufacturer) {
     alert('请填写所有必填字段');
@@ -932,6 +1040,17 @@ onMounted(() => {
 defineExpose({
   handleTableChange, // Explicitly expose handleTableChange
 });
+
+// Handle delete record
+const handleDeleteRecord = async (record: DataItem) => {
+  try {
+    if (record.id) {
+      await deleteDeviceManagement(record.id);
+    }
+  } catch (error) {
+    console.error('Error deleting record:', error);
+  }
+};
 </script>
 <style scoped>
 #components-table-demo-summary tfoot th,
@@ -1694,5 +1813,23 @@ html, body {
   outline: none;
   border-color: #1890ff;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.no-data-message .ant-empty {
+  margin: 0;
+}
+
+.no-data-message .ant-empty-description {
+  color: #666;
+  font-size: 14px;
 }
 </style> 

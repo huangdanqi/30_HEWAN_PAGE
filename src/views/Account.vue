@@ -11,17 +11,16 @@
         <div class="select-container ip-role-select" style="margin-left: 10px;">
           <span class="select-always-placeholder">IP角色:</span>
           <a-tooltip :title="ipRoleValue.label">
-          <a-select
-            v-model:value="ipRoleValue"
+            <a-select
+              v-model:value="ipRoleValue"
               style="width: 110px;"
-            :options="ipRoleOptions"
-            @change="handleIpRoleChange"
-            :allowClear="true" 
-            label-in-value
-          >
-            <a-select-option value="all">全部</a-select-option>
-            <!-- If you have dynamic options, add them here -->
-          </a-select>
+              :options="ipRoleOptions"
+              @change="handleIpRoleChange"
+              :allowClear="true"
+              label-in-value
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
           </a-tooltip>
         </div>
         <div class="select-container member-type-select" style="margin-left: 10px;">
@@ -93,6 +92,7 @@
             v-model:value="searchInputValue"
             placeholder="输入关键字搜索"
             style="width: 200px"
+            @input="handleSearchChange"
           >
             <template #prefix>
               <SearchOutlined />
@@ -184,6 +184,11 @@ import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+import { h } from 'vue';
+
+const router = useRouter();
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -194,32 +199,46 @@ const customLocale = computed(() => ({
 }));
 
 interface DataItem {
+  id: number; // Add id field
   key: number;
-  accountId: string; // 账户ID
+  memberId: string; // 主账户ID
   phoneNumber: string; // 手机号
   deviceModel: string; // 设备型号
   deviceId: string; // 设备ID
-  productId: string; // 商品ID
   ipRole: string; // IP角色
-  productModel: string; // 产品型号
+  productId: string; // 产品ID
+  commodityId: string; // 商品ID
+  voiceCloningModelId: string; // 音色复刻模型ID
+  initialActivationTime: string; // 首次激活时间
   currentMemberType: string; // 当前会员类型
   memberPayment: string; // 会员付费
   memberActivationTime: string; // 会员激活时间
   memberExpirationTime: string; // 会员到期时间
   fourGCardNumber: string; // 4G卡号
   fourGPlan: string; // 4G套餐
-  remainingDataThisMonth: string; // 当月剩余流量
+  remainingDataCurrentMonth: string; // 当月剩余流量
   fourGPayment: string; // 4G付费
   fourGActivationTime: string; // 4G激活时间
   fourGExpirationTime: string; // 4G到期时间
-  serviceAnnualFeeBalance: number; // 服务年费用余额 (元)
-  asrAnnualUsage: string; // ASR年用量
-  llmAnnualUsage: string; // LLM年用量
-  ttsAnnualUsage: string; // TTS年用量
-  voiceCloneAnnualUsage: string; // 音色克隆年用量
+  annualServiceFeeBalance: number; // 服务年费用盈余
+  asrUsage: string; // ASR用量
+  llmUsage: string; // LLM用量
+  ttsUsage: string; // TTS用量
+  voiceCloneUsage: string; // 音色克隆用量
   registrationTime: string; // 注册时间
-  updateTime: string; // 更新时间
 }
+
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
+
+// Define API endpoints for different data sources
+const API_ENDPOINTS = {
+  basic: `${API_BASE_URL}/accounts/basic`,
+  membership: `${API_BASE_URL}/accounts/membership`,
+  fourgService: `${API_BASE_URL}/accounts/4g-service`,
+  usage: `${API_BASE_URL}/accounts/usage`,
+  all: `${API_BASE_URL}/accounts`
+};
 
 // Define column configuration separately from the table columns
 interface ColumnConfig {
@@ -234,37 +253,36 @@ interface ColumnConfig {
   defaultSortOrder?: 'ascend' | 'descend';
   customRender?: (record: any) => string | number;
   className?: string;
+  apiEndpoint?: string; // Which API endpoint this column uses
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
-  { key: 'accountId_1', title: '账户ID', dataIndex: 'accountId', width: 150  },
-  { key: 'phoneNumber_2', title: '手机号', dataIndex: 'phoneNumber', width: 120 },
-  { key: 'deviceModel', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
-
-
-  { key: 'deviceId_4', title: '设备ID', dataIndex: 'deviceId', width: 150 },
-  { key: 'productId_5', title: '商品ID', dataIndex: 'productId', width: 150 },
-  { key: 'ipRole_6', title: 'IP角色', dataIndex: 'ipRole', width: 80 },
-  { key: 'productModel_7', title: '产品型号', dataIndex: 'productModel', width: 120 },
-  { key: 'currentMemberType_8', title: '当前会员类型', dataIndex: 'currentMemberType', width: 120 },
-  { key: 'memberPayment_9', title: '会员付费', dataIndex: 'memberPayment', width: 100 },
-  { key: 'memberActivationTime_10', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150, sorter: (a, b) => new Date(a.memberActivationTime).getTime() - new Date(b.memberActivationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'memberExpirationTime_11', title: '会员到期时间', dataIndex: 'memberExpirationTime', width: 150, sorter: (a, b) => new Date(a.memberExpirationTime).getTime() - new Date(b.memberExpirationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'fourGCardNumber_12', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120 },
-  { key: '4GPlan_13', title: '4G套餐', dataIndex: 'fourGPlan', width: 100 },
-  { key: 'remainingDataThisMonth_14', title: '当月剩余流量', dataIndex: 'remainingDataThisMonth', width: 120, sorter: (a, b) => parseFloat(a.remainingDataThisMonth) - parseFloat(b.remainingDataThisMonth), sortDirections: ['ascend', 'descend'] },
-  { key: '4GPayment_15', title: '4G付费', dataIndex: '4GPayment', width: 100 },
-  { key: '4GActivationTime_16', title: '4G激活时间', dataIndex: 'fourGActivationTime', width: 150, sorter: (a, b) => new Date(a.fourGActivationTime).getTime() - new Date(b.fourGActivationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: '4GExpirationTime_17', title: '4G到期时间', dataIndex: 'fourGExpirationTime', width: 150, sorter: (a, b) => new Date(a.fourGExpirationTime).getTime() - new Date(b.fourGExpirationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'serviceAnnualFeeBalance_18', title: '服务年费用余额 (元)', dataIndex: 'serviceAnnualFeeBalance', width: 180, className: 'nowrap-header', sorter: (a, b) => a.serviceAnnualFeeBalance - b.serviceAnnualFeeBalance, sortDirections: ['ascend', 'descend'] },
-  { key: 'asrAnnualUsage_19', title: 'ASR年用量', dataIndex: 'asrAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.asrAnnualUsage) - parseFloat(b.asrAnnualUsage), sortDirections: ['ascend', 'descend'] },
-  { key: 'llmAnnualUsage_20', title: 'LLM年用量', dataIndex: 'llmAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.llmAnnualUsage) - parseFloat(b.llmAnnualUsage), sortDirections: ['ascend', 'descend'] },
-  { key: 'ttsAnnualUsage_21', title: 'TTS年用量', dataIndex: 'ttsAnnualUsage', width: 120, sorter: (a, b) => parseFloat(a.ttsAnnualUsage) - parseFloat(b.ttsAnnualUsage), sortDirections: ['ascend', 'descend'] },
-  { key: 'voiceCloneAnnualUsage_22', title: '音色克隆年用量', dataIndex: 'voiceCloneAnnualUsage', width: 150, sorter: (a, b) => parseFloat(a.voiceCloneAnnualUsage) - parseFloat(b.voiceCloneAnnualUsage), sortDirections: ['ascend', 'descend'] },
-  { key: 'registrationTime_23', title: '注册时间', dataIndex: 'registrationTime', width: 150, sorter: (a, b) => new Date(a.registrationTime).getTime() - new Date(b.registrationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  // { key: 'operation_24', title: '操作', dataIndex: '', width: 100, fixed: 'right' },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1, apiEndpoint: 'basic' },
+  { key: 'memberId_1', title: '主账户ID', dataIndex: 'memberId', width: 150, apiEndpoint: 'basic' },
+  { key: 'phoneNumber_2', title: '手机号', dataIndex: 'phoneNumber', width: 120, apiEndpoint: 'basic' },
+  { key: 'deviceModel_3', title: '设备型号', dataIndex: 'deviceModel', width: 100, apiEndpoint: 'basic' },
+  { key: 'deviceId_4', title: '设备ID', dataIndex: 'deviceId', width: 210, apiEndpoint: 'basic' },
+  { key: 'ipRole_5', title: 'IP角色', dataIndex: 'ipRole', width: 100, apiEndpoint: 'basic' },
+  { key: 'productId_6', title: '产品ID', dataIndex: 'productId', width: 120, apiEndpoint: 'basic' },
+  { key: 'commodityId_7', title: '商品ID', dataIndex: 'commodityId', width: 150, apiEndpoint: 'basic' },
+  { key: 'voiceCloningModelId_8', title: '音色复刻模型ID', dataIndex: 'voiceCloningModelId', width: 180, apiEndpoint: 'basic' },
+  { key: 'initialActivationTime_9', title: '首次激活时间', dataIndex: 'initialActivationTime', width: 150, sorter: (a, b) => new Date(a.initialActivationTime).getTime() - new Date(b.initialActivationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'basic' },
+  { key: 'currentMemberType_10', title: '当前会员类型', dataIndex: 'currentMemberType', width: 120, apiEndpoint: 'membership' },
+  { key: 'memberPayment_11', title: '会员付费', dataIndex: 'memberPayment', width: 120, apiEndpoint: 'membership' },
+  { key: 'memberActivationTime_12', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150, sorter: (a, b) => new Date(a.memberActivationTime).getTime() - new Date(b.memberActivationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'membership' },
+  { key: 'memberExpirationTime_13', title: '会员到期时间', dataIndex: 'memberExpirationTime', width: 150, sorter: (a, b) => new Date(a.memberExpirationTime).getTime() - new Date(b.memberExpirationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'membership' },
+  { key: 'fourGCardNumber_14', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120, apiEndpoint: 'fourgService' },
+  { key: 'fourGPlan_15', title: '4G套餐', dataIndex: 'fourGPlan', width: 100, apiEndpoint: 'fourgService' },
+  { key: 'remainingDataCurrentMonth_16', title: '当月剩余流量', dataIndex: 'remainingDataCurrentMonth', width: 120, apiEndpoint: 'fourgService' },
+  { key: 'fourGPayment_17', title: '4G付费', dataIndex: 'fourGPayment', width: 100, apiEndpoint: 'fourgService' },
+  { key: 'fourGActivationTime_18', title: '4G激活时间', dataIndex: 'fourGActivationTime', width: 150, sorter: (a, b) => new Date(a.fourGActivationTime).getTime() - new Date(b.fourGActivationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'fourgService' },
+  { key: 'fourGExpirationTime_19', title: '4G到期时间', dataIndex: 'fourGExpirationTime', width: 150, sorter: (a, b) => new Date(a.fourGExpirationTime).getTime() - new Date(b.fourGExpirationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'fourgService' },
+  { key: 'annualServiceFeeBalance_20', title: '服务年费用盈余', dataIndex: 'annualServiceFeeBalance', width: 150, sorter: (a, b) => a.annualServiceFeeBalance - b.annualServiceFeeBalance, sortDirections: ['ascend', 'descend'], apiEndpoint: 'membership' },
+  { key: 'asrUsage_21', title: 'ASR用量', dataIndex: 'asrUsage', width: 120, apiEndpoint: 'usage' },
+  { key: 'llmUsage_22', title: 'LLM用量', dataIndex: 'llmUsage', width: 120, apiEndpoint: 'usage' },
+  { key: 'ttsUsage_23', title: 'TTS用量', dataIndex: 'ttsUsage', width: 120, apiEndpoint: 'usage' },
+  { key: 'voiceCloneUsage_24', title: '音色克隆用量', dataIndex: 'voiceCloneUsage', width: 150, apiEndpoint: 'usage' },
+  { key: 'registrationTime_25', title: '注册时间', dataIndex: 'registrationTime', width: 150, sorter: (a, b) => new Date(a.registrationTime).getTime() - new Date(b.registrationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'basic' },
 ];
 
 // Store column order and visibility separately
@@ -281,10 +299,45 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     fixed: config.fixed,
     sorter: config.sorter,
     sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
+    // Only show sort order when user actively sorts, not by default
+    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey && sorterInfo.value.order !== 'descend' ? sorterInfo.value.order : undefined,
     customRender: config.customRender
       ? config.customRender
-      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+      : ({ text, record }) => {
+          // Handle hyperlinks for specific columns
+          if (config.key === 'deviceModel_3') {
+            return text ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer' },
+              onClick: () => router.push({ name: 'device-type', query: { search: text } })
+            }, text) : '-';
+          }
+          if (config.key === 'deviceId_4') {
+            return text ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer' },
+              onClick: () => router.push({ name: 'device-management', query: { search: text } })
+            }, text) : '-';
+          }
+          if (config.key === 'ipRole_5') {
+            return text ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer' },
+              onClick: () => router.push({ name: 'agent-configuration', query: { search: text } })
+            }, text) : '-';
+          }
+          if (config.key === 'productId_6') {
+            return text ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer' },
+              onClick: () => router.push({ name: 'product-type', query: { search: text } })
+            }, text) : '-';
+          }
+          if (config.key === 'commodityId_7') {
+            return text ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer' },
+              onClick: () => router.push({ name: 'product-list', query: { search: text } })
+            }, text) : '-';
+          }
+          // Default rendering for other columns
+          return text === undefined || text === null || text === '' ? '-' : text;
+        },
     className: config.className,
   })) as ColumnsType;
 };
@@ -309,67 +362,137 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-const rawData: DataItem[] = [];
-const memberTypes = ['普通会员', 'VIP', 'SVIP'];
-const paymentStatuses = ['自动续费', '赠送', '停止续费', '未续购'];
+// Data state for different endpoints
+const dataSources = ref<{ [key: string]: DataItem[] }>({
+  basic: [],
+  membership: [],
+  fourgService: [],
+  usage: []
+});
+const totalRecords = ref(0);
+const loading = ref(false);
 
-for (let i = 0; i < 100; i++) {
-  const date = new Date(2025, 5, 23, 23, 25, 33); // Example base date
-  date.setDate(date.getDate() + i); // Vary date by day for each record
-  date.setHours(date.getHours() + (i % 24)); // Vary hours
-  date.setMinutes(date.getMinutes() + (i % 60)); // Vary minutes
-  date.setSeconds(date.getSeconds() + (i % 60)); // Vary seconds
+// Fetch data from specific API endpoint
+const fetchDataFromEndpoint = async (endpoint: string, params: URLSearchParams) => {
+  try {
+    console.log(`Fetching from ${endpoint} endpoint:`, `${API_ENDPOINTS[endpoint as keyof typeof API_ENDPOINTS]}?${params}`);
+    const response = await axios.get(`${API_ENDPOINTS[endpoint as keyof typeof API_ENDPOINTS]}?${params}`);
+    console.log(`${endpoint} response:`, response.data);
+    dataSources.value[endpoint] = response.data.data;
+    return response.data.total;
+  } catch (error) {
+    console.error(`Error fetching data from ${endpoint}:`, error);
+    return 0;
+  }
+};
 
-  const activationTime = date.toISOString().slice(0, 19).replace('T', ' ');
-  const expirationDate = new Date(date);
-  expirationDate.setDate(date.getDate() + 20); // Example expiration 20 days later
-  const expirationTime = expirationDate.toISOString().slice(0, 19).replace('T', ' ');
+// Fetch data from all endpoints
+const fetchData = async () => {
+  console.log('fetchData called');
+  loading.value = true;
+  try {
+    const params = new URLSearchParams({
+      page: currentPage.value.toString(),
+      pageSize: pageSize.value.toString(),
+      sortOrder: sorterInfo.value?.order || 'desc'
+    });
 
-  rawData.push({
-    key: i + 1,
-    accountId: `jkhg824&3*g${i % 10}`,
-    phoneNumber: `183****${7950 + (i % 10)}`,
-    deviceModel: `HWSZ00${i % 2 === 0 ? '1' : '2'}`,
-    deviceId: `0075A1B2SZTD${1000 + i}`,
-    productId: `hjhtwn832nj${i}`,
-    ipRole: i % 2 === 0 ? '王龙' : '张三',
-    productModel: `HWSZ00100${i % 3}`,
-    currentMemberType: memberTypes[i % memberTypes.length],
-    memberPayment: paymentStatuses[i % paymentStatuses.length],
-    memberActivationTime: activationTime,
-    memberExpirationTime: expirationTime,
-    fourGCardNumber: `1477629430${10 + i}`,
-    fourGPlan: `${(500 + (i % 3) * 100)}M/月`,
-    remainingDataThisMonth: `${(20 + (i % 5))}M`,
-    fourGPayment: paymentStatuses[(i + 1) % paymentStatuses.length],
-    fourGActivationTime: activationTime,
-    fourGExpirationTime: expirationTime,
-    serviceAnnualFeeBalance: 26.35 + (i % 5),
-    asrAnnualUsage: `384,3848 tokens`,
-    llmAnnualUsage: `384,3848 tokens`,
-    ttsAnnualUsage: `213.55 h`,
-    voiceCloneAnnualUsage: `213.55 h`,
-    registrationTime: activationTime,
-    updateTime: activationTime,
-  });
-}
+    // Add search filter
+    if (searchInputValue.value) {
+      params.append('search', searchInputValue.value);
+    }
 
-console.log('Raw Data:', rawData);
+    // Add IP role filter
+    if (ipRoleValue.value.value !== 'all') {
+      params.append('ipRole', ipRoleValue.value.value);
+    }
+
+    // Add sorting
+    if (sorterInfo.value?.columnKey) {
+      params.append('sortBy', getSortByField(sorterInfo.value.columnKey));
+    }
+
+    console.log('Calling basic endpoint with params:', params.toString());
+    
+    // Use only the basic endpoint since it now returns all columns
+    const response = await axios.get(`${API_ENDPOINTS.basic}?${params}`);
+    console.log('Basic endpoint response:', response.data);
+    
+    // Store the data directly
+    dataSources.value.basic = response.data.data;
+    totalRecords.value = response.data.total;
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Helper function to map frontend column keys to database field names
+const getSortByField = (columnKey?: string) => {
+  const fieldMap: { [key: string]: string } = {
+    'initialActivationTime_9': 'initial_activation_time',
+    'memberActivationTime_12': 'member_activation_time',
+    'memberExpirationTime_13': 'member_expiration_time',
+    'fourGActivationTime_18': 'fourg_activation_time',
+    'fourGExpirationTime_19': 'fourg_expiration_time',
+    'annualServiceFeeBalance_20': 'annual_service_fee_balance',
+    'registrationTime_25': 'registration_time',
+    'asrUsage_21': 'asr_usage',
+    'llmUsage_22': 'llm_usage',
+    'ttsUsage_23': 'tts_usage',
+    'voiceCloneUsage_24': 'voice_clone_usage'
+  };
+  return fieldMap[columnKey || ''] || 'registration_time';
+};
+
+// Combine data from all sources for display
+const combinedData = computed(() => {
+  console.log('combinedData computed called, dataSources:', dataSources.value);
+  
+  // Since the basic endpoint now returns all columns, just return the basic data
+  return dataSources.value.basic || [];
+});
+
+// Fetch filter options from API
+const fetchFilterOptions = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/filter-options`);
+    const { ipRoles, memberTypes, memberPayments, fourGPlans, fourGPayments } = response.data;
+    
+    // Update the computed options
+    ipRoleOptions.value = [
+      { key: 'all', value: 'all', label: '全部' },
+      ...ipRoles.map((item: any) => ({ key: item.value, value: item.value, label: item.label }))
+    ];
+    
+    memberTypeOptions.value = [
+      { key: 'all', value: 'all', label: '全部' },
+      ...memberTypes.map((item: any) => ({ key: item.value, value: item.value, label: item.label }))
+    ];
+    
+    memberPaymentOptions.value = [
+      { key: 'all', value: 'all', label: '全部' },
+      ...memberPayments.map((item: any) => ({ key: item.value, value: item.value, label: item.label }))
+    ];
+    
+    fourGPlanOptions.value = [
+      { key: 'all', value: 'all', label: '全部' },
+      ...fourGPlans.map((item: any) => ({ key: item.value, value: item.value, label: item.label }))
+    ];
+    
+    fourGPaymentOptions.value = [
+      { key: 'all', value: 'all', label: '全部' },
+      ...fourGPayments.map((item: any) => ({ key: item.value, value: item.value, label: item.label }))
+    ];
+  } catch (error) {
+    console.error('Error fetching filter options:', error);
+  }
+};
 
 const ipRoleValue = ref({ key: 'all', label: '全部', value: 'all' });
-
-const ipRoleOptions = computed(() => {
-  const uniqueIpRoles = Array.from(new Set(rawData.map(item => item.ipRole)));
-  const options = uniqueIpRoles.map(role => ({
-    key: role,
-    value: role,
-    label: role,
-  }));
-  return [
-    { key: 'all', value: 'all', label: '全部' },
-    ...options
-  ];
-});
+const ipRoleOptions = ref([{ key: 'all', value: 'all', label: '全部' }]);
 
 const handleIpRoleChange = (val: any) => {
   if (!val || !val.value || val.value === 'all') {
@@ -377,20 +500,19 @@ const handleIpRoleChange = (val: any) => {
   } else {
     ipRoleValue.value = val;
   }
+  fetchData();
 };
 
 const currentPage = ref(1);
 const pageSize = ref(10);
 
-console.log('Initial ipRoleValue:', ipRoleValue.value);
-
 const sorterInfo = ref<any>({
-  columnKey: 'updateTime',
-  order: 'descend',
+  columnKey: 'registrationTime_25',
+  order: 'descend', // API will sort by this, but no visual indicator
 });
 
 const pagination = computed(() => ({
-  total: rawData.length, 
+  total: totalRecords.value, 
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true, 
@@ -401,20 +523,22 @@ const pagination = computed(() => ({
     console.log('onShowSizeChange', current, size);
     currentPage.value = current;
     pageSize.value = size;
+    fetchData();
   },
   onChange: (page: number, size: number) => {
     console.log('onChange', page, size);
     currentPage.value = page;
     pageSize.value = size;
+    fetchData();
   },
 }));
 
 const onRefresh = () => {
   console.log('Refresh button clicked!');
-  loading.value = true; // Show loading icon
+  loading.value = true;
   searchInputValue.value = '';
   currentPage.value = 1;
-  resetColumns(); // Reset column order and visibility
+  resetColumns();
 
   // Reset all selector values to '全部'
   ipRoleValue.value = { key: 'all', label: '全部', value: 'all' };
@@ -423,87 +547,17 @@ const onRefresh = () => {
   fourGPlanValue.value = { key: 'all', label: '全部', value: 'all' };
   fourGPaymentValue.value = { key: 'all', label: '全部', value: 'all' };
 
-  // Simulate data fetching
-  setTimeout(() => {
-    loading.value = false; // Hide loading icon after a delay
-  }, 500); // Adjust delay as needed
+  // Reset sorter
+  sorterInfo.value = {
+    columnKey: 'registrationTime_25',
+    order: 'descend', // API will sort by this, but no visual indicator
+  };
+
+  fetchData();
 };
 
 const filteredData = computed(() => {
-  let dataToFilter = rawData;
-
-  if (searchInputValue.value) {
-    const searchTerm = searchInputValue.value.toLowerCase();
-    dataToFilter = dataToFilter.filter((item: DataItem) => {
-      return Object.values(item).some(value =>
-        typeof value === 'string' && value.toLowerCase().includes(searchTerm)
-      );
-    });
-  }
-
-  // Filter by IP Role
-  if (
-    ipRoleValue.value &&
-    ipRoleValue.value.value !== 'all' &&
-    ipRoleValue.value.value !== ''
-  ) {
-    const selectedIpRole = ipRoleValue.value.value;
-    dataToFilter = dataToFilter.filter(item => item.ipRole === selectedIpRole);
-  }
-
-  // Filter by member type
-  if (
-    memberTypeValue.value &&
-    memberTypeValue.value.value !== 'all' &&
-    memberTypeValue.value.value !== ''
-  ) {
-    const selectedType = memberTypeValue.value.value;
-    dataToFilter = dataToFilter.filter(item => item.currentMemberType === selectedType);
-  }
-
-  // Filter by member payment
-  if (
-    memberPaymentValue.value &&
-    memberPaymentValue.value.value !== 'all' &&
-    memberPaymentValue.value.value !== ''
-  ) {
-    const selectedPayment = memberPaymentValue.value.value;
-    dataToFilter = dataToFilter.filter(item => item.memberPayment === selectedPayment);
-  }
-
-  // Filter by 4G payment
-  if (
-    fourGPaymentValue.value &&
-    fourGPaymentValue.value.value !== 'all' &&
-    fourGPaymentValue.value.value !== ''
-  ) {
-    const selectedFourGPayment = fourGPaymentValue.value.value;
-    dataToFilter = dataToFilter.filter(item => item.fourGPayment === selectedFourGPayment);
-  }
-
-  // Filter by 4G plan
-  if (
-    fourGPlanValue.value &&
-    fourGPlanValue.value.value !== 'all' &&
-    fourGPlanValue.value.value !== ''
-  ) {
-    const selectedPlan = fourGPlanValue.value.value;
-    dataToFilter = dataToFilter.filter(item => item.fourGPlan === selectedPlan);
-  }
-
-  // Sorting logic
-  if (sorterInfo.value && sorterInfo.value.order) {
-    const { columnKey, order } = sorterInfo.value;
-    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-    if (sorterFn) {
-      dataToFilter.sort((a, b) => {
-        const result = sorterFn(a, b);
-        return order === 'ascend' ? result : -result;
-      });
-    }
-  }
-
-  return dataToFilter;
+  return combinedData.value;
 });
 
 const searchInputValue = ref('');
@@ -516,30 +570,34 @@ const handleTableChange = (
   console.log('Table change:', paginationData, filters, sorter);
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
 
+  // Handle pagination changes
+  if (paginationData) {
+    currentPage.value = paginationData.current || 1;
+    pageSize.value = paginationData.pageSize || 10;
+  }
+
+  // Handle sorting changes
   if (currentSorter && currentSorter.order) {
     sorterInfo.value = {
       columnKey: currentSorter.columnKey,
       order: currentSorter.order,
     };
   } else {
-    // When sorting is cleared, revert to default
+    // When sorting is cleared, don't set any sort order (no visual indicator)
     sorterInfo.value = {
-      columnKey: 'updateTime',
-      order: 'descend',
+      columnKey: 'registrationTime_25',
+      order: 'descend', // Keep the API sorting but don't show visual indicator
     };
   }
   
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
+  fetchData();
 };
 
 const onSettingClick = () => {
   console.log('Setting clicked');
 };
 
-const loading = ref(false); // Add a loading state
-
-const tableSize = ref('middle'); // Default table size
+const tableSize = ref('middle');
 
 const handleMenuClick = ({ key }: { key: string }) => {
   tableSize.value = key;
@@ -557,9 +615,6 @@ const onColumnOrderChange = (event: { newIndex: number; oldIndex: number }) => {
   newOrder.splice(oldIndex, 1);
   newOrder.splice(newIndex, 0, movedColumn);
   columnOrder.value = newOrder;
-
-  // The selectedColumnKeys should not be altered here, as it maintains visibility state.
-  // Its order is implicitly handled by the 'columns' computed property based on columnOrder.
 };
 
 const handleColumnVisibilityChange = (key: string, checked: boolean) => {
@@ -573,19 +628,7 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 };
 
 const memberTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
-
-const memberTypeOptions = computed(() => {
-  const uniqueTypes = Array.from(new Set(rawData.map(item => item.currentMemberType)));
-  const options = uniqueTypes.map(type => ({
-    key: type,
-    value: type,
-    label: type,
-  }));
-  return [
-    { key: 'all', value: 'all', label: '全部' },
-    ...options
-  ];
-});
+const memberTypeOptions = ref([{ key: 'all', value: 'all', label: '全部' }]);
 
 const handleMemberTypeChange = (val: any) => {
   if (!val || !val.value || val.value === 'all') {
@@ -593,22 +636,11 @@ const handleMemberTypeChange = (val: any) => {
   } else {
     memberTypeValue.value = val;
   }
+  fetchData();
 };
 
 const memberPaymentValue = ref({ key: 'all', label: '全部', value: 'all' });
-
-const memberPaymentOptions = computed(() => {
-  const uniquePayments = Array.from(new Set(rawData.map(item => item.memberPayment)));
-  const options = uniquePayments.map(payment => ({
-    key: payment,
-    value: payment,
-    label: payment,
-  }));
-  return [
-    { key: 'all', value: 'all', label: '全部' },
-    ...options
-  ];
-});
+const memberPaymentOptions = ref([{ key: 'all', value: 'all', label: '全部' }]);
 
 const handleMemberPaymentChange = (val: any) => {
   if (!val || !val.value || val.value === 'all') {
@@ -616,22 +648,11 @@ const handleMemberPaymentChange = (val: any) => {
   } else {
     memberPaymentValue.value = val;
   }
+  fetchData();
 };
 
 const fourGPaymentValue = ref({ key: 'all', label: '全部', value: 'all' });
-
-const fourGPaymentOptions = computed(() => {
-  const uniquePayments = Array.from(new Set(rawData.map(item => item.fourGPayment)));
-  const options = uniquePayments.map(payment => ({
-    key: payment,
-    value: payment,
-    label: payment,
-  }));
-  return [
-    { key: 'all', value: 'all', label: '全部' },
-    ...options
-  ];
-});
+const fourGPaymentOptions = ref([{ key: 'all', value: 'all', label: '全部' }]);
 
 const handleFourGPaymentChange = (val: any) => {
   if (!val || !val.value || val.value === 'all') {
@@ -639,22 +660,11 @@ const handleFourGPaymentChange = (val: any) => {
   } else {
     fourGPaymentValue.value = val;
   }
+  fetchData();
 };
 
 const fourGPlanValue = ref({ key: 'all', label: '全部', value: 'all' });
-
-const fourGPlanOptions = computed(() => {
-  const uniquePlans = Array.from(new Set(rawData.map(item => item.fourGPlan)));
-  const options = uniquePlans.map(plan => ({
-    key: plan,
-    value: plan,
-    label: plan,
-  }));
-  return [
-    { key: 'all', value: 'all', label: '全部' },
-    ...options
-  ];
-});
+const fourGPlanOptions = ref([{ key: 'all', value: 'all', label: '全部' }]);
 
 const handleFourGPlanChange = (val: any) => {
   if (!val || !val.value || val.value === 'all') {
@@ -662,14 +672,29 @@ const handleFourGPlanChange = (val: any) => {
   } else {
     fourGPlanValue.value = val;
   }
+  fetchData();
+};
+
+// Watch for search input changes
+const searchTimeout = ref<NodeJS.Timeout | null>(null);
+const handleSearchChange = () => {
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  searchTimeout.value = setTimeout(() => {
+    currentPage.value = 1;
+    fetchData();
+  }, 500);
 };
 
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  fetchFilterOptions();
+  fetchData();
 });
 
 defineExpose({
-  handleTableChange, // Explicitly expose handleTableChange
+  handleTableChange,
 });
 </script>
 <style scoped>
@@ -872,5 +897,25 @@ html, body {
 
 :deep(.nowrap-header) {
   white-space: nowrap !important;
+}
+
+:deep(.product-type-select .ant-select-selector) {
+  padding-left: 70px !important;
+}
+
+/* Hyperlink styling */
+:deep(.ant-table-tbody .ant-table-cell a) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:active) {
+  color: #096dd9;
 }
 </style>

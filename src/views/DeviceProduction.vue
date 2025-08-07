@@ -113,13 +113,13 @@
         :showSorterTooltip="false"
       >
       <template #bodyCell="{ column, record }">
-      <template v-if="column.key === 'operation_9'">
+      <template v-if="column.key === 'operation_12'">
         <a-space class="action-cell" direction="horizontal">
           <a class="view-link" @click="$emit('view-record', record)">查看</a>
           <a-divider type="vertical" />
           <a class="edit-link" @click="handleEditBatch(record)">编辑</a>
           <a-divider type="vertical" />
-          <a class="upload-link" @click="handleUploadBom(record)">上传</a>
+          <a class="upload-link" @click="handleUploadBom(record)">上传BOM</a>
           <a-divider type="vertical" />
           <a class="download-link" @click="$emit('download-record', record)">下载</a>
           <a-divider type="vertical" />
@@ -131,20 +131,14 @@
           </a-popconfirm>
         </a-space>
       </template>
-      <template v-else-if="column.key === 'deviceModel_2'">
-        <a class="device-model-link">{{ record.deviceModel }}</a>
-      </template>
-      <template v-else-if="column.key === 'firmwareVersion_5'">
-        <a class="firmware-link">{{ record.firmwareVersion }}</a>
-      </template>
     </template>
       </a-table>
     </div>
 
-    <!-- 新增批次 Modal -->
+    <!-- 新建设备 Modal -->
     <a-modal
       v-model:open="showCreateBatchModal"
-      title="新增批次"
+      title="新建设备"
       :width="600"
       @cancel="handleCreateBatchModalCancel"
     >
@@ -155,11 +149,19 @@
         ref="createBatchFormRef"
       >
         <a-form-item label="设备型号" name="deviceModel" required>
-          <a-select v-model:value="createBatchForm.deviceModel" placeholder="请选择">
-            <a-select-option value="HWZ001">HWZ001</a-select-option>
-            <a-select-option value="HWZ002">HWZ002</a-select-option>
-            <a-select-option value="HWZ003">HWZ003</a-select-option>
-            <a-select-option value="HWZ004">HWZ004</a-select-option>
+          <a-select 
+            v-model:value="createBatchForm.deviceModel" 
+            placeholder="请选择"
+            @change="handleDeviceModelChangeInForm"
+            style="width: 100%"
+          >
+            <a-select-option 
+              v-for="deviceModel in deviceModelOptionsForForm" 
+              :key="deviceModel.value" 
+              :value="deviceModel.value"
+            >
+              {{ deviceModel.label }}
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -168,19 +170,32 @@
             v-model:value="createBatchForm.productionBatch" 
             placeholder="请选择"
             style="width: 100%"
+            format="YYYY-MM-DD"
           />
         </a-form-item>
 
         <a-form-item label="生产厂家" name="manufacturer" required>
-          <a-input v-model:value="createBatchForm.manufacturer" placeholder="请输入" />
+          <a-input 
+            v-model:value="createBatchForm.manufacturer" 
+            placeholder="请输入"
+            @blur="handleManufacturerBlur"
+          />
         </a-form-item>
 
         <a-form-item label="烧录固件" name="burnFirmware" required>
-          <a-select v-model:value="createBatchForm.burnFirmware" placeholder="请选择">
-            <a-select-option value="2001 V 1.0.0">2001 V 1.0.0</a-select-option>
-            <a-select-option value="2001 V 1.1.0">2001 V 1.1.0</a-select-option>
-            <a-select-option value="2001 V 1.2.0">2001 V 1.2.0</a-select-option>
-            <a-select-option value="2001 V 2.0.0">2001 V 2.0.0</a-select-option>
+          <a-select 
+            v-model:value="createBatchForm.burnFirmware" 
+            placeholder="请选择"
+            :disabled="!createBatchForm.deviceModel"
+            style="width: 100%"
+          >
+            <a-select-option 
+              v-for="firmware in firmwareOptionsForForm" 
+              :key="firmware.value" 
+              :value="firmware.value"
+            >
+              {{ firmware.label }}
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -344,11 +359,19 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, h } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import { useRoute, useRouter } from 'vue-router';
+import axios from 'axios';
+
+const route = useRoute();
+const router = useRouter();
+
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -359,7 +382,8 @@ const customLocale = computed(() => ({
 }));
 
 interface DataItem {
-  key: number;
+  id?: number;
+  key?: number;
   productionDeviceId: string; // 生产设备ID
   deviceModel: string; // 设备型号
   productionBatch: string; // 生产批次
@@ -369,6 +393,9 @@ interface DataItem {
   unitPrice: number; // 单价 (元)
   quantity: number; // 数量 (个)
   totalPrice: number; // 总价 (元)
+  updater?: string; // 更新人
+  createTime?: string; // 创建时间
+  updateTime?: string; // 更新时间
 }
 
 // Define column configuration separately from the table columns
@@ -396,7 +423,10 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'unitPrice_6', title: '单价 (元)', dataIndex: 'unitPrice', width: 120, sorter: (a, b) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
   { key: 'quantity_7', title: '数量 (个)', dataIndex: 'quantity', width: 120, sorter: (a, b) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
   { key: 'totalPrice_8', title: '总价 (元)', dataIndex: 'totalPrice', width: 120, sorter: (a, b) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'operation_9', title: '操作', dataIndex: '', width: 200, fixed: 'right' },
+  { key: 'updater_9', title: '更新人', dataIndex: 'updater', width: 120 },
+  { key: 'createTime_10', title: '创建时间', dataIndex: 'createTime', width: 180, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'updateTime_11', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a, b) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'operation_12', title: '操作', dataIndex: '', width: 330, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -416,7 +446,31 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
     customRender: config.customRender
       ? config.customRender
-      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+      : ({ text, record }) => {
+          // Handle hyperlinks for specific columns
+          if (config.key === 'deviceModel_2') {
+            return text ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer' },
+              onClick: () => {
+                router.push({ name: 'device-type', query: { search: text } }).catch(() => {
+                  message.warning(`未找到设备型号 "${text}" 的相关信息`);
+                });
+              }
+            }, text) : '-';
+          }
+          if (config.key === 'firmwareVersion_5') {
+            return text ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer' },
+              onClick: () => {
+                router.push({ name: 'firmware', query: { search: text } }).catch(() => {
+                  message.warning(`未找到固件版本 "${text}" 的相关信息`);
+                });
+              }
+            }, text) : '-';
+          }
+          // Default rendering for other columns
+          return text === undefined || text === null || text === '' ? '-' : text;
+        },
     className: config.className,
   })) as ColumnsType;
 };
@@ -441,37 +495,102 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-const rawData: DataItem[] = [];
-const deviceModels = ['HWZ001', 'HWZ002', 'HWZ003', 'HWZ004'];
-const manufacturers = ['第一天德科技有限公司', '深圳市华为技术有限公司', '深圳市中兴通讯股份有限公司', '深圳市大疆创新科技有限公司'];
-const firmwareVersions = ['2001 V 1.0.0', '2001 V 1.1.0', '2001 V 1.2.0', '2001 V 2.0.0'];
+// Replace static data with reactive data
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
+const total = ref(0); // New total for pagination
 
-for (let i = 0; i < 994; i++) {
-  const date = new Date(2025, 5, 30); // Example base date
-  date.setDate(date.getDate() + (i % 30)); // Vary date by day for each record
+// API functions
+const fetchDeviceProduction = async () => {
+  try {
+    loading.value = true;
+    console.log('Fetching device production with page:', currentPage.value, 'pageSize:', pageSize.value);
+    
+    const response = await axios.get(`${API_BASE_URL}/device-production`, {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value
+      }
+    });
+    
+    if (response.data && response.data.data) {
+      // Server-side pagination response
+      rawData.value = response.data.data.map((item: any, index: number) => ({
+        ...item,
+        key: index + 1
+      }));
+      
+      // Update pagination info from server
+      if (response.data.pagination) {
+        currentPage.value = response.data.pagination.current;
+        pageSize.value = response.data.pagination.pageSize;
+        total.value = response.data.pagination.total;
+        
+        console.log('Updated pagination - current:', currentPage.value, 'pageSize:', pageSize.value, 'total:', total.value);
+      }
+    } else {
+      // Fallback to static data if API fails
+      const fallbackData: DataItem[] = [
+        { key: 1, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ001', productionBatch: '2025-06-30', manufacturer: '第一天德科技有限公司', firmwareVersion: '2001 V 1.0.0', burnFirmware: '2001 V 1.0.0', unitPrice: 86.75, quantity: 500, totalPrice: 43375, updater: '张三', createTime: '2025-06-30 10:00:00', updateTime: '2025-06-30 10:00:00' },
+        { key: 2, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ002', productionBatch: '2025-07-01', manufacturer: '深圳市华为技术有限公司', firmwareVersion: '2001 V 1.1.0', burnFirmware: '2001 V 1.1.0', unitPrice: 87.75, quantity: 550, totalPrice: 48262.5, updater: '李四', createTime: '2025-07-01 11:00:00', updateTime: '2025-07-01 11:00:00' },
+        { key: 3, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ003', productionBatch: '2025-07-02', manufacturer: '深圳市中兴通讯股份有限公司', firmwareVersion: '2001 V 1.2.0', burnFirmware: '2001 V 1.2.0', unitPrice: 88.75, quantity: 600, totalPrice: 53250, updater: '王五', createTime: '2025-07-02 12:00:00', updateTime: '2025-07-02 12:00:00' },
+        { key: 4, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ004', productionBatch: '2025-07-03', manufacturer: '深圳市大疆创新科技有限公司', firmwareVersion: '2001 V 2.0.0', burnFirmware: '2001 V 2.0.0', unitPrice: 89.75, quantity: 650, totalPrice: 58337.5, updater: '赵六', createTime: '2025-07-03 13:00:00', updateTime: '2025-07-03 13:00:00' },
+      ];
+      rawData.value = fallbackData;
+      total.value = fallbackData.length;
+    }
+  } catch (error) {
+    console.error('Error fetching device production:', error);
+    // Fallback to static data if API fails
+    const fallbackData: DataItem[] = [
+      { key: 1, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ001', productionBatch: '2025-06-30', manufacturer: '第一天德科技有限公司', firmwareVersion: '2001 V 1.0.0', burnFirmware: '2001 V 1.0.0', unitPrice: 86.75, quantity: 500, totalPrice: 43375, updater: '张三', createTime: '2025-06-30 10:00:00', updateTime: '2025-06-30 10:00:00' },
+      { key: 2, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ002', productionBatch: '2025-07-01', manufacturer: '深圳市华为技术有限公司', firmwareVersion: '2001 V 1.1.0', burnFirmware: '2001 V 1.1.0', unitPrice: 87.75, quantity: 550, totalPrice: 48262.5, updater: '李四', createTime: '2025-07-01 11:00:00', updateTime: '2025-07-01 11:00:00' },
+      { key: 3, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ003', productionBatch: '2025-07-02', manufacturer: '深圳市中兴通讯股份有限公司', firmwareVersion: '2001 V 1.2.0', burnFirmware: '2001 V 1.2.0', unitPrice: 88.75, quantity: 600, totalPrice: 53250, updater: '王五', createTime: '2025-07-02 12:00:00', updateTime: '2025-07-02 12:00:00' },
+      { key: 4, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ004', productionBatch: '2025-07-03', manufacturer: '深圳市大疆创新科技有限公司', firmwareVersion: '2001 V 2.0.0', burnFirmware: '2001 V 2.0.0', unitPrice: 89.75, quantity: 650, totalPrice: 58337.5, updater: '赵六', createTime: '2025-07-03 13:00:00', updateTime: '2025-07-03 13:00:00' },
+    ];
+    rawData.value = fallbackData;
+    total.value = fallbackData.length;
+  } finally {
+    loading.value = false;
+  }
+};
 
-  const productionBatch = date.toISOString().slice(0, 10); // YYYY-MM-DD format
+const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key' | 'id' | 'totalPrice'>) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/device-production`, deviceProductionData);
+    await fetchDeviceProduction(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error creating device production:', error);
+    throw error;
+  }
+};
 
-  rawData.push({
-    key: i + 1,
-    productionDeviceId: `hjhwrn632q2f`,
-    deviceModel: deviceModels[i % deviceModels.length],
-    productionBatch: productionBatch,
-    manufacturer: manufacturers[i % manufacturers.length],
-    firmwareVersion: firmwareVersions[i % firmwareVersions.length],
-    burnFirmware: firmwareVersions[i % firmwareVersions.length], // Assuming burnFirmware is the same as firmwareVersion for now
-    unitPrice: 86.75 + (i % 10),
-    quantity: 500 + (i % 100),
-    totalPrice: (86.75 + (i % 10)) * (500 + (i % 100)),
-  });
-}
+const updateDeviceProduction = async (id: number, deviceProductionData: Partial<DataItem>) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/device-production/${id}`, deviceProductionData);
+    await fetchDeviceProduction(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error updating device production:', error);
+    throw error;
+  }
+};
 
-console.log('Raw Data:', rawData);
+const deleteDeviceProduction = async (id: number) => {
+  try {
+    await axios.delete(`${API_BASE_URL}/device-production/${id}`);
+    await fetchDeviceProduction(); // Refresh data
+  } catch (error) {
+    console.error('Error deleting device production:', error);
+    throw error;
+  }
+};
 
 const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const deviceModelOptions = computed(() => {
-  const uniqueDeviceModels = Array.from(new Set(rawData.map(item => item.deviceModel)));
+  const uniqueDeviceModels = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
   const options = uniqueDeviceModels.map(model => ({
     key: model,
     value: model,
@@ -494,7 +613,7 @@ const handleDeviceModelChange = (val: any) => {
 const manufacturerValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const manufacturerOptions = computed(() => {
-  const uniqueManufacturers = Array.from(new Set(rawData.map(item => item.manufacturer)));
+  const uniqueManufacturers = Array.from(new Set(rawData.value.map(item => item.manufacturer)));
   const options = uniqueManufacturers.map(manufacturer => ({
     key: manufacturer,
     value: manufacturer,
@@ -523,7 +642,7 @@ const sorterInfo = ref<any>({
 });
 
 const pagination = computed(() => ({
-  total: rawData.length, 
+  total: total.value, 
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true, 
@@ -534,17 +653,18 @@ const pagination = computed(() => ({
     console.log('onShowSizeChange', current, size);
     currentPage.value = current;
     pageSize.value = size;
+    fetchDeviceProduction(); // Fetch fresh data when page size changes
   },
   onChange: (page: number, size: number) => {
     console.log('onChange', page, size);
     currentPage.value = page;
     pageSize.value = size;
+    fetchDeviceProduction(); // Fetch fresh data when page changes
   },
 }));
 
 const onRefresh = () => {
   console.log('Refresh button clicked!');
-  loading.value = true; // Show loading icon
   searchInputValue.value = '';
   currentPage.value = 1;
   resetColumns(); // Reset column order and visibility
@@ -553,14 +673,11 @@ const onRefresh = () => {
   deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
   manufacturerValue.value = { key: 'all', label: '全部', value: 'all' };
 
-  // Simulate data fetching
-  setTimeout(() => {
-    loading.value = false; // Hide loading icon after a delay
-  }, 500); // Adjust delay as needed
+  fetchDeviceProduction(); // Fetch fresh data from API
 };
 
 const filteredData = computed(() => {
-  let dataToFilter = rawData;
+  let dataToFilter = rawData.value;
 
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
@@ -637,8 +754,6 @@ const onSettingClick = () => {
   console.log('Setting clicked');
 };
 
-const loading = ref(false); // Add a loading state
-
 const tableSize = ref('middle'); // Default table size
 
 const handleMenuClick = ({ key }: { key: string }) => {
@@ -672,11 +787,6 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
   }
 };
 
-const handleCreateDevice = () => {
-  console.log('Create device button clicked');
-  showCreateBatchModal.value = true;
-};
-
 // Create batch modal state variables
 const showCreateBatchModal = ref(false);
 const createBatchForm = ref({
@@ -687,6 +797,125 @@ const createBatchForm = ref({
   unitPrice: null,
   quantity: null
 });
+
+// Reactive references for form options
+const deviceModelsFromAPI = ref<any[]>([]);
+const firmwareVersionsFromAPI = ref<any[]>([]);
+
+// Computed properties for form options
+const deviceModelOptionsForForm = computed(() => {
+  // Use API data if available, otherwise fall back to existing data
+  if (deviceModelsFromAPI.value.length > 0) {
+    return deviceModelsFromAPI.value;
+  }
+  
+  // Fallback to existing data
+  const uniqueDeviceModels = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
+  return uniqueDeviceModels.map(model => ({
+    key: model,
+    value: model,
+    label: model,
+  }));
+});
+
+const firmwareOptionsForForm = computed(() => {
+  if (!createBatchForm.value.deviceModel) {
+    return [];
+  }
+  
+  // Use API data if available for the selected device model
+  if (firmwareVersionsFromAPI.value.length > 0) {
+    return firmwareVersionsFromAPI.value;
+  }
+  
+  // Fallback to existing data
+  const firmwareVersions = rawData.value
+    .filter(item => item.deviceModel === createBatchForm.value.deviceModel)
+    .map(item => item.firmwareVersion)
+    .filter((value, index, self) => self.indexOf(value) === index && value); // Remove duplicates and empty values
+    
+  return firmwareVersions.map(version => ({
+    key: version,
+    value: version,
+    label: version,
+  }));
+});
+
+// Function to fetch device models from API
+const fetchDeviceModels = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/device-type`);
+    if (response.data && response.data.data) {
+      // Update device model options with data from API
+      return response.data.data.map((item: any) => ({
+        key: item.deviceModelName || item.deviceModelId,
+        value: item.deviceModelName || item.deviceModelId,
+        label: item.deviceModelName || item.deviceModelId,
+      }));
+    }
+  } catch (error) {
+    console.error('Error fetching device models:', error);
+  }
+  return [];
+};
+
+// Function to fetch firmware versions for a specific device model
+const fetchFirmwareVersions = async (deviceModel: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/firmware?deviceModel=${deviceModel}`);
+    if (response.data && response.data.data) {
+      return response.data.data.map((item: any) => ({
+        key: item.versionNumber,
+        value: item.versionNumber,
+        label: item.versionNumber,
+      }));
+    }
+  } catch (error) {
+    console.error('Error fetching firmware versions:', error);
+  }
+  return [];
+};
+
+// Form handlers
+const handleDeviceModelChangeInForm = async (value: string) => {
+  createBatchForm.value.deviceModel = value;
+  // Clear firmware selection when device model changes
+  createBatchForm.value.burnFirmware = '';
+  
+  // Fetch firmware versions for the selected device model
+  if (value) {
+    try {
+      const firmwareVersions = await fetchFirmwareVersions(value);
+      firmwareVersionsFromAPI.value = firmwareVersions;
+    } catch (error) {
+      console.error('Error fetching firmware versions:', error);
+      firmwareVersionsFromAPI.value = [];
+    }
+  } else {
+    firmwareVersionsFromAPI.value = [];
+  }
+};
+
+const handleManufacturerBlur = () => {
+  // This function can be used to save manufacturer as an option for future selection
+  // For now, it's just a placeholder
+  console.log('Manufacturer blur:', createBatchForm.value.manufacturer);
+};
+
+// Update the handleCreateDevice function to fetch device models when modal opens
+const handleCreateDevice = async () => {
+  console.log('Create device button clicked');
+  showCreateBatchModal.value = true;
+  
+  // Fetch device models from API when modal opens
+  try {
+    const deviceModels = await fetchDeviceModels();
+    deviceModelsFromAPI.value = deviceModels;
+  } catch (error) {
+    console.error('Error fetching device models:', error);
+    deviceModelsFromAPI.value = [];
+  }
+};
 
 const createBatchFormRules = {
   deviceModel: [{ required: true, message: '请选择设备型号', trigger: 'change' }],
@@ -717,12 +946,96 @@ const handleCreateBatchModalCancel = () => {
 const handleCreateBatchModalConfirm = async () => {
   try {
     await createBatchFormRef.value?.validate();
+    
+    // Format the date properly
+    let formattedDate: string | null = null;
+    const productionBatch = createBatchForm.value.productionBatch;
+    
+    if (productionBatch) {
+      if (typeof productionBatch === 'object' && productionBatch !== null) {
+        // Handle dayjs object or Date object
+        if ('format' in productionBatch && typeof productionBatch.format === 'function') {
+          // Handle dayjs object
+          formattedDate = productionBatch.format('YYYY-MM-DD');
+        } else if ('toISOString' in productionBatch && typeof productionBatch.toISOString === 'function') {
+          // Handle Date object
+          formattedDate = productionBatch.toISOString().split('T')[0];
+        }
+      } else if (typeof productionBatch === 'string') {
+        // Handle string date
+        formattedDate = productionBatch;
+      }
+    }
+    
+    if (!formattedDate) {
+      message.error('请选择有效的生产批次日期');
+      return;
+    }
+    
+    // Check for unique constraint: device model + production batch + manufacturer
+    const existingRecord = rawData.value.find(item => 
+      item.deviceModel === createBatchForm.value.deviceModel &&
+      item.productionBatch === formattedDate &&
+      item.manufacturer === createBatchForm.value.manufacturer
+    );
+    
+    if (existingRecord) {
+      message.error('该设备型号、生产批次和生产厂家的组合已存在，请检查后重新输入');
+      return;
+    }
+    
     console.log('Create batch form data:', createBatchForm.value);
-    // Here you would typically send the data to your API
+    
+    // Prepare data for API
+    const formData = {
+      productionDeviceId: 'hjhwrn632q2f', // Default value or generate dynamically
+      deviceModel: createBatchForm.value.deviceModel,
+      productionBatch: formattedDate,
+      manufacturer: createBatchForm.value.manufacturer,
+      firmwareVersion: createBatchForm.value.burnFirmware, // Map burnFirmware to firmwareVersion
+      burnFirmware: createBatchForm.value.burnFirmware,
+      unitPrice: createBatchForm.value.unitPrice || 0,
+      quantity: createBatchForm.value.quantity || 0,
+      updater: '当前用户' // This should come from user context
+    };
+    
+    // Send data to API
+    await createDeviceProduction(formData);
+    
+    message.success('设备创建成功！');
     showCreateBatchModal.value = false;
     createBatchFormRef.value?.resetFields();
-  } catch (error) {
+    
+    // Reset form data
+    createBatchForm.value = {
+      deviceModel: '',
+      productionBatch: null,
+      manufacturer: '',
+      burnFirmware: '',
+      unitPrice: null,
+      quantity: null
+    };
+    
+    // Refresh the data
+    await fetchDeviceProduction();
+    
+  } catch (error: unknown) {
     console.error('Form validation failed:', error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errorResponse = error as any;
+      if (errorResponse.response?.data?.error) {
+        message.error(errorResponse.response.data.error);
+      } else if (errorResponse.message) {
+        message.error(errorResponse.message);
+      } else {
+        message.error('创建设备失败，请重试');
+      }
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      const errorObj = error as { message: string };
+      message.error(errorObj.message);
+    } else {
+      message.error('创建设备失败，请重试');
+    }
   }
 };
 
@@ -873,11 +1186,31 @@ const handleUploadBom = (record: DataItem) => {
 
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  fetchDeviceProduction(); // Fetch data on component mount
 });
 
 defineExpose({
   handleTableChange, // Explicitly expose handleTableChange
 });
+
+// Handle search parameter from URL
+onMounted(() => {
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+  }
+  fetchDeviceProduction(); // Fetch data on component mount
+});
+
+// Handle delete record
+const handleDeleteRecord = async (record: DataItem) => {
+  try {
+    if (record.id) {
+      await deleteDeviceProduction(record.id);
+    }
+  } catch (error) {
+    console.error('Error deleting record:', error);
+  }
+};
 </script>
 <style scoped>
 #components-table-demo-summary tfoot th,
@@ -1472,5 +1805,21 @@ html, body {
   font-size: 14px;
   color: #333;
   font-weight: 500;
+}
+
+/* Hyperlink styling for device model and firmware version */
+:deep(.ant-table-tbody .ant-table-cell a) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:active) {
+  color: #096dd9;
 }
 </style> 

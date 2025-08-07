@@ -122,7 +122,7 @@
     <div class="table-container">
       <a-table
         :columns="columns"
-        :data-source="filteredData"
+        :data-source="paginatedData"
         :pagination="filteredData.length === 0 ? false : pagination"
         :loading="loading"
         :size="tableSize"
@@ -154,6 +154,16 @@
           </template>
         </template>
       </a-table>
+      
+      <!-- No data message -->
+      <div v-if="showNoDataMessage" class="no-data-message">
+        <a-empty 
+          :description="noDataMessage"
+          :image="Empty.PRESENTED_IMAGE_SIMPLE"
+        >
+          <a-button type="primary" @click="clearSearch">清除搜索</a-button>
+        </a-empty>
+      </div>
     </div>
 
     <!-- Create Product Modal -->
@@ -278,17 +288,27 @@
 </template>
 
 <script lang="ts" setup>
+import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, ExportOutlined } from '@ant-design/icons-vue';
+import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExportOutlined } from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import { useRoute } from 'vue-router';
+import { Empty } from 'ant-design-vue';
 import { 
   createColumnConfigs, 
   useTableColumns, 
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
+import axios from 'axios';
+import { message } from 'ant-design-vue';
+
+const route = useRoute();
+
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -300,18 +320,19 @@ const customLocale = computed(() => ({
 
 // Define your data interface
 interface DataItem {
-  key: number;
-  productId: string;
-  productModel: string;
-  productName: string;
-  productType: string;
-  color: string;
-  productDetails: string;
-  deviceModel: string;
-  ipName: string;
-  creator: string;
-  createTime: string;
-  updateTime: string;
+  id?: number;
+  key?: number;
+  productId: string; // 产品ID
+  productModel: string; // 产品型号
+  productName: string; // 产品名称
+  productType: string; // 产品类型
+  color: string; // 颜色
+  productDetails: string; // 产品详情
+  deviceModel: string; // 设备型号
+  ipName: string; // IP名称
+  creator: string; // 创建人
+  createTime: string; // 创建时间
+  updateTime: string; // 更新时间
 }
 
 // Define column definitions - this is where you add/remove columns
@@ -334,6 +355,17 @@ const columnDefinitions: ColumnDefinition[] = [
 // Create column configs from definitions
 const columnConfigs = createColumnConfigs(columnDefinitions);
 
+// Add custom render for rowIndex column
+const updatedColumnConfigs = columnConfigs.map(config => {
+  if (config.key === 'rowIndex') {
+    return {
+      ...config,
+      customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1
+    };
+  }
+  return config;
+});
+
 // Use the table columns composable
 const {
   columns,
@@ -343,165 +375,144 @@ const {
   resetColumns,
   onColumnOrderChange,
   handleColumnVisibilityChange,
-  handleTableChange,
-} = useTableColumns(columnConfigs);
+  handleTableChange: baseHandleTableChange,
+} = useTableColumns(updatedColumnConfigs);
 
-// Generate sample data based on the image
-const rawData: DataItem[] = [
-  {
-    key: 1,
-    productId: 'hjhwn632ng21',
-    productModel: 'HWSZ001001',
-    productName: '红色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '荧光粉',
-    productDetails: '材料: 云南蝴蝶 颜色: 10号, 22号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '33',
-    createTime: '2025-7-13 19:25:11',
-    updateTime: '2025-7-13 19:25:11',
-  },
-  {
-    key: 2,
-    productId: 'hjhwn632ng22',
-    productModel: 'HWSZ001002',
-    productName: '蓝色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '天蓝色',
-    productDetails: '材料: 云南蝴蝶 颜色: 15号, 28号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '45',
-    createTime: '2025-7-13 18:30:22',
-    updateTime: '2025-7-13 18:30:22',
-  },
-  {
-    key: 3,
-    productId: 'hjhwn632ng23',
-    productModel: 'HWSZ001003',
-    productName: '绿色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '翠绿色',
-    productDetails: '材料: 云南蝴蝶 颜色: 12号, 25号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '28',
-    createTime: '2025-7-13 17:45:33',
-    updateTime: '2025-7-13 17:45:33',
-  },
-  {
-    key: 4,
-    productId: 'hjhwn632ng24',
-    productModel: 'HWSZ001004',
-    productName: '紫色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '深紫色',
-    productDetails: '材料: 云南蝴蝶 颜色: 18号, 30号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '52',
-    createTime: '2025-7-13 16:20:44',
-    updateTime: '2025-7-13 16:20:44',
-  },
-  {
-    key: 5,
-    productId: 'hjhwn632ng25',
-    productModel: 'HWSZ001005',
-    productName: '橙色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '亮橙色',
-    productDetails: '材料: 云南蝴蝶 颜色: 20号, 35号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '39',
-    createTime: '2025-7-13 15:15:55',
-    updateTime: '2025-7-13 15:15:55',
-  },
-  {
-    key: 6,
-    productId: 'hjhwn632ng26',
-    productModel: 'HWSZ001006',
-    productName: '黄色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '金黄色',
-    productDetails: '材料: 云南蝴蝶 颜色: 25号, 40号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '41',
-    createTime: '2025-7-13 14:10:66',
-    updateTime: '2025-7-13 14:10:66',
-  },
-  {
-    key: 7,
-    productId: 'hjhwn632ng27',
-    productModel: 'HWSZ001007',
-    productName: '青色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '浅青色',
-    productDetails: '材料: 云南蝴蝶 颜色: 30号, 45号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '36',
-    createTime: '2025-7-13 13:05:77',
-    updateTime: '2025-7-13 13:05:77',
-  },
-  {
-    key: 8,
-    productId: 'hjhwn632ng28',
-    productModel: 'HWSZ001008',
-    productName: '粉色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '淡粉色',
-    productDetails: '材料: 云南蝴蝶 颜色: 35号, 50号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '48',
-    createTime: '2025-7-13 12:00:88',
-    updateTime: '2025-7-13 12:00:88',
-  },
-  {
-    key: 9,
-    productId: 'hjhwn632ng29',
-    productModel: 'HWSZ001009',
-    productName: '银色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '银白色',
-    productDetails: '材料: 云南蝴蝶 颜色: 40号, 55号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '44',
-    createTime: '2025-7-13 11:55:99',
-    updateTime: '2025-7-13 11:55:99',
-  },
-  {
-    key: 10,
-    productId: 'hjhwn632ng30',
-    productModel: 'HWSZ001010',
-    productName: '金色蝴蝶结蓝牙配件',
-    productType: '蓝牙配件',
-    color: '纯金色',
-    productDetails: '材料: 云南蝴蝶 颜色: 45号, 60号...',
-    deviceModel: 'HWSZ001',
-    ipName: '查看',
-    creator: '37',
-    createTime: '2025-7-13 10:50:10',
-    updateTime: '2025-7-13 10:50:10',
-  },
-];
+// Custom handleTableChange function to handle pagination and sorting
+const handleTableChange = (
+  paginationData: any,
+  filters: any,
+  sorter: any,
+) => {
+  console.log('Table change:', paginationData, filters, sorter);
+  
+  // Handle pagination changes
+  if (paginationData) {
+    currentPage.value = paginationData.current || 1;
+    pageSize.value = paginationData.pageSize || 10;
+  }
+
+  // Handle sorting changes
+  const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+  if (currentSorter && currentSorter.order) {
+    sorterInfo.value = {
+      columnKey: currentSorter.columnKey,
+      order: currentSorter.order,
+    };
+  } else {
+    // When sorting is cleared, reset to default
+    sorterInfo.value = {
+      columnKey: '',
+      order: undefined,
+    };
+  }
+};
+
+// Replace static data with reactive data
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
+
+// API functions
+const fetchProductTypes = async () => {
+  try {
+    loading.value = true;
+    const response = await axios.get(`${API_BASE_URL}/product-type`);
+    
+    // Transform the data to ensure all required fields are present
+    rawData.value = response.data.map((item: any, index: number) => ({
+      id: item.id,
+      key: index + 1, // Ensure key is always a number
+      productId: item.productId || item.product_id || '',
+      productModel: item.productModel || item.product_model || '',
+      productName: item.productName || item.product_name || '',
+      productType: item.productType || item.product_type || '',
+      color: item.color || '',
+      productDetails: item.productDetails || item.product_details || '',
+      deviceModel: item.deviceModel || item.device_model || '',
+      ipName: item.ipName || item.ip_name || '',
+      creator: item.creator || '',
+      createTime: item.createTime || item.create_time || '',
+      updateTime: item.updateTime || item.update_time || ''
+    }));
+  } catch (error) {
+    console.error('Error fetching product types:', error);
+    // Show error message to user instead of falling back to static data
+    message.error('获取产品类型数据失败，请检查网络连接');
+    rawData.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+const createProductType = async (productTypeData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/product-type`, productTypeData);
+    await fetchProductTypes(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error creating product type:', error);
+    throw error;
+  }
+};
+
+const updateProductType = async (id: number, productTypeData: Partial<DataItem>) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/product-type/${id}`, productTypeData);
+    await fetchProductTypes(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error updating product type:', error);
+    throw error;
+  }
+};
+
+const deleteProductType = async (id: number) => {
+  try {
+    await axios.delete(`${API_BASE_URL}/product-type/${id}`);
+    await fetchProductTypes(); // Refresh data
+  } catch (error) {
+    console.error('Error deleting product type:', error);
+    throw error;
+  }
+};
 
 // Filter and search logic
 const searchInputValue = ref('');
+
+// Handle search parameter from URL
+onMounted(() => {
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+  }
+  fetchProductTypes(); // Fetch data on component mount
+});
+
+// Computed property to show no data message
+const showNoDataMessage = computed(() => {
+  return searchInputValue.value && filteredData.value.length === 0;
+});
+
+// Computed property for no data message
+const noDataMessage = computed(() => {
+  if (searchInputValue.value && filteredData.value.length === 0) {
+    return `未找到包含 "${searchInputValue.value}" 的数据`;
+  }
+  return '';
+});
+
+const clearSearch = () => {
+  searchInputValue.value = '';
+};
+
 const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
 const productTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
 const pbmValue = ref({ key: 'all', label: '全部', value: 'all' });
-const loading = ref(false);
 const tableSize = ref('middle');
 const currentPage = ref(1);
 const pageSize = ref(10);
 
 const deviceModelOptions = computed(() => {
-  const uniqueDeviceModels = Array.from(new Set(rawData.map(item => item.deviceModel)));
+  const uniqueDeviceModels = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
   const options = uniqueDeviceModels.map(model => ({
     key: model,
     value: model,
@@ -514,7 +525,7 @@ const deviceModelOptions = computed(() => {
 });
 
 const productTypeOptions = computed(() => {
-  const uniqueProductTypes = Array.from(new Set(rawData.map(item => item.productType)));
+  const uniqueProductTypes = Array.from(new Set(rawData.value.map(item => item.productType)));
   const options = uniqueProductTypes.map(type => ({
     key: type,
     value: type,
@@ -561,7 +572,7 @@ const handlePbmChange = (val: any) => {
 };
 
 const filteredData = computed(() => {
-  let dataToFilter = rawData;
+  let dataToFilter = rawData.value;
 
   // Search filter
   if (searchInputValue.value) {
@@ -604,6 +615,13 @@ const filteredData = computed(() => {
   return dataToFilter;
 });
 
+// Paginated data for display
+const paginatedData = computed(() => {
+  const startIndex = (currentPage.value - 1) * pageSize.value;
+  const endIndex = startIndex + pageSize.value;
+  return filteredData.value.slice(startIndex, endIndex);
+});
+
 const pagination = computed(() => ({
   total: filteredData.value.length,
   current: currentPage.value,
@@ -623,17 +641,11 @@ const pagination = computed(() => ({
 }));
 
 const onRefresh = () => {
-  loading.value = true;
+  console.log('Refresh button clicked!');
   searchInputValue.value = '';
   currentPage.value = 1;
-  resetColumns();
-  deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
-  productTypeValue.value = { key: 'all', label: '全部', value: 'all' };
-  pbmValue.value = { key: 'all', label: '全部', value: 'all' };
-
-  setTimeout(() => {
-    loading.value = false;
-  }, 500);
+  resetColumns(); // Reset column order and visibility
+  fetchProductTypes(); // Fetch fresh data from API
 };
 
 const handleMenuClick = ({ key }: { key: string }) => {
@@ -676,6 +688,17 @@ const handleIpNameClick = (record: DataItem) => {
   console.log('IP name clicked:', record.ipName);
 };
 
+// Handle delete record
+const handleDeleteRecord = async (record: DataItem) => {
+  try {
+    if (record.id) {
+      await deleteProductType(record.id);
+    }
+  } catch (error) {
+    console.error('Error deleting record:', error);
+  }
+};
+
 // Modal state and form
 const showCreateModal = ref(false);
 const createForm = ref({
@@ -709,8 +732,8 @@ const handleCreateConfirm = () => {
 };
 
 const showEditModal = ref(false);
-const editForm = ref({
-  key: 0, // Placeholder for the record key
+const editForm = ref<Partial<DataItem>>({
+  key: 0, // Ensure key is always a number
   deviceModel: '',
   productModel: '',
   productName: '',
@@ -724,7 +747,7 @@ const closeEditModal = () => {
   showEditModal.value = false;
   // Reset form
   editForm.value = {
-    key: 0,
+    key: 0, // Ensure key is always a number
     deviceModel: '',
     productModel: '',
     productName: '',
@@ -1046,5 +1069,23 @@ defineExpose({
 .btn-primary:hover {
   background-color: #40a9ff;
   border-color: #40a9ff;
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.no-data-message .ant-empty {
+  margin: 0;
+}
+
+.no-data-message .ant-empty-description {
+  color: #666;
+  font-size: 14px;
 }
 </style>

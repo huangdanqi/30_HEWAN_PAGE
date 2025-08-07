@@ -17,14 +17,20 @@ import IPManagement from '../views/IPManagement.vue'
 import ModelConfiguration from '../views/ModelConfiguration.vue'
 import ToyProduction from '../views/ToyProduction.vue'
 import ProductList from '../views/ProductList.vue'
+import Login from '../views/Login.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-  {
-    path: '/',
-        redirect: '/account'
-      },
+    {
+      path: '/login',
+      name: 'login',
+      component: Login
+    },
+    {
+      path: '/',
+      redirect: '/account'
+    },
       {
       path: '/account',
       name: 'account',

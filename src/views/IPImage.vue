@@ -146,7 +146,7 @@
           </template>
           <SettingOutlined @click="onSettingClick" />
         </a-popover>
-        <ExportOutlined @click="handleExport" />
+        <!-- <ExportOutlined @click="handleExport" /> -->
       </div>
     </div>
       
@@ -175,10 +175,7 @@
             </a-button>
           </template>
           <template v-if="column.key === 'updater'">
-            <div class="updater-cell">
-              <a-avatar size="small" style="margin-right: 8px;">{{ record.updater.charAt(0) }}</a-avatar>
-              <span>{{ record.updater }}</span>
-            </div>
+            <span>{{ record.updater }}</span>
           </template>
           <template v-if="column.key === 'operation'">
             <a-space class="action-cell" direction="horizontal">
@@ -237,7 +234,7 @@
             <label class="required-field"><span class="asterisk">*</span> 情绪</label>
             <select v-model="createForm.emotion" class="form-select">
               <option value="">请选择</option>
-              <option value="通用">通用</option>
+              <!-- <option value="通用">通用</option> -->
               <option value="开心">开心</option>
               <option value="放松">放松</option>
               <option value="兴奋">兴奋</option>
@@ -251,7 +248,7 @@
             <label class="required-field"><span class="asterisk">*</span> 时间段</label>
             <select v-model="createForm.timePeriod" class="form-select">
               <option value="">请选择</option>
-              <option value="通用">通用</option>
+              <!-- <option value="通用">通用</option> -->
               <option value="上午">上午 (8:00 - 11:59)</option>
               <option value="下午">下午 (12:00 - 17:59)</option>
               <option value="中午">中午 (12:00 - 13:30)</option>
@@ -265,7 +262,7 @@
             <input type="text" v-model="createForm.tags" class="form-input" placeholder="请输入">
           </div>
           <div class="form-group">
-            <label class="required-field"><span class="asterisk">*</span> 上传图片</label>
+            <label class="required-field"><span class="asterisk">*</span> 上传图片到文件夹</label>
             <div class="upload-area" @click="triggerFileUpload" @drop="handleFileDrop" @dragover.prevent @dragenter.prevent>
               <input 
                 ref="fileInput" 
@@ -277,6 +274,23 @@
               <div class="upload-content">
                 <div class="upload-icon">↑</div>
                 <div class="upload-text">支持文件格式: png、jpg、jpeg、svg</div>
+              </div>
+            </div>
+            <!-- File display after upload -->
+            <div v-if="createForm.imageFile" class="file-info">
+              <span class="file-icon">📎</span>
+              <span class="file-name">{{ createForm.imageFile.name }}</span>
+              <span class="delete-icon" @click="removeUploadedFile">🗑️</span>
+            </div>
+            <!-- Progress bar for upload -->
+            <div v-if="uploadProgress > 0 && uploadProgress < 100" class="file-progress">
+              <div class="file-info">
+                <span class="file-icon">📎</span>
+                <span class="file-name">{{ createForm.imageFile?.name }}</span>
+                <span class="progress-text">{{ uploadProgress }}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
               </div>
             </div>
           </div>
@@ -332,7 +346,7 @@
             <label class="required-field"><span class="asterisk">*</span> 情绪</label>
             <select v-model="editForm.emotion" class="form-select">
               <option value="">请选择</option>
-              <option value="通用">通用</option>
+              <!-- <option value="通用">通用</option> -->
               <option value="开心">开心</option>
               <option value="放松">放松</option>
               <option value="兴奋">兴奋</option>
@@ -346,7 +360,7 @@
             <label class="required-field"><span class="asterisk">*</span> 时间段</label>
             <select v-model="editForm.timePeriod" class="form-select">
               <option value="">请选择</option>
-              <option value="通用">通用</option>
+              <!-- <option value="通用">通用</option> -->
               <option value="上午">上午 (8:00 - 11:59)</option>
               <option value="下午">下午 (12:00 - 17:59)</option>
               <option value="中午">中午 (12:00 - 13:30)</option>
@@ -377,7 +391,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="required-field"><span class="asterisk">*</span> 上传图片</label>
+            <label class="required-field"><span class="asterisk">*</span> 上传图片到文件夹</label>
             <div class="upload-area" @click="triggerEditFileUpload" @drop="handleEditFileDrop" @dragover.prevent @dragenter.prevent>
               <input 
                 ref="editFileInput" 
@@ -395,12 +409,12 @@
               <div class="file-info">
                 <span class="file-icon">📎</span>
                 <span class="file-name">{{ editForm.imageFile.name }}</span>
-                <span class="progress-text">{{ uploadProgress }}%</span>
+                <!-- <span class="progress-text">{{ uploadProgress }}%</span> -->
                 <span class="delete-icon" @click="removeFile">🗑️</span>
               </div>
-              <div class="progress-bar">
+              <!-- <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
-              </div>
+              </div> -->
             </div>
           </div>
         </div>
@@ -411,11 +425,33 @@
       </div>
     </div>
 
+    <!-- Preview Image Modal -->
+    <div v-if="showPreviewModal" class="modal-overlay" @click="closePreviewModal">
+      <div class="preview-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>图片预览</h3>
+          <button class="close-btn" @click="closePreviewModal">×</button>
+        </div>
+        <div class="preview-modal-body">
+          <div v-if="previewImage" class="image-preview-container">
+            <img 
+              :src="getImageUrl(previewImage)" 
+              class="preview-image" 
+              alt="Image preview"
+            />
+          </div>
+          <div v-else class="no-image-message">
+            <p>暂无图片</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </a-config-provider>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, ExportOutlined, EyeOutlined } from '@ant-design/icons-vue';
@@ -426,6 +462,13 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -445,10 +488,12 @@ interface DataItem {
   weather: string;
   emotion: string;
   time: string;
+  tags: string;
   imageFileAddress: string;
   updater: string;
   createTime: string;
   updateTime: string;
+  id: number; // Added id for editing
 }
 
 // Define column definitions - this is where you add/remove columns
@@ -461,16 +506,28 @@ const columnDefinitions: ColumnDefinition[] = [
   createColumn('weather', '天气', 'weather', 100, { sortable: true, sortType: 'string' }),
   createColumn('emotion', '情绪', 'emotion', 120, { sortable: true, sortType: 'string' }),
   createColumn('time', '时间', 'time', 100, { sortable: true, sortType: 'string' }),
-  createColumn('imageFileAddress', '图片文件地址', 'imageFileAddress', 200),
+  createColumn('tags', '标签', 'tags', 150, { sortable: true, sortType: 'string' }),
+  createColumn('imageFileAddress', '图片地址', 'imageFileAddress', 200),
   createColumn('preview', '预览', 'preview', 80),
   createColumn('updater', '更新人', 'updater', 120),
   createColumn('createTime', '创建时间', 'createTime', 180, { sortable: true, sortType: 'date' }),
   createColumn('updateTime', '更新时间', 'updateTime', 180, { sortable: true, sortType: 'date' }),
-  createColumn('operation', '操作', 'operation', 150, { fixed: 'right' }),
+  createColumn('operation', '操作', 'operation', 200, { fixed: 'right' }),
 ];
 
 // Create column configs from definitions
 const columnConfigs = createColumnConfigs(columnDefinitions);
+
+// Add custom render for rowIndex column
+const updatedColumnConfigs = columnConfigs.map(config => {
+  if (config.key === 'rowIndex') {
+    return {
+      ...config,
+      customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1
+    };
+  }
+  return config;
+});
 
 // Use the table columns composable
 const {
@@ -482,26 +539,49 @@ const {
   onColumnOrderChange,
   handleColumnVisibilityChange,
   handleTableChange,
-} = useTableColumns(columnConfigs);
+} = useTableColumns(updatedColumnConfigs);
 
-// Generate sample data based on the image
-const rawData: DataItem[] = [];
-for (let i = 0; i < 43; i++) {
-  rawData.push({
-    key: i + 1,
-    imageId: 'hjhwn832nj2f',
-    ipName: '啵啵',
-    imageName: '晒太阳',
-    scene: '居家',
-    weather: '晴天',
-    emotion: '放松',
-    time: '白天',
-    imageFileAddress: 'https://example.com/firmware.bin',
-    updater: '33',
-    createTime: '2025-7-13 19:25:11',
-    updateTime: '2025-7-13 19:25:11',
-  });
-}
+// Data state
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
+const tableSize = ref('middle');
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+// Fetch data from API
+const fetchData = async () => {
+  console.log('fetchData called');
+  loading.value = true;
+  try {
+    console.log('Calling IP image endpoint');
+    
+    const response = await axios.get(`${API_BASE_URL}/ipimage?page=1&pageSize=1000`);
+    console.log('IP image response:', response.data);
+    
+    // Map the API response to match our DataItem interface
+    rawData.value = response.data.data.map((item: any, index: number) => ({
+      key: index + 1,
+      imageId: item.imageId,
+      ipName: item.ipName,
+      imageName: item.imageName,
+      scene: item.scene,
+      weather: item.weather,
+      emotion: item.emotion,
+      time: item.timePeriod,
+      tags: item.tags || '',
+      imageFileAddress: item.imageFileAddress,
+      updater: item.updater,
+      createTime: item.createTime,
+      updateTime: item.updateTime,
+      id: item.id, // Add id to rawData
+    }));
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // Filter and search logic
 const searchInputValue = ref('');
@@ -510,13 +590,9 @@ const categoryValue = ref({ key: 'all', label: '全部', value: 'all' });
 const weatherValue = ref({ key: 'all', label: '全部', value: 'all' });
 const emotionValue = ref({ key: 'all', label: '全部', value: 'all' });
 const timeValue = ref({ key: 'all', label: '全部', value: 'all' });
-const loading = ref(false);
-const tableSize = ref('middle');
-const currentPage = ref(1);
-const pageSize = ref(10);
 
 const ipNameOptions = computed(() => {
-  const uniqueIpNames = Array.from(new Set(rawData.map(item => item.ipName)));
+  const uniqueIpNames = Array.from(new Set(rawData.value.map(item => item.ipName)));
   const options = uniqueIpNames.map(name => ({
     key: name,
     value: name,
@@ -529,7 +605,7 @@ const ipNameOptions = computed(() => {
 });
 
 const categoryOptions = computed(() => {
-  const uniqueCategories = Array.from(new Set(rawData.map(item => item.scene)));
+  const uniqueCategories = Array.from(new Set(rawData.value.map(item => item.scene)));
   const options = uniqueCategories.map(category => ({
     key: category,
     value: category,
@@ -542,7 +618,7 @@ const categoryOptions = computed(() => {
 });
 
 const weatherOptions = computed(() => {
-  const uniqueWeathers = Array.from(new Set(rawData.map(item => item.weather)));
+  const uniqueWeathers = Array.from(new Set(rawData.value.map(item => item.weather)));
   const options = uniqueWeathers.map(weather => ({
     key: weather,
     value: weather,
@@ -555,7 +631,7 @@ const weatherOptions = computed(() => {
 });
 
 const emotionOptions = computed(() => {
-  const uniqueEmotions = Array.from(new Set(rawData.map(item => item.emotion)));
+  const uniqueEmotions = Array.from(new Set(rawData.value.map(item => item.emotion)));
   const options = uniqueEmotions.map(emotion => ({
     key: emotion,
     value: emotion,
@@ -568,7 +644,7 @@ const emotionOptions = computed(() => {
 });
 
 const timeOptions = computed(() => {
-  const uniqueTimes = Array.from(new Set(rawData.map(item => item.time)));
+  const uniqueTimes = Array.from(new Set(rawData.value.map(item => item.time)));
   const options = uniqueTimes.map(time => ({
     key: time,
     value: time,
@@ -621,7 +697,7 @@ const handleTimeChange = (val: any) => {
 };
 
 const filteredData = computed(() => {
-  let dataToFilter = rawData;
+  let dataToFilter = rawData.value;
 
   // Search filter
   if (searchInputValue.value) {
@@ -751,10 +827,56 @@ const closeCreateModal = () => {
   };
 };
 
-const handleCreateConfirm = () => {
+const removeUploadedFile = () => {
+  createForm.value.imageFile = null;
+};
+
+const handleCreateConfirm = async () => {
   console.log('Create image form submitted:', createForm.value);
-  // Here you would typically send the data to your API
-  closeCreateModal();
+  
+  // Validate required fields
+  if (!createForm.value.ipName || !createForm.value.imageName || !createForm.value.scene || 
+      !createForm.value.weather || !createForm.value.emotion || !createForm.value.timePeriod) {
+    alert('请填写所有必填字段');
+    return;
+  }
+
+  if (!createForm.value.imageFile) {
+    alert('请上传图片文件');
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('ipName', createForm.value.ipName);
+    formData.append('imageName', createForm.value.imageName);
+    formData.append('scene', createForm.value.scene);
+    formData.append('weather', createForm.value.weather);
+    formData.append('emotion', createForm.value.emotion);
+    formData.append('timePeriod', createForm.value.timePeriod);
+    formData.append('tags', createForm.value.tags);
+    formData.append('imageFile', createForm.value.imageFile);
+    formData.append('updater', '管理员');
+
+    const response = await axios.post(`${API_BASE_URL}/ipimage`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 30000
+    });
+
+    if (response.data.success) {
+      alert('图片创建成功');
+      closeCreateModal();
+      fetchData(); // Refresh the data
+    } else {
+      alert('创建失败: ' + (response.data.error || '未知错误'));
+    }
+  } catch (error: any) {
+    console.error('Error creating image:', error);
+    const errorMessage = error.response?.data?.error || error.message || '创建失败';
+    alert('创建失败: ' + errorMessage);
+  }
 };
 
 const triggerFileUpload = () => {
@@ -786,6 +908,7 @@ const handleView = (record: DataItem) => {
 const handleEdit = (record: DataItem) => {
   console.log('Edit:', record);
   showEditModal.value = true;
+  currentEditId.value = record.id; // Use the database ID instead of key
   // Populate edit form with record data
   editForm.value = {
     ipName: record.ipName,
@@ -793,8 +916,8 @@ const handleEdit = (record: DataItem) => {
     scene: record.scene,
     weather: record.weather,
     emotion: record.emotion,
-    timePeriod: record.time || '', // Use time as timePeriod
-    tags: '', // Initialize as empty string
+    timePeriod: record.time,
+    tags: record.tags ? record.tags.split(',').map(tag => tag.trim()) : [],
     imageFile: null // Clear previous file
   };
   // Reset file progress
@@ -808,14 +931,17 @@ const handleDelete = (record: DataItem) => {
 
 const handleIpNameClick = (record: DataItem) => {
   console.log('IP name clicked:', record.ipName);
-};
-
-const handlePreview = (record: DataItem) => {
-  console.log('Preview clicked:', record);
+  // Navigate to IP Management page with search parameter
+  const searchTerm = record.ipName;
+  router.push({
+    path: '/ip-management',
+    query: { search: searchTerm }
+  });
 };
 
 // Edit Modal State and Form
 const showEditModal = ref(false);
+const currentEditId = ref<number | null>(null);
 const editForm = ref({
   ipName: '',
   imageName: '',
@@ -823,12 +949,12 @@ const editForm = ref({
   weather: '',
   emotion: '',
   timePeriod: '',
-  tags: '',
+  tags: [] as string[],
   imageFile: null as File | null
 });
 
-const tagInput = ref<HTMLInputElement>();
 const editFileInput = ref<HTMLInputElement>();
+const tagInput = ref<HTMLInputElement>();
 const showTagInput = ref(false);
 const newTag = ref('');
 const fileUploading = ref(false);
@@ -836,6 +962,7 @@ const uploadProgress = ref(0);
 
 const closeEditModal = () => {
   showEditModal.value = false;
+  currentEditId.value = null; // Clear current edit ID
   // Reset form
   editForm.value = {
     ipName: '',
@@ -844,7 +971,7 @@ const closeEditModal = () => {
     weather: '',
     emotion: '',
     timePeriod: '',
-    tags: '',
+    tags: [],
     imageFile: null
   };
   showTagInput.value = false;
@@ -853,10 +980,49 @@ const closeEditModal = () => {
   uploadProgress.value = 0;
 };
 
-const handleEditConfirm = () => {
+const handleEditConfirm = async () => {
   console.log('Edit image form submitted:', editForm.value);
-  // Here you would typically send the data to your API
-  closeEditModal();
+  
+  // Validate required fields
+  if (!editForm.value.ipName || !editForm.value.imageName || !editForm.value.scene || 
+      !editForm.value.weather || !editForm.value.emotion || !editForm.value.timePeriod) {
+    alert('请填写所有必填字段');
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('ipName', editForm.value.ipName);
+    formData.append('imageName', editForm.value.imageName);
+    formData.append('scene', editForm.value.scene);
+    formData.append('weather', editForm.value.weather);
+    formData.append('emotion', editForm.value.emotion);
+    formData.append('timePeriod', editForm.value.timePeriod);
+    formData.append('tags', editForm.value.tags.join(','));
+    if (editForm.value.imageFile) {
+      formData.append('imageFile', editForm.value.imageFile);
+    }
+    formData.append('updater', '管理员');
+
+    const response = await axios.put(`${API_BASE_URL}/ipimage/${currentEditId.value}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 30000
+    });
+
+    if (response.data.success) {
+      alert('图片更新成功');
+      closeEditModal();
+      fetchData(); // Refresh the data
+    } else {
+      alert('更新失败: ' + (response.data.error || '未知错误'));
+    }
+  } catch (error: any) {
+    console.error('Error updating image:', error);
+    const errorMessage = error.response?.data?.error || error.message || '更新失败';
+    alert('更新失败: ' + errorMessage);
+  }
 };
 
 const triggerEditFileUpload = () => {
@@ -905,19 +1071,49 @@ const removeFile = () => {
 
 const addTag = () => {
   if (newTag.value && newTag.value.trim() && !editForm.value.tags.includes(newTag.value.trim())) {
-    editForm.value.tags += (editForm.value.tags ? ', ' : '') + newTag.value.trim();
+    editForm.value.tags.push(newTag.value.trim());
   }
   showTagInput.value = false;
   newTag.value = '';
 };
 
 const removeTag = (index: number) => {
-  const tags = editForm.value.tags.split(', ');
-  tags.splice(index, 1);
-  editForm.value.tags = tags.join(', ');
+  editForm.value.tags.splice(index, 1);
+};
+
+// Preview Modal State
+const showPreviewModal = ref(false);
+const previewImage = ref('');
+
+const closePreviewModal = () => {
+  showPreviewModal.value = false;
+  previewImage.value = '';
+};
+
+const handlePreview = (record: DataItem) => {
+  console.log('File preview clicked:', record);
+  // Show image in modal instead of new tab
+  previewImage.value = record.imageFileAddress;
+  showPreviewModal.value = true;
+};
+
+const getImageUrl = (imagePath: string) => {
+  // Handle different path formats for image display
+  if (imagePath.startsWith('public\\images\\')) {
+    // Use folder site - get the first image from the folder
+    return `http://localhost:2829/images/top.jpg`;
+  } else if (imagePath.startsWith('\\images\\')) {
+    return `http://localhost:2829/images/top.jpg`;
+  } else if (imagePath.endsWith('\\')) {
+    // Handle folder paths ending with backslash
+    return `http://localhost:2829/images/top.jpg`;
+  } else {
+    return `http://localhost:2829${imagePath}`;
+  }
 };
 
 onMounted(() => {
+  fetchData(); // Call fetchData on mount
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
 });
 
@@ -959,7 +1155,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-right: 30px;
+  padding-right: 60px;
 }
 
 .right-aligned-icons > .anticon {
@@ -1005,23 +1201,23 @@ defineExpose({
 }
 
 :deep(.ip-name-select .ant-select-selector) {
-  padding-left: 80px !important;
+  padding-left: 50px !important;
 }
 
 :deep(.category-select .ant-select-selector) {
-  padding-left: 60px !important;
+  padding-left: 43px !important;
 }
 
 :deep(.weather-select .ant-select-selector) {
-  padding-left: 60px !important;
+  padding-left: 43px !important;
 }
 
 :deep(.emotion-select .ant-select-selector) {
-  padding-left: 60px !important;
+  padding-left: 43px !important;
 }
 
 :deep(.time-select .ant-select-selector) {
-  padding-left: 60px !important;
+  padding-left: 43px !important;
 }
 
 :deep(.ant-select-selector),
@@ -1389,5 +1585,64 @@ defineExpose({
   background-color: #1890ff;
   border-radius: 4px;
   transition: width 0.3s ease-in-out;
+}
+
+/* Image thumbnail styles */
+.image-thumbnail {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #d9d9d9;
+  transition: all 0.3s;
+}
+
+.image-thumbnail:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* New styles for preview modal */
+.preview-modal-content {
+  background: white;
+  border-radius: 8px;
+  width: auto;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-modal-body {
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+}
+
+.image-preview-container {
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.no-image-message {
+  text-align: center;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 14px;
 }
 </style> 

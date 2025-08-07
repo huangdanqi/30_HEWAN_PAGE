@@ -5,27 +5,11 @@
     </div>
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
-        <div class="select-container" style="margin-right: 16px;">
-          <span class="select-always-placeholder">闹铃类型:</span>
-          <a-select v-model:value="alarmTypeValue" style="width: 120px;" placeholder="全部">
-            <a-select-option value="all">全部</a-select-option>
-            <a-select-option value="定时">定时</a-select-option>
-            <a-select-option value="事件">事件</a-select-option>
-          </a-select>
-        </div>
-        <div class="select-container" style="margin-right: 16px;">
-          <span class="select-always-placeholder">状态:</span>
-          <a-select v-model:value="statusValue" style="width: 120px;" placeholder="全部">
-            <a-select-option value="all">全部</a-select-option>
-            <a-select-option value="启用">启用</a-select-option>
-            <a-select-option value="禁用">禁用</a-select-option>
-          </a-select>
-        </div>
-      </div>
-      <div class="right-aligned-icons">
-        <a-input v-model:value="searchInputValue" placeholder="请输入关键词" style="width: 200px; margin-right: 16px;">
+        <a-input v-model:value="searchInputValue" placeholder="Q 输入关键字搜索" style="width: 200px; margin-right: 16px;">
           <template #prefix><SearchOutlined /></template>
         </a-input>
+      </div>
+      <div class="right-aligned-icons">
         <a-button type="primary" style="margin-right: 16px;" @click="showCreateModal = true">新建闹铃</a-button>
         <!-- 新建闹铃 Modal -->
         <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
@@ -79,6 +63,12 @@
         @change="handleTableChange"
       >
         <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'audition'">
+            <a-button type="link" size="small" @click="handleAudition(record)">
+              <PlayCircleOutlined v-if="!record.isPlaying" />
+              <PauseCircleOutlined v-else />
+            </a-button>
+          </template>
           <template v-if="column.key === 'operation'">
             <a-space class="action-cell">
               <a class="view-link" @click="handleView(record)">查看</a>
@@ -145,7 +135,7 @@
 import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, SettingOutlined, SearchOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
+import { ReloadOutlined, SettingOutlined, SearchOutlined, InfoCircleOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
 import { createColumnConfigs, useTableColumns, createColumn, type ColumnDefinition } from '../utils/tableConfig';
 
 const customLocale = computed(() => ({
@@ -157,25 +147,19 @@ interface AlarmItem {
   key: number;
   alarmId: string;
   alarmName: string;
-  alarmType: string;
-  status: string;
-  time: string;
-  repeat: string;
-  sound: string;
+  alarmFileAddress: string;
   updater: string;
   createTime: string;
   updateTime: string;
+  isPlaying: boolean; // Add isPlaying property
 }
 
 const columnDefinitions: ColumnDefinition[] = [
   createColumn('rowIndex', '序号', 'rowIndex', 60, { fixed: 'left' }),
-  createColumn('alarmId', '闹铃ID', 'alarmId', 150),
+  createColumn('alarmId', '闹铃 ID', 'alarmId', 150),
   createColumn('alarmName', '闹铃名称', 'alarmName', 120),
-  createColumn('alarmType', '闹铃类型', 'alarmType', 100),
-  createColumn('status', '状态', 'status', 80),
-  createColumn('time', '时间', 'time', 120),
-  createColumn('repeat', '重复', 'repeat', 100),
-  createColumn('sound', '铃声文件', 'sound', 200),
+  createColumn('alarmFileAddress', '闹铃文件地址', 'alarmFileAddress', 200),
+  createColumn('audition', '试听', 'audition', 80),
   createColumn('updater', '更新人', 'updater', 120),
   createColumn('createTime', '创建时间', 'createTime', 150),
   createColumn('updateTime', '更新时间', 'updateTime', 150),
@@ -183,28 +167,101 @@ const columnDefinitions: ColumnDefinition[] = [
 ];
 
 const columnConfigs = createColumnConfigs(columnDefinitions);
-const { columns, selectedColumnKeys, handleTableChange } = useTableColumns(columnConfigs);
+
+// Add custom render for rowIndex column
+const updatedColumnConfigs = columnConfigs.map(config => {
+  if (config.key === 'rowIndex') {
+    return {
+      ...config,
+      customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1
+    };
+  }
+  return config;
+});
+
+// Use the table columns composable
+const {
+  columns,
+  columnOrder,
+  selectedColumnKeys,
+  sorterInfo,
+  resetColumns,
+  onColumnOrderChange,
+  handleColumnVisibilityChange,
+  handleTableChange,
+} = useTableColumns(updatedColumnConfigs);
 
 const rawData: AlarmItem[] = [];
 for (let i = 0; i < 20; i++) {
   rawData.push({
     key: i + 1,
-    alarmId: 'hywhz832y2f',
-    alarmName: '起床闹铃',
-    alarmType: '定时',
-    status: '启用',
-    time: '07:00',
-    repeat: '每天',
-    sound: 'https://example.com/ring.mp3',
+    alarmId: 'hjhwn832nj2f',
+    alarmName: '清晨的风铃',
+    alarmFileAddress: 'https://example.com/firmware.bin',
     updater: '33',
-    createTime: '2025-7-19 19:25:11',
-    updateTime: '2025-7-19 19:25:11',
+    createTime: '2025-7-13 19:25:11',
+    updateTime: '2025-7-13 19:25:11',
+    isPlaying: false // Initialize isPlaying
   });
 }
 
+// Audio elements management
+const audioElements = ref<Map<number, HTMLAudioElement>>(new Map()); // Store audio elements
+
+const handleAudition = (record: AlarmItem) => {
+  console.log('Audition clicked:', record);
+  
+  // Get or create the audio element for this record
+  let audioElement = audioElements.value.get(record.key);
+
+  if (!audioElement) {
+    // Construct the full URL for the audio file using the backend server
+    const audioUrl = `http://localhost:2829${record.alarmFileAddress}`;
+    console.log('Audio URL:', audioUrl);
+    
+    audioElement = new Audio(audioUrl);
+    audioElements.value.set(record.key, audioElement);
+    
+    // Add event listener for when audio ends
+    audioElement.addEventListener('ended', () => {
+      record.isPlaying = false;
+    });
+    
+    // Add event listener for when audio is paused
+    audioElement.addEventListener('pause', () => {
+      record.isPlaying = false;
+    });
+  }
+
+  if (record.isPlaying) {
+    // Currently playing, so stop it
+    audioElement.pause();
+    record.isPlaying = false;
+  } else {
+    // Currently stopped, so play it
+    // Stop any other currently playing audio
+    audioElements.value.forEach((el, id) => {
+      if (id !== record.key && el.readyState > 0) {
+        el.pause();
+        // Find and update the corresponding record
+        const otherRecord = rawData.find(item => item.key === id);
+        if (otherRecord) {
+          otherRecord.isPlaying = false;
+        }
+      }
+    });
+    
+    // Play the audio
+    audioElement.play().catch(error => {
+      console.error('Error playing audio:', error);
+      // If the file doesn't exist, show a message
+      alert('闹铃文件不存在或无法播放');
+      record.isPlaying = false; // Revert to false on error
+    });
+  }
+};
+
 const searchInputValue = ref('');
-const alarmTypeValue = ref('all');
-const statusValue = ref('all');
 const loading = ref(false);
 const tableSize = ref('middle');
 const currentPage = ref(1);
@@ -217,12 +274,6 @@ const filteredData = computed(() => {
     data = data.filter(item => 
       Object.values(item).some(val => typeof val === 'string' && val.toLowerCase().includes(term))
     );
-  }
-  if (alarmTypeValue.value !== 'all') {
-    data = data.filter(item => item.alarmType === alarmTypeValue.value);
-  }
-  if (statusValue.value !== 'all') {
-    data = data.filter(item => item.status === statusValue.value);
   }
   return data;
 });

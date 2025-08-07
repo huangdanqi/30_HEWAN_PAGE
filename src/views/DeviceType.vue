@@ -83,7 +83,7 @@
         :showSorterTooltip="false"
       >
       <template #bodyCell="{ column, record }">
-      <template v-if="column.key === 'operation_10'">
+      <template v-if="column.key === 'operation_9'">
         <a-space class="action-cell" direction="horizontal">
           <a class="view-link" @click="$emit('view-record', record)">查看</a>
           <a-divider type="vertical" />
@@ -91,21 +91,31 @@
           <a-divider type="vertical" />
           <a-popconfirm
             title="确定要删除该设备型号吗?"
-            @confirm="$emit('delete-record', record)"
+            @confirm="handleDeleteRecord(record)"
           >
             <a class="danger-link">删除</a>
           </a-popconfirm>
         </a-space>
       </template>
-      <template v-else-if="column.key === 'latestFirmwareVersion_7'">
-        <a class="firmware-link">{{ record.latestFirmwareVersion }}</a>
+      <template v-else-if="column.key === 'latestFirmwareVersion_5'">
+        <a v-if="record.latestFirmwareVersion" class="link-text" @click="handleFirmwareVersionClick(record.latestFirmwareVersion, record)">{{ record.latestFirmwareVersion }}</a>
+        <span v-else class="no-data-text">{{ record.latestFirmwareVersion || '-' }}</span>
       </template>
-      <template v-else-if="column.key === 'creator_8'">
-        <a-avatar size="small" style="margin-right: 4px;">3D</a-avatar>
-        <span>3D</span>
+      <template v-else-if="column.key === 'updater_6'">
+        <span>{{ record.updater }}</span>
       </template>
     </template>
       </a-table>
+      
+      <!-- No data message -->
+      <div v-if="showNoDataMessage" class="no-data-message">
+        <a-empty 
+          :description="noDataMessage"
+          :image="Empty.PRESENTED_IMAGE_SIMPLE"
+        >
+          <a-button type="primary" @click="clearSearch">清除搜索</a-button>
+        </a-empty>
+      </div>
     </div>
 
     <!-- 新建设备型号 Modal -->
@@ -121,8 +131,8 @@
         layout="vertical"
         ref="createDeviceTypeFormRef"
       >
-        <a-form-item label="设备型号" name="deviceModel" required>
-          <a-input v-model:value="createDeviceTypeForm.deviceModel" placeholder="请输入" />
+        <a-form-item label="设备型号名称" name="deviceModelName" required>
+          <a-input v-model:value="createDeviceTypeForm.deviceModelName" placeholder="请输入" maxlength="10" />
         </a-form-item>
 
         <a-form-item label="介绍" name="introduction" required>
@@ -130,22 +140,25 @@
             v-model:value="createDeviceTypeForm.introduction" 
             placeholder="请输入" 
             :rows="4"
+            maxlength="2000"
+            show-count
           />
         </a-form-item>
 
         <a-form-item label="是否开通4G" name="enable4G" required>
           <a-radio-group v-model:value="createDeviceTypeForm.enable4G">
-            <a-radio value="yes">是</a-radio>
-            <a-radio value="no">否</a-radio>
+            <a-radio value="是">是</a-radio>
+            <a-radio value="否">否</a-radio>
           </a-radio-group>
         </a-form-item>
 
         <a-form-item label="最新可更新的固件版本" name="latestFirmwareVersion">
-          <a-select v-model:value="createDeviceTypeForm.latestFirmwareVersion" placeholder="请选择">
-            <a-select-option value="ZSW V1.0.0">ZSW V1.0.0</a-select-option>
-            <a-select-option value="ZSW V1.1.0">ZSW V1.1.0</a-select-option>
-            <a-select-option value="ZSW V1.2.0">ZSW V1.2.0</a-select-option>
-            <a-select-option value="ZSW V2.0.0">ZSW V2.0.0</a-select-option>
+          <a-select 
+            v-model:value="createDeviceTypeForm.latestFirmwareVersion" 
+            placeholder="请选择"
+            :options="firmwareVersionOptions"
+            :disabled="!createDeviceTypeForm.deviceModelName"
+          >
           </a-select>
         </a-form-item>
       </a-form>
@@ -171,8 +184,8 @@
         layout="vertical"
         ref="editDeviceTypeFormRef"
       >
-        <a-form-item label="设备型号" name="deviceModel" required>
-          <a-input v-model:value="editDeviceTypeForm.deviceModel" placeholder="请输入" />
+        <a-form-item label="设备型号名称" name="deviceModelName" required>
+          <a-input v-model:value="editDeviceTypeForm.deviceModelName" placeholder="请输入" maxlength="10" />
         </a-form-item>
 
         <a-form-item label="介绍" name="introduction" required>
@@ -180,26 +193,25 @@
             v-model:value="editDeviceTypeForm.introduction" 
             placeholder="请输入" 
             :rows="4"
+            maxlength="2000"
+            show-count
           />
         </a-form-item>
 
         <a-form-item label="是否开通4G" name="enable4G" required>
           <a-radio-group v-model:value="editDeviceTypeForm.enable4G">
-            <a-radio value="yes">是</a-radio>
-            <a-radio value="no">否</a-radio>
+            <a-radio value="是">是</a-radio>
+            <a-radio value="否">否</a-radio>
           </a-radio-group>
         </a-form-item>
 
         <a-form-item label="最新可更新的固件版本" name="latestFirmwareVersion">
-          <a-select v-model:value="editDeviceTypeForm.latestFirmwareVersion" placeholder="请选择">
-            <a-select-option value="HWZ001 V 1.0.0">HWZ001 V 1.0.0</a-select-option>
-            <a-select-option value="HWZ001 V 1.1.0">HWZ001 V 1.1.0</a-select-option>
-            <a-select-option value="HWZ001 V 1.2.0">HWZ001 V 1.2.0</a-select-option>
-            <a-select-option value="HWZ001 V 2.0.0">HWZ001 V 2.0.0</a-select-option>
-            <a-select-option value="ZSW V1.0.0">ZSW V1.0.0</a-select-option>
-            <a-select-option value="ZSW V1.1.0">ZSW V1.1.0</a-select-option>
-            <a-select-option value="ZSW V1.2.0">ZSW V1.2.0</a-select-option>
-            <a-select-option value="ZSW V2.0.0">ZSW V2.0.0</a-select-option>
+          <a-select 
+            v-model:value="editDeviceTypeForm.latestFirmwareVersion" 
+            placeholder="请选择"
+            :options="editFirmwareVersionOptions"
+            :disabled="!editDeviceTypeForm.deviceModelName"
+          >
           </a-select>
         </a-form-item>
       </a-form>
@@ -219,7 +231,18 @@ import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 import draggable from 'vuedraggable';
+import { useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
+import { Empty } from 'ant-design-vue';
+import axios from 'axios';
+
+const route = useRoute();
+const router = useRouter();
+
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -230,16 +253,16 @@ const customLocale = computed(() => ({
 }));
 
 interface DataItem {
-  key: number;
+  id?: number;
+  key?: number;
   deviceModelId: string; // 设备型号ID
   deviceModelName: string; // 设备型号名称
-  productName: string; // 产品名称
-  productId: string; // 产品ID
-  firmwareVersion: string; // 固件版本
+  introduction: string; // 介绍
+  enable4G: string; // 开通4G
   latestFirmwareVersion: string; // 最新可更新固件版本
-  creator: string; // 创建人
-  createdAt: string; // 创建时间
-  updatedAt: string; // 更新时间
+  updater: string; // 更新人
+  createTime: string; // 创建时间
+  updateTime: string; // 更新时间
 }
 
 // Define column configuration separately from the table columns
@@ -260,15 +283,14 @@ interface ColumnConfig {
 const columnConfigs: ColumnConfig[] = [
   { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
   { key: 'deviceModelId_1', title: '设备型号ID', dataIndex: 'deviceModelId', width: 150 },
-  { key: 'deviceModelName_2', title: '设备型号名称', dataIndex: 'deviceModelName', width: 300 },
-  { key: 'productName_3', title: '产品名称', dataIndex: 'productName', width: 120 },
-  { key: 'productId_4', title: '产品ID', dataIndex: 'productId', width: 120 },
-  { key: 'firmwareVersion_5', title: '固件版本', dataIndex: 'firmwareVersion', width: 150 },
-  { key: 'latestFirmwareVersion_6', title: '最新可更新固件版本', dataIndex: 'latestFirmwareVersion', width: 200 },
-  { key: 'creator_7', title: '创建人', dataIndex: 'creator', width: 100 },
-  { key: 'createdAt_8', title: '创建时间', dataIndex: 'createdAt', width: 150, sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updatedAt_9', title: '更新时间', dataIndex: 'updatedAt', width: 150, sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation_10', title: '操作', dataIndex: '', width: 150, fixed: 'right' },
+  { key: 'deviceModelName_2', title: '设备型号名称', dataIndex: 'deviceModelName', width: 120 },
+  { key: 'introduction_3', title: '介绍', dataIndex: 'introduction', width: 300 },
+  { key: 'enable4G_4', title: '开通4G', dataIndex: 'enable4G', width: 100 },
+  { key: 'latestFirmwareVersion_5', title: '最新可更新固件版本', dataIndex: 'latestFirmwareVersion', width: 200 },
+  { key: 'updater_6', title: '更新人', dataIndex: 'updater', width: 120 },
+  { key: 'createTime_7', title: '创建时间', dataIndex: 'createTime', width: 150, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'updateTime_8', title: '更新时间', dataIndex: 'updateTime', width: 150, sorter: (a, b) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'operation_9', title: '操作', dataIndex: '', width: 180, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -313,87 +335,168 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-const rawData: DataItem[] = [];
-const deviceModelNames = [
-  'ESP32-S3芯片，带WIFI和蓝牙功能，加入4G模块，支持语音识别和语音合成',
-  'ESP32-S3芯片，带WIFI和蓝牙功能，加入4G模块，支持语音识别和语音合成，支持AI对话',
-  'ESP32-S3芯片，带WIFI和蓝牙功能，加入4G模块，支持语音识别和语音合成，支持AI对话，支持情感识别',
-  'ESP32-S3芯片，带WIFI和蓝牙功能，加入4G模块，支持语音识别和语音合成，支持AI对话，支持情感识别，支持多模态交互'
-];
-const productNames = ['HXZ001', 'HXZ002', 'HXZ003', 'HXZ004'];
-const firmwareVersions = ['ZSW V1.0.0', 'ZSW V1.1.0', 'ZSW V1.2.0', 'ZSW V2.0.0'];
+// Replace static data with reactive data
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
+const total = ref(0); // New ref for total items
 
-for (let i = 0; i < 100; i++) {
-  const date = new Date(2025, 6, 12, 19, 25, 11); // Example base date
-  date.setDate(date.getDate() + i); // Vary date by day for each record
-  date.setHours(date.getHours() + (i % 24)); // Vary hours
-  date.setMinutes(date.getMinutes() + (i % 60)); // Vary minutes
-  date.setSeconds(date.getSeconds() + (i % 60)); // Vary seconds
+// API functions
+const fetchDeviceTypes = async () => {
+  try {
+    loading.value = true;
+    console.log('Fetching device types with page:', currentPage.value, 'pageSize:', pageSize.value);
+    
+    const response = await axios.get(`${API_BASE_URL}/device-type`, {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value
+      }
+    });
+    
+    console.log('API Response:', response.data);
+    
+    if (response.data && response.data.data) {
+      // Server-side pagination response
+      rawData.value = response.data.data.map((item: any, index: number) => {
+        console.log(`Item ${index}:`, item);
+        return {
+          ...item,
+          key: index + 1
+        };
+      });
+      console.log('Processed rawData:', rawData.value);
+      
+      // Update pagination info from server
+      if (response.data.pagination) {
+        currentPage.value = response.data.pagination.current;
+        pageSize.value = response.data.pagination.pageSize;
+        total.value = response.data.pagination.total;
+        
+        console.log('Updated pagination - current:', currentPage.value, 'pageSize:', pageSize.value, 'total:', total.value);
+      }
+    } else if (response.data && Array.isArray(response.data)) {
+      // Fallback for old API format
+      rawData.value = response.data.map((item: any, index: number) => {
+        console.log(`Item ${index}:`, item);
+        return {
+          ...item,
+          key: index + 1
+        };
+      });
+      total.value = response.data.length;
+      console.log('Processed rawData:', rawData.value);
+    } else {
+      message.error('获取数据失败：服务器返回无效数据');
+      rawData.value = [];
+      total.value = 0;
+    }
+  } catch (error: any) {
+    console.error('Error fetching device types:', error);
+    
+    // Handle different types of errors
+    if (error.response) {
+      // Server responded with error status
+      if (error.response.status === 404) {
+        message.error('错误：设备型号表不存在，请检查数据库');
+      } else if (error.response.status === 500) {
+        message.error('错误：数据库连接失败或表结构错误');
+      } else {
+        message.error(`获取数据失败：${error.response.data?.message || '服务器错误'}`);
+      }
+    } else if (error.request) {
+      // Network error
+      message.error('错误：无法连接到服务器，请检查网络连接');
+    } else {
+      // Other errors
+      message.error('错误：获取数据时发生未知错误');
+    }
+    
+    // Set empty data instead of fallback data
+    rawData.value = [];
+    total.value = 0;
+  } finally {
+    loading.value = false;
+  }
+};
 
-  const createdAt = date.toISOString().slice(0, 19).replace('T', ' ');
-  const updatedDate = new Date(date);
-  updatedDate.setHours(date.getHours() + 2);
-  const updatedAt = updatedDate.toISOString().slice(0, 19).replace('T', ' ');
+const createDeviceType = async (deviceTypeData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/device-type`, deviceTypeData);
+    await fetchDeviceTypes(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error creating device type:', error);
+    throw error;
+  }
+};
 
-  rawData.push({
-    key: i + 1,
-    deviceModelId: `njhwr800y${27 + i}`,
-    deviceModelName: deviceModelNames[i % deviceModelNames.length],
-    productName: productNames[i % productNames.length],
-    productId: productNames[i % productNames.length],
-    firmwareVersion: firmwareVersions[i % firmwareVersions.length],
-    latestFirmwareVersion: firmwareVersions[i % firmwareVersions.length],
-    creator: '3D',
-    createdAt: createdAt,
-    updatedAt: updatedAt,
-  });
-}
+const updateDeviceType = async (id: number, deviceTypeData: Partial<DataItem>) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/device-type/${id}`, deviceTypeData);
+    await fetchDeviceTypes(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error updating device type:', error);
+    throw error;
+  }
+};
 
-console.log('Raw Data:', rawData);
+const deleteDeviceType = async (id: number) => {
+  try {
+    await axios.delete(`${API_BASE_URL}/device-type/${id}`);
+    await fetchDeviceTypes(); // Refresh data
+  } catch (error) {
+    console.error('Error deleting device type:', error);
+    throw error;
+  }
+};
 
 const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sorterInfo = ref<any>({
-  columnKey: 'updatedAt',
+  columnKey: 'updateTime',
   order: 'descend',
 });
 
+// Create pagination handlers as separate functions
+const handlePageChange = (page: number, size: number) => {
+  console.log('handlePageChange called:', page, size);
+  currentPage.value = page;
+  pageSize.value = size;
+  fetchDeviceTypes();
+};
+
+const handlePageSizeChange = (current: number, size: number) => {
+  console.log('handlePageSizeChange called:', current, size);
+  currentPage.value = current;
+  pageSize.value = size;
+  fetchDeviceTypes();
+};
+
 const pagination = computed(() => ({
-  total: rawData.length, 
+  total: total.value, 
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true, 
   pageSizeOptions: ['10', '20', '50'], 
   showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
   showQuickJumper: { goButton: '页' }, 
-  onShowSizeChange: (current: number, size: number) => {
-    console.log('onShowSizeChange', current, size);
-    currentPage.value = current;
-    pageSize.value = size;
-  },
-  onChange: (page: number, size: number) => {
-    console.log('onChange', page, size);
-    currentPage.value = page;
-    pageSize.value = size;
-  },
+  onShowSizeChange: handlePageSizeChange,
+  onChange: handlePageChange,
 }));
 
 const onRefresh = () => {
   console.log('Refresh button clicked!');
-  loading.value = true; // Show loading icon
   searchInputValue.value = '';
   currentPage.value = 1;
+  pageSize.value = 10;
   resetColumns(); // Reset column order and visibility
-
-  // Simulate data fetching
-  setTimeout(() => {
-    loading.value = false; // Hide loading icon after a delay
-  }, 500); // Adjust delay as needed
+  fetchDeviceTypes(); // Fetch fresh data from API
 };
 
 const filteredData = computed(() => {
-  let dataToFilter = rawData;
+  let dataToFilter = rawData.value;
 
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
@@ -421,12 +524,46 @@ const filteredData = computed(() => {
 
 const searchInputValue = ref('');
 
+// Handle search parameter from URL
+onMounted(() => {
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+  }
+  fetchDeviceTypes(); // Fetch data on component mount
+});
+
+// Computed property to show no data message
+const showNoDataMessage = computed(() => {
+  return searchInputValue.value && filteredData.value.length === 0;
+});
+
+// Computed property for no data message
+const noDataMessage = computed(() => {
+  if (searchInputValue.value && filteredData.value.length === 0) {
+    return `未找到包含 "${searchInputValue.value}" 的数据`;
+  }
+  return '';
+});
+
+const clearSearch = () => {
+  searchInputValue.value = '';
+};
+
 const handleTableChange = (
   paginationData: any,
   filters: any,
   sorter: any,
 ) => {
   console.log('Table change:', paginationData, filters, sorter);
+  
+  // Handle pagination changes - this is handled by the pagination handlers
+  if (paginationData && (paginationData.current !== currentPage.value || paginationData.pageSize !== pageSize.value)) {
+    currentPage.value = paginationData.current;
+    pageSize.value = paginationData.pageSize;
+    fetchDeviceTypes(); // Fetch fresh data when pagination changes
+    return; // Exit early to avoid duplicate calls
+  }
+  
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
 
   if (currentSorter && currentSorter.order) {
@@ -434,23 +571,20 @@ const handleTableChange = (
       columnKey: currentSorter.columnKey,
       order: currentSorter.order,
     };
+    fetchDeviceTypes(); // Fetch fresh data when sorting changes
   } else {
     // When sorting is cleared, revert to default
     sorterInfo.value = {
-      columnKey: 'updatedAt',
+      columnKey: 'updateTime',
       order: 'descend',
     };
+    fetchDeviceTypes(); // Fetch fresh data when sorting is cleared
   }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
 };
 
 const onSettingClick = () => {
   console.log('Setting clicked');
 };
-
-const loading = ref(false); // Add a loading state
 
 const tableSize = ref('middle'); // Default table size
 
@@ -493,15 +627,77 @@ const handleCreateDeviceType = () => {
 // Create device type modal state variables
 const showCreateDeviceTypeModal = ref(false);
 const createDeviceTypeForm = ref({
-  deviceModel: '',
+  deviceModelName: '',
   introduction: '',
-  enable4G: 'yes',
+  enable4G: '是',
   latestFirmwareVersion: ''
 });
 
+// Computed property for firmware version options based on device model
+const firmwareVersionOptions = computed(() => {
+  if (!createDeviceTypeForm.value.deviceModelName) {
+    return [];
+  }
+  
+  // Get firmware versions for the selected device model
+  // This would typically come from an API call, but for now we'll use static data
+  const deviceModel = createDeviceTypeForm.value.deviceModelName;
+  
+  // Filter firmware versions based on device model
+  // In a real implementation, this would be fetched from the backend
+  const firmwareVersions = [
+    { value: 'Z001 V 1.0.0', label: 'Z001 V 1.0.0' },
+    { value: 'Z001 V 1.1.0', label: 'Z001 V 1.1.0' },
+    { value: 'Z001 V 1.2.0', label: 'Z001 V 1.2.0' },
+    { value: 'Z001 V 2.0.0', label: 'Z001 V 2.0.0' },
+    { value: 'Z001 V 2.1.0', label: 'Z001 V 2.1.0' },
+    { value: 'Z001 V 2.2.0', label: 'Z001 V 2.2.0' },
+    { value: 'Z001 V 3.0.0', label: 'Z001 V 3.0.0' },
+    { value: 'Z001 V 3.1.0', label: 'Z001 V 3.1.0' },
+    { value: 'Z001 V 3.2.0', label: 'Z001 V 3.2.0' },
+    { value: 'Z001 V 3.3.0', label: 'Z001 V 3.3.0' },
+    { value: 'Z001 V 3.4.0', label: 'Z001 V 3.4.0' },
+    { value: 'Z001 V 3.5.0', label: 'Z001 V 3.5.0' },
+    { value: 'Z001 V 4.0.0', label: 'Z001 V 4.0.0' },
+    { value: 'Z001 V 4.1.0', label: 'Z001 V 4.1.0' },
+    { value: 'Z001 V 4.2.0', label: 'Z001 V 4.2.0' },
+    { value: 'Z001 V 4.3.0', label: 'Z001 V 4.3.0' },
+    { value: 'Z001 V 4.4.0', label: 'Z001 V 4.4.0' },
+    { value: 'Z001 V 4.5.0', label: 'Z001 V 4.5.0' },
+    { value: 'Z001 V 5.0.0', label: 'Z001 V 5.0.0' }
+  ];
+  
+  return firmwareVersions;
+});
+
+// Custom validator for unique device model name
+const validateUniqueDeviceModelName = (rule: any, value: string) => {
+  if (!value) {
+    return Promise.resolve();
+  }
+  
+  // Check if the name already exists in the current data
+  const existingDevice = rawData.value.find(item => 
+    item.deviceModelName.toLowerCase() === value.toLowerCase()
+  );
+  
+  if (existingDevice) {
+    return Promise.reject('设备型号名称已存在，请使用其他名称');
+  }
+  
+  return Promise.resolve();
+};
+
 const createDeviceTypeFormRules = {
-  deviceModel: [{ required: true, message: '请输入设备型号', trigger: 'blur' }],
-  introduction: [{ required: true, message: '请输入介绍', trigger: 'blur' }],
+  deviceModelName: [
+    { required: true, message: '请输入设备型号名称', trigger: 'blur' },
+    { max: 10, message: '设备型号名称不能超过10个字符', trigger: 'blur' },
+    { validator: validateUniqueDeviceModelName, trigger: 'blur' }
+  ],
+  introduction: [
+    { required: true, message: '请输入介绍', trigger: 'blur' },
+    { max: 2000, message: '介绍不能超过2000个字符', trigger: 'blur' }
+  ],
   enable4G: [{ required: true, message: '请选择是否开通4G', trigger: 'change' }]
 };
 
@@ -513,9 +709,9 @@ const handleCreateDeviceTypeModalCancel = () => {
   createDeviceTypeFormRef.value?.resetFields();
   // Reset form data
   createDeviceTypeForm.value = {
-    deviceModel: '',
+    deviceModelName: '',
     introduction: '',
-    enable4G: 'yes',
+    enable4G: '是',
     latestFirmwareVersion: ''
   };
 };
@@ -524,26 +720,68 @@ const handleCreateDeviceTypeModalConfirm = async () => {
   try {
     await createDeviceTypeFormRef.value?.validate();
     console.log('Create device type form data:', createDeviceTypeForm.value);
-    // Here you would typically send the data to your API
+    
+    // Prepare data for API
+    const deviceTypeData = {
+      deviceModelId: 'hjhwn832nj2f', // Default ID
+      deviceModelName: createDeviceTypeForm.value.deviceModelName,
+      introduction: createDeviceTypeForm.value.introduction,
+      enable4G: createDeviceTypeForm.value.enable4G,
+      latestFirmwareVersion: createDeviceTypeForm.value.latestFirmwareVersion,
+      updater: '33' // Default updater
+    };
+    
+    await createDeviceType(deviceTypeData);
     showCreateDeviceTypeModal.value = false;
     createDeviceTypeFormRef.value?.resetFields();
   } catch (error) {
-    console.error('Form validation failed:', error);
+    console.error('Form validation or API call failed:', error);
   }
 };
 
 // Edit device type modal state variables
 const showEditDeviceTypeModal = ref(false);
 const editDeviceTypeForm = ref({
-  deviceModel: '',
+  deviceModelName: '',
   introduction: '',
-  enable4G: 'yes',
+  enable4G: '是',
   latestFirmwareVersion: ''
 });
 
+// Computed property for edit form firmware version options
+const editFirmwareVersionOptions = computed(() => {
+  if (!editDeviceTypeForm.value.deviceModelName) {
+    return [];
+  }
+  
+  // Get firmware versions for the selected device model in edit form
+  const deviceModel = editDeviceTypeForm.value.deviceModelName;
+  
+  // Filter firmware versions based on device model
+  const firmwareVersions = [
+    { value: 'HWZ001 V 1.0.0', label: 'HWZ001 V 1.0.0' },
+    { value: 'HWZ001 V 1.1.0', label: 'HWZ001 V 1.1.0' },
+    { value: 'HWZ001 V 1.2.0', label: 'HWZ001 V 1.2.0' },
+    { value: 'HWZ001 V 2.0.0', label: 'HWZ001 V 2.0.0' },
+    { value: 'ZSW V1.0.0', label: 'ZSW V1.0.0' },
+    { value: 'ZSW V1.1.0', label: 'ZSW V1.1.0' },
+    { value: 'ZSW V1.2.0', label: 'ZSW V1.2.0' },
+    { value: 'ZSW V2.0.0', label: 'ZSW V2.0.0' }
+  ];
+  
+  return firmwareVersions;
+});
+
 const editDeviceTypeFormRules = {
-  deviceModel: [{ required: true, message: '请输入设备型号', trigger: 'blur' }],
-  introduction: [{ required: true, message: '请输入介绍', trigger: 'blur' }],
+  deviceModelName: [
+    { required: true, message: '请输入设备型号名称', trigger: 'blur' },
+    { max: 10, message: '设备型号名称不能超过10个字符', trigger: 'blur' },
+    { validator: validateUniqueDeviceModelName, trigger: 'blur' }
+  ],
+  introduction: [
+    { required: true, message: '请输入介绍', trigger: 'blur' },
+    { max: 2000, message: '介绍不能超过2000个字符', trigger: 'blur' }
+  ],
   enable4G: [{ required: true, message: '请选择是否开通4G', trigger: 'change' }]
 };
 
@@ -555,9 +793,9 @@ const handleEditDeviceTypeModalCancel = () => {
   editDeviceTypeFormRef.value?.resetFields();
   // Reset form data
   editDeviceTypeForm.value = {
-    deviceModel: '',
+    deviceModelName: '',
     introduction: '',
-    enable4G: 'yes',
+    enable4G: '是',
     latestFirmwareVersion: ''
   };
 };
@@ -566,22 +804,36 @@ const handleEditDeviceTypeModalConfirm = async () => {
   try {
     await editDeviceTypeFormRef.value?.validate();
     console.log('Edit device type form data:', editDeviceTypeForm.value);
-    // Here you would typically send the data to your API
-    showEditDeviceTypeModal.value = false;
-    editDeviceTypeFormRef.value?.resetFields();
+    
+    // Find the record to update
+    const recordToUpdate = rawData.value.find(item => 
+      item.deviceModelName === editDeviceTypeForm.value.deviceModelName
+    );
+    
+    if (recordToUpdate && recordToUpdate.id) {
+      const updateData = {
+        deviceModelName: editDeviceTypeForm.value.deviceModelName,
+        introduction: editDeviceTypeForm.value.introduction,
+        enable4G: editDeviceTypeForm.value.enable4G,
+        latestFirmwareVersion: editDeviceTypeForm.value.latestFirmwareVersion
+      };
+      
+      await updateDeviceType(recordToUpdate.id, updateData);
+      showEditDeviceTypeModal.value = false;
+      editDeviceTypeFormRef.value?.resetFields();
+    }
   } catch (error) {
-    console.error('Form validation failed:', error);
+    console.error('Form validation or API call failed:', error);
   }
 };
 
 const handleEditDeviceType = (record: DataItem) => {
-  console.log('Edit device type clicked for record:', record);
-  // Pre-fill the form with data from the selected row
+  console.log('Edit device type:', record);
   editDeviceTypeForm.value = {
-    deviceModel: record.productName || 'HWZ001',
-    introduction: record.deviceModelName || 'ESP32-S3芯片,自带Wi-Fi和蓝牙功能,加入4G模块,支持语音识别和语音合成',
-    enable4G: 'yes', // Default to yes for 4G enabled devices
-    latestFirmwareVersion: record.latestFirmwareVersion || 'HWZ001 V 1.0.0'
+    deviceModelName: record.deviceModelName,
+    introduction: record.introduction,
+    enable4G: record.enable4G,
+    latestFirmwareVersion: record.latestFirmwareVersion
   };
   showEditDeviceTypeModal.value = true;
 };
@@ -593,6 +845,52 @@ onMounted(() => {
 defineExpose({
   handleTableChange, // Explicitly expose handleTableChange
 });
+
+// Handle delete record
+const handleDeleteRecord = async (record: DataItem) => {
+  try {
+    if (record.id) {
+      await deleteDeviceType(record.id);
+    }
+  } catch (error) {
+    console.error('Error deleting record:', error);
+  }
+};
+
+const handleFirmwareVersionClick = (firmwareVersion: string, record: DataItem) => {
+  console.log('Firmware version clicked:', firmwareVersion);
+  console.log('Record data:', record);
+  
+  if (!firmwareVersion || firmwareVersion.trim() === '') {
+    message.warning('固件版本信息为空，无法跳转');
+    return;
+  }
+  
+  try {
+    // Navigate to the Firmware page with parameters for filtering
+    const targetRoute = {
+      name: 'firmware',
+      query: {
+        action: 'add', // Indicates "新增" (Add New) action
+        versionName: firmwareVersion, // Pass the version name for filtering
+        deviceModel: record.deviceModelName // Use the device model name from the record
+      }
+    };
+    
+    console.log('Navigating to:', targetRoute);
+    
+    router.push(targetRoute).then(() => {
+      console.log('Navigation successful');
+      // message.success(`正在跳转到固件页面，搜索版本: ${firmwareVersion}`);
+    }).catch((error) => {
+      console.error('Navigation failed:', error);
+      message.error('页面跳转失败，请重试');
+    });
+  } catch (error) {
+    console.error('Error in handleFirmwareVersionClick:', error);
+    message.error('跳转过程中发生错误，请重试');
+  }
+};
 </script>
 <style scoped>
 #components-table-demo-summary tfoot th,
@@ -788,6 +1086,31 @@ html, body {
   color: #1890ff !important; /* Ant Design blue */
   text-decoration: underline;
   cursor: pointer;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+:deep(.firmware-link:hover) {
+  color: #40a9ff !important; /* Lighter blue on hover */
+  text-decoration: underline;
+}
+
+:deep(.link-text) {
+  color: #1890ff !important; /* Ant Design blue */
+  /* text-decoration: underline; */
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+:deep(.link-text:hover) {
+  color: #40a9ff !important; /* Lighter blue on hover */
+  /* text-decoration: underline; */
+}
+
+:deep(.no-data-text) {
+  color: rgba(0, 0, 0, 0.45) !important; /* Gray color for no data */
+  font-style: italic;
 }
 
 :deep(.nowrap-header) {
@@ -874,5 +1197,27 @@ html, body {
 :deep(.ant-modal .ant-textarea) {
   padding-left: 0 !important;
   text-align: left !important;
+}
+
+:deep(.product-type-select .ant-select-selector) {
+  padding-left: 70px !important;
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.no-data-message .ant-empty {
+  margin: 0;
+}
+
+.no-data-message .ant-empty-description {
+  color: #666;
+  font-size: 14px;
 }
 </style> 

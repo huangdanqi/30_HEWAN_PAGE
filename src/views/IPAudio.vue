@@ -29,7 +29,7 @@
           <a-tooltip :title="audioTypeValue.label">
             <a-select
               v-model:value="audioTypeValue"
-              style="width: 120px;"
+              style="width: 130px;"
               :options="audioTypeOptions"
               @change="handleAudioTypeChange"
               :allowClear="true"
@@ -130,7 +130,7 @@
           </template>
           <SettingOutlined @click="onSettingClick" />
         </a-popover>
-        <ExportOutlined @click="handleExport" />
+        <!-- <ExportOutlined @click="handleExport" /> -->
       </div>
     </div>
       
@@ -155,14 +155,12 @@
           </template>
           <template v-if="column.key === 'audition'">
             <a-button type="link" size="small" @click="handleAudition(record)">
-              <PlayCircleOutlined />
+              <PlayCircleOutlined v-if="!record.isPlaying" />
+              <PauseCircleOutlined v-else />
             </a-button>
           </template>
           <template v-if="column.key === 'updater'">
-            <div class="updater-cell">
-              <a-avatar size="small" style="margin-right: 8px;">{{ record.updater.charAt(0) }}</a-avatar>
               <span>{{ record.updater }}</span>
-            </div>
           </template>
           <template v-if="column.key === 'operation'">
             <a-space class="action-cell" direction="horizontal">
@@ -196,28 +194,68 @@
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 音频名称</label>
-            <input type="text" v-model="createForm.audioName" class="form-input" placeholder="请输入">
+            <input 
+              type="text" 
+              v-model="createForm.audioName" 
+              class="form-input" 
+              placeholder="请输入"
+              maxlength="15"
+            >
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 音频类型</label>
             <select v-model="createForm.audioType" class="form-select">
               <option value="">请选择</option>
               <option value="情绪">情绪</option>
-              <option value="指令">指令</option>
-              <option value="音乐">音乐</option>
+              <option value="对话">对话</option>
+              <option value="唱歌">唱歌</option>
             </select>
           </div>
           <div class="form-group">
+            <label>标签</label>
+            <div class="tags-input">
+              <div class="tags-container">
+                <span v-for="(tag, index) in createForm.tags" :key="index" class="tag">
+                  {{ tag }}
+                  <span class="tag-remove" @click="removeTag(index)">×</span>
+                </span>
+                <input 
+                  v-if="showTagInput" 
+                  v-model="newTag" 
+                  @blur="addTag" 
+                  @keyup.enter="addTag"
+                  class="tag-input" 
+                  placeholder="输入标签"
+                  ref="tagInput"
+                >
+                <span v-else @click="showTagInput = true" class="add-tag-btn">+ 添加标签</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 情绪</label>
-            <input type="text" v-model="createForm.emotion" class="form-input" placeholder="请输入">
+            <select v-model="createForm.emotion" class="form-select">
+              <option value="">请选择</option>
+              <option value="开心">开心</option>
+              <option value="悲伤">悲伤</option>
+              <option value="愤怒">愤怒</option>
+              <option value="惊讶">惊讶</option>
+              <option value="平静">平静</option>
+              <option value="兴奋">兴奋</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 语种</label>
             <select v-model="createForm.language" class="form-select">
               <option value="">请选择</option>
               <option value="绒绒语">绒绒语</option>
+              <option value="普通话">普通话</option>
               <option value="中文">中文</option>
               <option value="英文">英文</option>
+              <option value="四川话">四川话</option>
+              <option value="湖南话">湖南话</option>
+              <option value="重庆话">重庆话</option>
+              <option value="台湾话">台湾话</option>
             </select>
           </div>
           <div class="form-group">
@@ -235,10 +273,23 @@
                 <div class="upload-text">支持文件格式: mp3、wav、opus</div>
               </div>
             </div>
+            <!-- File display after upload -->
+            <div v-if="createForm.audioFile" class="file-info">
+              <span class="file-icon">📎</span>
+              <span class="file-name">{{ createForm.audioFile.name }}</span>
+              <span class="delete-icon" @click="removeUploadedFile">🗑️</span>
           </div>
-          <div class="form-group">
-            <label>标签</label>
-            <input type="text" v-model="createForm.tags" class="form-input" placeholder="请输入">
+            <!-- Progress bar for upload -->
+            <!-- <div v-if="uploadProgress > 0 && uploadProgress < 100" class="file-progress">
+              <div class="file-info">
+                <span class="file-icon">📎</span>
+                <span class="file-name">{{ createForm.audioFile?.name }}</span>
+                <span class="progress-text">{{ uploadProgress }}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+              </div>
+            </div> -->
           </div>
         </div>
         <div class="modal-footer">
@@ -263,19 +314,26 @@
               <option value="啵啵">啵啵</option>
               <option value="蝴蝶">蝴蝶</option>
               <option value="小熊">小熊</option>
+              <option value="小兔">小兔</option>
+              <option value="小猫">小猫</option>
             </select>
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 音频名称</label>
-            <input type="text" v-model="editForm.audioName" class="form-input" placeholder="请输入">
+            <input 
+              type="text" 
+              v-model="editForm.audioName" 
+              class="form-input" 
+              placeholder="请输入"
+              maxlength="15"
+            >
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 音频类型</label>
             <select v-model="editForm.audioType" class="form-select">
               <option value="">请选择</option>
               <option value="情绪">情绪</option>
-              <option value="指令">指令</option>
-              <option value="音乐">音乐</option>
+              <option value="对话">对话</option>
               <option value="唱歌">唱歌</option>
             </select>
           </div>
@@ -285,18 +343,18 @@
               <div class="tags-container">
                 <span v-for="(tag, index) in editForm.tags" :key="index" class="tag">
                   {{ tag }}
-                  <span class="tag-remove" @click="removeTag(index)">×</span>
+                  <span class="tag-remove" @click="removeEditTag(index)">×</span>
                 </span>
                 <input 
-                  v-if="showTagInput" 
-                  v-model="newTag" 
-                  @blur="addTag" 
-                  @keyup.enter="addTag"
+                  v-if="showEditTagInput" 
+                  v-model="newEditTag" 
+                  @blur="addEditTag" 
+                  @keyup.enter="addEditTag"
                   class="tag-input" 
                   placeholder="输入标签"
-                  ref="tagInput"
+                  ref="editTagInput"
                 >
-                <span v-else @click="showTagInput = true" class="add-tag-btn">+ 添加标签</span>
+                <span v-else @click="showEditTagInput = true" class="add-tag-btn">+ 添加标签</span>
               </div>
             </div>
           </div>
@@ -306,12 +364,7 @@
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 语种</label>
-            <select v-model="editForm.language" class="form-select">
-              <option value="">请选择</option>
-              <option value="绒绒语">绒绒语</option>
-              <option value="中文">中文</option>
-              <option value="英文">英文</option>
-            </select>
+            <input type="text" v-model="editForm.language" class="form-input" placeholder="请输入">
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 上传音频</label>
@@ -328,16 +381,10 @@
                 <div class="upload-text">支持文件格式: mp3、wav、opus</div>
               </div>
             </div>
-            <div v-if="editForm.audioFile" class="file-progress">
-              <div class="file-info">
+            <div v-if="editForm.audioFile" class="file-info">
                 <span class="file-icon">📎</span>
                 <span class="file-name">{{ editForm.audioFile.name }}</span>
-                <span class="progress-text">{{ uploadProgress }}%</span>
-                <span class="delete-icon" @click="removeFile">🗑️</span>
-              </div>
-              <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
-              </div>
+              <span class="delete-icon" @click="removeEditFile">🗑️</span>
             </div>
           </div>
         </div>
@@ -348,14 +395,66 @@
       </div>
     </div>
 
+    <!-- View Audio Modal -->
+    <div v-if="showViewModal" class="modal-overlay" @click="closeViewModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>查看音频</h3>
+          <button class="close-btn" @click="closeViewModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="required-field"><span class="asterisk">*</span> IP名称</label>
+            <div class="form-text">{{ viewForm.ipName }}</div>
+          </div>
+          <div class="form-group">
+            <label class="required-field"><span class="asterisk">*</span> 音频名称</label>
+            <div class="form-text">{{ viewForm.audioName }}</div>
+          </div>
+          <div class="form-group">
+            <label class="required-field"><span class="asterisk">*</span> 音频类型</label>
+            <div class="form-text">{{ viewForm.audioType }}</div>
+          </div>
+          <div class="form-group">
+            <label>标签</label>
+            <div class="tags-display">
+              <span v-for="(tag, index) in viewForm.tags" :key="index" class="tag">
+                {{ tag }}
+              </span>
+              <span v-if="viewForm.tags.length === 0" class="no-tags">无标签</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="required-field"><span class="asterisk">*</span> 情绪</label>
+            <div class="form-text">{{ viewForm.emotion }}</div>
+          </div>
+          <div class="form-group">
+            <label class="required-field"><span class="asterisk">*</span> 语种</label>
+            <div class="form-text">{{ viewForm.language }}</div>
+          </div>
+          <div class="form-group">
+            <label class="required-field"><span class="asterisk">*</span> 音频文件</label>
+            <div class="file-info">
+              <span class="file-icon">📎</span>
+              <span class="file-name">{{ viewForm.audioFileAddress }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="closeViewModal">关闭</button>
+        </div>
+      </div>
+    </div>
+
   </a-config-provider>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, ExportOutlined, PlayCircleOutlined } from '@ant-design/icons-vue';
+import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, ExportOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import { 
   createColumnConfigs, 
@@ -363,6 +462,11 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
+import axios from 'axios';
+
+const router = useRouter();
+
+const API_BASE_URL = 'http://localhost:2829/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -374,7 +478,7 @@ const customLocale = computed(() => ({
 
 // Define your data interface
 interface DataItem {
-  key: number;
+  id: number;
   audioId: string;
   ipName: string;
   audioName: string;
@@ -386,6 +490,7 @@ interface DataItem {
   updater: string;
   createTime: string;
   updateTime: string;
+  isPlaying: boolean; // Add isPlaying property
 }
 
 // Define column definitions - this is where you add/remove columns
@@ -402,12 +507,23 @@ const columnDefinitions: ColumnDefinition[] = [
   createColumn('audition', '试听', 'audition', 80),
   createColumn('updater', '更新人', 'updater', 120),
   createColumn('createTime', '创建时间', 'createTime', 180, { sortable: true, sortType: 'date' }),
-  createColumn('updateTime', '更新时间', 'updateTime', 180, { sortable: true, sortType: 'date' }),
-  createColumn('operation', '操作', 'operation', 150, { fixed: 'right' }),
+  createColumn('updateTime', '更新时间', 'updateTime', 180),
+  createColumn('operation', '操作', 'operation', 200, { fixed: 'right' }),
 ];
 
 // Create column configs from definitions
 const columnConfigs = createColumnConfigs(columnDefinitions);
+
+// Add custom render for rowIndex column
+const updatedColumnConfigs = columnConfigs.map(config => {
+  if (config.key === 'rowIndex') {
+    return {
+      ...config,
+      customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1
+    };
+  }
+  return config;
+});
 
 // Use the table columns composable
 const {
@@ -419,26 +535,33 @@ const {
   onColumnOrderChange,
   handleColumnVisibilityChange,
   handleTableChange,
-} = useTableColumns(columnConfigs);
+} = useTableColumns(updatedColumnConfigs);
 
-// Generate sample data based on the image
-const rawData: DataItem[] = [];
-for (let i = 0; i < 43; i++) {
-  rawData.push({
-    key: i + 1,
-    audioId: 'hjhwn832nj2f',
-    ipName: '啵啵',
-    audioName: i === 0 ? '模仿小星星' : '开心',
-    audioType: i === 0 ? '唱歌' : '情绪',
-    tags: i === 0 ? '愉悦,解压' : '-',
-    emotion: i === 0 ? '开心' : '有一点开心',
-    language: '绒绒语',
-    audioFileAddress: 'https://example.com/firmware.bin',
-    updater: '33',
-    createTime: '2025-7-13 19:25:11',
-    updateTime: '2025-7-13 19:25:11',
-  });
-}
+// Data fetching
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
+const audioElements = ref<Map<number, HTMLAudioElement>>(new Map()); // Store audio elements
+
+const fetchData = async () => {
+  console.log('fetchData called');
+  loading.value = true;
+  try {
+    console.log('Calling IPaudio endpoint');
+    // Request all data without pagination parameters
+    const response = await axios.get(`${API_BASE_URL}/ipaudio?page=1&pageSize=1000`);
+    console.log('IPaudio response:', response.data);
+    // Add key property to each item for table identification
+    rawData.value = response.data.data.map((item: any) => ({
+      ...item,
+      key: item.id, // Use id as key for table rows
+      isPlaying: false // Initialize isPlaying to false
+    }));
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // Filter and search logic
 const searchInputValue = ref('');
@@ -446,13 +569,12 @@ const ipNameValue = ref({ key: 'all', label: '全部', value: 'all' });
 const audioTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
 const emotionValue = ref({ key: 'all', label: '全部', value: 'all' });
 const languageValue = ref({ key: 'all', label: '全部', value: 'all' });
-const loading = ref(false);
 const tableSize = ref('middle');
 const currentPage = ref(1);
 const pageSize = ref(10);
 
 const ipNameOptions = computed(() => {
-  const uniqueIpNames = Array.from(new Set(rawData.map(item => item.ipName)));
+  const uniqueIpNames = Array.from(new Set(rawData.value.map(item => item.ipName)));
   const options = uniqueIpNames.map(name => ({
     key: name,
     value: name,
@@ -465,7 +587,7 @@ const ipNameOptions = computed(() => {
 });
 
 const audioTypeOptions = computed(() => {
-  const uniqueAudioTypes = Array.from(new Set(rawData.map(item => item.audioType)));
+  const uniqueAudioTypes = Array.from(new Set(rawData.value.map(item => item.audioType)));
   const options = uniqueAudioTypes.map(type => ({
     key: type,
     value: type,
@@ -478,7 +600,7 @@ const audioTypeOptions = computed(() => {
 });
 
 const emotionOptions = computed(() => {
-  const uniqueEmotions = Array.from(new Set(rawData.map(item => item.emotion)));
+  const uniqueEmotions = Array.from(new Set(rawData.value.map(item => item.emotion)));
   const options = uniqueEmotions.map(emotion => ({
     key: emotion,
     value: emotion,
@@ -491,7 +613,7 @@ const emotionOptions = computed(() => {
 });
 
 const languageOptions = computed(() => {
-  const uniqueLanguages = Array.from(new Set(rawData.map(item => item.language)));
+  const uniqueLanguages = Array.from(new Set(rawData.value.map(item => item.language)));
   const options = uniqueLanguages.map(language => ({
     key: language,
     value: language,
@@ -536,7 +658,7 @@ const handleLanguageChange = (val: any) => {
 };
 
 const filteredData = computed(() => {
-  let dataToFilter = rawData;
+  let dataToFilter = rawData.value;
 
   // Search filter
   if (searchInputValue.value) {
@@ -568,10 +690,17 @@ const filteredData = computed(() => {
     dataToFilter = dataToFilter.filter(item => item.language === languageValue.value.value);
   }
 
-  // Sorting logic
+  // Default sorting by updateTime in descending order using plain JavaScript
+  dataToFilter.sort((a: DataItem, b: DataItem) => {
+    const dateA = new Date(a.updateTime).getTime();
+    const dateB = new Date(b.updateTime).getTime();
+    return dateB - dateA; // Descending order (newest first)
+  });
+
+  // Additional sorting logic for user-initiated sorting (if any)
   if (sorterInfo.value && sorterInfo.value.order) {
     const { columnKey, order } = sorterInfo.value;
-    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
+    const sorterFn = updatedColumnConfigs.find(c => c.key === columnKey)?.sorter;
     if (sorterFn) {
       dataToFilter.sort((a, b) => {
         const result = sorterFn(a, b);
@@ -599,6 +728,7 @@ const pagination = computed(() => ({
     currentPage.value = page;
     pageSize.value = size;
   },
+  size: 'default'
 }));
 
 const onRefresh = () => {
@@ -606,10 +736,13 @@ const onRefresh = () => {
   searchInputValue.value = '';
   currentPage.value = 1;
   resetColumns();
+  // Reset sorter info to ensure default sorting by updateTime
+  sorterInfo.value = null;
   ipNameValue.value = { key: 'all', label: '全部', value: 'all' };
   audioTypeValue.value = { key: 'all', label: '全部', value: 'all' };
   emotionValue.value = { key: 'all', label: '全部', value: 'all' };
   languageValue.value = { key: 'all', label: '全部', value: 'all' };
+  fetchData(); // Re-fetch data on refresh
 
   setTimeout(() => {
     loading.value = false;
@@ -635,29 +768,118 @@ const handleExport = () => {
 };
 
 const handleView = (record: DataItem) => {
-  console.log('View:', record);
+  console.log('View clicked for record:', record);
+  console.log('Record ID:', record.id);
+  console.log('Record IP Name:', record.ipName);
+  console.log('Record Audio Name:', record.audioName);
+  
+  viewForm.value = { 
+    id: record.id,
+    ipName: record.ipName,
+    audioName: record.audioName,
+    audioType: record.audioType,
+    emotion: record.emotion,
+    language: record.language,
+    tags: record.tags ? record.tags.split(',').filter(tag => tag.trim()) : [],
+    audioFileAddress: record.audioFileAddress
+  };
+  
+  console.log('View form populated:', viewForm.value);
+  showViewModal.value = true;
 };
 
 const handleEdit = (record: DataItem) => {
-  console.log('Edit:', record);
+  console.log('Edit clicked for record:', record);
+  console.log('Record ID:', record.id);
+  console.log('Record IP Name:', record.ipName);
+  console.log('Record Audio Name:', record.audioName);
+  
   editForm.value = { 
-    ...record,
+    id: record.id,
+    ipName: record.ipName,
+    audioName: record.audioName,
+    audioType: record.audioType,
+    emotion: record.emotion,
+    language: record.language,
     tags: record.tags ? record.tags.split(',').filter(tag => tag.trim()) : [],
     audioFile: null
   };
+  
+  console.log('Edit form populated:', editForm.value);
   showEditModal.value = true;
 };
 
 const handleDelete = (record: DataItem) => {
-  console.log('Delete:', record);
+  console.log('Delete clicked for record:', record);
+  console.log('Record ID:', record.id);
+  console.log('Record IP Name:', record.ipName);
+  console.log('Record Audio Name:', record.audioName);
+  
+  // TODO: Implement delete functionality
+  alert(`确认删除音频: ${record.audioName}?`);
 };
 
 const handleIpNameClick = (record: DataItem) => {
   console.log('IP name clicked:', record.ipName);
+  // Navigate to IP Management page with search parameter
+  const searchTerm = record.ipName;
+  router.push({
+    path: '/ip-management',
+    query: { search: searchTerm }
+  });
 };
 
 const handleAudition = (record: DataItem) => {
   console.log('Audition clicked:', record);
+  
+  // Get or create the audio element for this record
+  let audioElement = audioElements.value.get(record.id);
+
+  if (!audioElement) {
+    // Construct the full URL for the audio file using the backend server
+    const audioUrl = `http://localhost:2829${record.audioFileAddress}`;
+    console.log('Audio URL:', audioUrl);
+    
+    audioElement = new Audio(audioUrl);
+    audioElements.value.set(record.id, audioElement);
+    
+    // Add event listener for when audio ends
+    audioElement.addEventListener('ended', () => {
+      record.isPlaying = false;
+    });
+    
+    // Add event listener for when audio is paused
+    audioElement.addEventListener('pause', () => {
+      record.isPlaying = false;
+    });
+  }
+
+  if (record.isPlaying) {
+    // Currently playing, so stop it
+    audioElement.pause();
+    record.isPlaying = false;
+  } else {
+    // Currently stopped, so play it
+    // Stop any other currently playing audio
+    audioElements.value.forEach((el, id) => {
+      if (id !== record.id && el.readyState > 0) {
+        el.pause();
+        // Find and update the corresponding record
+        const otherRecord = rawData.value.find(item => item.id === id);
+        if (otherRecord) {
+          otherRecord.isPlaying = false;
+        }
+      }
+    });
+    
+    // Play the audio
+    audioElement.play().catch(error => {
+      console.error('Error playing audio:', error);
+      // If the file doesn't exist, show a message
+      alert('音频文件不存在或无法播放');
+      record.isPlaying = false; // Revert to false on error
+    });
+  }
 };
 
 // Modal state and form
@@ -668,14 +890,24 @@ const createForm = ref({
   audioType: '',
   emotion: '',
   language: '',
-  tags: '',
+  tags: [] as string[],
   audioFile: null as File | null
 });
 
 const fileInput = ref<HTMLInputElement>();
+const showTagInput = ref(false);
+const newTag = ref('');
+const uploadProgress = ref(0); // Add upload progress tracking
+
+// Import auth store for username
+import { useAuthStore } from '../stores/auth';
+const authStore = useAuthStore();
 
 const closeCreateModal = () => {
   showCreateModal.value = false;
+  showTagInput.value = false;
+  newTag.value = '';
+  uploadProgress.value = 0; // Reset progress
   // Reset form
   createForm.value = {
     ipName: '',
@@ -683,15 +915,92 @@ const closeCreateModal = () => {
     audioType: '',
     emotion: '',
     language: '',
-    tags: '',
+    tags: [],
     audioFile: null
   };
 };
 
-const handleCreateConfirm = () => {
+const handleCreateConfirm = async () => {
   console.log('Create audio form submitted:', createForm.value);
-  // Here you would typically send the data to your API
+  
+  // Validate required fields
+  if (!createForm.value.ipName || !createForm.value.audioName || 
+      !createForm.value.audioType || !createForm.value.emotion || 
+      !createForm.value.language || !createForm.value.audioFile) {
+    alert('请填写所有必填字段');
+    return;
+  }
+
+  // Validate image name length
+  if (createForm.value.audioName.length > 15) {
+    alert('音频名称不能超过15个字符');
+    return;
+  }
+
+  try {
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('ipName', createForm.value.ipName);
+    formData.append('audioName', createForm.value.audioName);
+    formData.append('audioType', createForm.value.audioType);
+    formData.append('emotion', createForm.value.emotion);
+    formData.append('language', createForm.value.language);
+    formData.append('tags', createForm.value.tags.join(','));
+    formData.append('audioFile', createForm.value.audioFile!);
+    formData.append('updater', authStore.user?.name || authStore.user?.username || '管理员');
+
+    console.log('Sending request to:', `${API_BASE_URL}/ipaudio`);
+    console.log('FormData contents:');
+    for (let [key, value] of formData.entries()) {
+      console.log(key, ':', value);
+    }
+
+    // Send to backend
+    const response = await axios.post(`${API_BASE_URL}/ipaudio`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 30000, // 30 second timeout
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          uploadProgress.value = percentCompleted;
+        }
+      }
+    });
+
+    console.log('Audio created successfully:', response.data);
+    uploadProgress.value = 100; // Set to 100% on success
+    setTimeout(() => {
+      uploadProgress.value = 0; // Reset after showing 100%
+    }, 1000);
+    alert('音频创建成功！');
   closeCreateModal();
+    fetchData(); // Refresh the data
+  } catch (error: any) {
+    console.error('Error creating audio:', error);
+    
+    let errorMessage = '创建音频失败，请重试';
+    
+    if (error.response) {
+      // Server responded with error
+      console.error('Server error response:', error.response.data);
+      if (error.response.data && error.response.data.error) {
+        errorMessage = error.response.data.error;
+      }
+    } else if (error.request) {
+      // Request was made but no response
+      console.error('No response received:', error.request);
+      errorMessage = '服务器无响应，请检查网络连接';
+    } else {
+      // Something else happened
+      console.error('Request setup error:', error.message);
+      errorMessage = '请求设置错误: ' + error.message;
+    }
+    
+    alert(errorMessage);
+    uploadProgress.value = 0; // Reset progress on error
+  }
 };
 
 const triggerFileUpload = () => {
@@ -712,9 +1021,26 @@ const handleFileDrop = (event: DragEvent) => {
   }
 };
 
+const addTag = () => {
+  if (newTag.value.trim()) {
+    createForm.value.tags.push(newTag.value.trim());
+    newTag.value = '';
+  }
+  showTagInput.value = false;
+};
+
+const removeTag = (index: number) => {
+  createForm.value.tags.splice(index, 1);
+};
+
+const removeUploadedFile = () => {
+  createForm.value.audioFile = null;
+};
+
 // Edit Modal state and form
 const showEditModal = ref(false);
 const editForm = ref({
+  id: 0,
   ipName: '',
   audioName: '',
   audioType: '',
@@ -725,16 +1051,17 @@ const editForm = ref({
 });
 
 const editFileInput = ref<HTMLInputElement>();
-const showTagInput = ref(false);
-const newTag = ref('');
-const uploadProgress = ref(45); // Mock progress for demo
+const showEditTagInput = ref(false);
+const newEditTag = ref('');
 
 const closeEditModal = () => {
   showEditModal.value = false;
-  showTagInput.value = false;
-  newTag.value = '';
+  showEditTagInput.value = false;
+  newEditTag.value = '';
+  uploadProgress.value = 0; // Reset progress
   // Reset form
   editForm.value = {
+    id: 0,
     ipName: '',
     audioName: '',
     audioType: '',
@@ -745,10 +1072,89 @@ const closeEditModal = () => {
   };
 };
 
-const handleEditConfirm = () => {
+const handleEditConfirm = async () => {
   console.log('Edit audio form submitted:', editForm.value);
-  // Here you would typically send the data to your API
+  
+  // Validate required fields
+  if (!editForm.value.ipName || !editForm.value.audioName || 
+      !editForm.value.audioType || !editForm.value.emotion || 
+      !editForm.value.language) {
+    alert('请填写所有必填字段');
+    return;
+  }
+
+  // Validate audio name length
+  if (editForm.value.audioName.length > 15) {
+    alert('音频名称不能超过15个字符');
+    return;
+  }
+
+  try {
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('ipName', editForm.value.ipName);
+    formData.append('audioName', editForm.value.audioName);
+    formData.append('audioType', editForm.value.audioType);
+    formData.append('tags', editForm.value.tags.join(','));
+    formData.append('emotion', editForm.value.emotion);
+    formData.append('language', editForm.value.language);
+    if (editForm.value.audioFile) {
+      formData.append('audioFile', editForm.value.audioFile);
+    }
+    formData.append('updater', authStore.user?.name || authStore.user?.username || '管理员');
+
+    console.log('Sending update request to:', `${API_BASE_URL}/ipaudio/${editForm.value.id}`);
+    console.log('FormData contents:');
+    for (let [key, value] of formData.entries()) {
+      console.log(key, ':', value);
+    }
+
+    // Send to backend
+    const response = await axios.put(`${API_BASE_URL}/ipaudio/${editForm.value.id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 30000, // 30 second timeout
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          uploadProgress.value = percentCompleted;
+        }
+      }
+    });
+
+    console.log('Audio updated successfully:', response.data);
+    uploadProgress.value = 100; // Set to 100% on success
+    setTimeout(() => {
+      uploadProgress.value = 0; // Reset after showing 100%
+    }, 1000);
+    alert('音频更新成功！');
   closeEditModal();
+    fetchData(); // Refresh the data
+  } catch (error: any) {
+    console.error('Error updating audio:', error);
+    
+    let errorMessage = '更新音频失败，请重试';
+    
+    if (error.response) {
+      // Server responded with error
+      console.error('Server error response:', error.response.data);
+      if (error.response.data && error.response.data.error) {
+        errorMessage = error.response.data.error;
+      }
+    } else if (error.request) {
+      // Request was made but no response
+      console.error('No response received:', error.request);
+      errorMessage = '服务器无响应，请检查网络连接';
+    } else {
+      // Something else happened
+      console.error('Request setup error:', error.message);
+      errorMessage = '请求设置错误: ' + error.message;
+    }
+    
+    alert(errorMessage);
+    uploadProgress.value = 0; // Reset progress on error
+  }
 };
 
 const triggerEditFileUpload = () => {
@@ -769,24 +1175,53 @@ const handleEditFileDrop = (event: DragEvent) => {
   }
 };
 
-const removeFile = () => {
+const removeEditFile = () => {
   editForm.value.audioFile = null;
 };
 
-const addTag = () => {
-  if (newTag.value.trim()) {
-    editForm.value.tags.push(newTag.value.trim());
-    newTag.value = '';
+const addEditTag = () => {
+  if (newEditTag.value.trim()) {
+    editForm.value.tags.push(newEditTag.value.trim());
+    newEditTag.value = '';
   }
-  showTagInput.value = false;
+  showEditTagInput.value = false;
 };
 
-const removeTag = (index: number) => {
+const removeEditTag = (index: number) => {
   editForm.value.tags.splice(index, 1);
 };
 
+// View Modal state and form
+const showViewModal = ref(false);
+const viewForm = ref({
+  id: 0,
+  ipName: '',
+  audioName: '',
+  audioType: '',
+  emotion: '',
+  language: '',
+  tags: [] as string[],
+  audioFileAddress: ''
+});
+
+const closeViewModal = () => {
+  showViewModal.value = false;
+  // Reset view form
+  viewForm.value = {
+    id: 0,
+    ipName: '',
+    audioName: '',
+    audioType: '',
+    emotion: '',
+    language: '',
+    tags: [],
+    audioFileAddress: ''
+  };
+};
+
 onMounted(() => {
-  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  fetchData(); // Fetch data on mount
+  selectedColumnKeys.value = updatedColumnConfigs.map(config => config.key);
 });
 
 defineExpose({
@@ -827,7 +1262,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-right: 30px;
+  padding-right: 60px;
 }
 
 .right-aligned-icons > .anticon {
@@ -873,83 +1308,100 @@ defineExpose({
 }
 
 :deep(.ip-name-select .ant-select-selector) {
-  padding-left: 80px !important;
+  padding-left: 50px !important;
 }
 
 :deep(.audio-type-select .ant-select-selector) {
-  padding-left: 80px !important;
+  padding-left: 65px !important;
 }
+
 
 :deep(.emotion-select .ant-select-selector) {
-  padding-left: 60px !important;
+  padding-left: 40px !important;
 }
-
 :deep(.language-select .ant-select-selector) {
-  padding-left: 60px !important;
+  padding-left: 40px !important;
 }
 
-:deep(.ant-select-selector),
-:deep(.ant-select-dropdown),
-:deep(.ant-select-item),
-:deep(.ant-select-selection-item),
-:deep(.ant-select-item-option-content) {
-  font-size: 12px !important;
+/* Pagination dropdown text alignment */
+:deep(.ant-pagination .ant-select-selector) {
+  text-align: left !important;
 }
 
-:deep(.ant-pagination) {
-  font-size: 12px !important;
+:deep(.ant-pagination .ant-select-selection-item) {
+  text-align: left !important;
+  justify-content: flex-start !important;
 }
 
-:deep(.ant-input),
-:deep(.ant-btn-primary) {
-  font-size: 13px !important;
+/* More specific selectors for pagination dropdown */
+:deep(.ant-pagination .ant-select .ant-select-selector .ant-select-selection-item) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
 }
 
-:deep(.ant-input::placeholder) {
-  font-size: 13px !important;
+:deep(.ant-pagination .ant-select .ant-select-selection-search-input) {
+  text-align: left !important;
 }
 
-:deep(.ant-table-cell .action-cell) {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 150px;
+:deep(.ant-pagination .ant-select .ant-select-selection-placeholder) {
+  text-align: left !important;
 }
 
-:deep(.ant-table-cell .action-cell .view-link) {
-  color: #1890ff !important;
-  font-weight: bold;
+/* Global pagination dropdown alignment */
+:deep(.ant-pagination .ant-select) {
+  text-align: left !important;
 }
 
-:deep(.ant-table-cell .action-cell .edit-link) {
-  color: #1890ff !important;
-  font-weight: bold;
+:deep(.ant-pagination .ant-select .ant-select-selector) {
+  text-align: left !important;
 }
 
-:deep(.ant-table-cell .action-cell .danger-link) {
-  color: #ff4d4f !important;
-  font-weight: bold;
+:deep(.ant-pagination .ant-select .ant-select-selection-item) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
 }
 
-:deep(.link-text) {
-  color: #1890ff !important;
-  font-weight: bold;
+/* Force left alignment for all pagination select elements */
+:deep(.ant-pagination .ant-select-selection-item) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
 }
 
-:deep(.updater-cell) {
-  display: flex;
-  align-items: center;
+/* Most specific selector for pagination dropdown */
+:deep(.ant-table-pagination .ant-pagination .ant-select .ant-select-selector .ant-select-selection-item) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
 }
 
-:deep(.file-address) {
-  color: rgba(0, 0, 0, 0.65);
-  font-family: monospace;
-  font-size: 12px;
+/* Alternative approach using attribute selector */
+:deep(.ant-pagination [class*="ant-select-selection-item"]) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
 }
 
-:deep(.nowrap-header) {
-  white-space: nowrap !important;
+/* Global override for pagination dropdown alignment */
+:deep(.ant-pagination .ant-select .ant-select-selector .ant-select-selection-item) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
+  display: flex !important;
+  align-items: center !important;
 }
+
+/* Force left alignment with !important and high specificity */
+:deep(.ant-table .ant-pagination .ant-select .ant-select-selector .ant-select-selection-item) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
 
 /* Modal Styles */
 .modal-overlay {
@@ -1013,7 +1465,7 @@ defineExpose({
 }
 
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .required-field {
@@ -1035,13 +1487,15 @@ defineExpose({
 .form-input,
 .form-select {
   width: 100%;
-  padding: 4px 8px;
+  padding: 8px 12px;
   border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   color: rgba(0, 0, 0, 0.85);
   background-color: white;
-  transition: border-color 0.3s;
+  transition: all 0.3s;
+  height: 36px;
+  box-sizing: border-box;
 }
 
 .form-input:focus,
@@ -1059,7 +1513,7 @@ defineExpose({
   width: 100%;
   height: 120px;
   border: 2px dashed #d9d9d9;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1081,6 +1535,7 @@ defineExpose({
   font-size: 32px;
   color: #1890ff;
   margin-bottom: 8px;
+  font-weight: bold;
 }
 
 .upload-text {
@@ -1088,128 +1543,47 @@ defineExpose({
   color: rgba(0, 0, 0, 0.45);
 }
 
-.uploaded-file-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.65);
-}
-
-.tags-input-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  background-color: #fafafa;
-  margin-top: 8px;
-}
-
-.tag-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: #e6f7ff;
-  border: 1px solid #91d5ff;
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: #1890ff;
-}
-
-.tags-input {
-  width: 100%;
-}
-
-.tags-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  min-height: 32px;
-  padding: 4px 8px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  background-color: white;
-}
-
-.tag {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: #f0f0f0;
-  border-radius: 12px;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.65);
-}
-
-.tag-remove {
-  cursor: pointer;
-  color: rgba(0, 0, 0, 0.45);
-  font-weight: bold;
-  margin-left: 4px;
-}
-
-.tag-remove:hover {
-  color: #ff4d4f;
-}
-
-.tag-input {
-  border: none;
-  outline: none;
-  font-size: 12px;
-  background: transparent;
-  min-width: 100px;
-}
-
-.add-tag-btn {
-  color: #1890ff;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.add-tag-btn:hover {
-  color: #40a9ff;
-}
-
-.file-progress {
-  margin-top: 8px;
-}
-
 .file-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.65);
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
 }
 
 .file-icon {
-  font-size: 14px;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .file-name {
   flex: 1;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.delete-icon {
+  cursor: pointer;
+  font-size: 16px;
+  color: #ff4d4f;
+  transition: color 0.3s;
+}
+
+.delete-icon:hover {
+  color: #ff7875;
+}
+
+.file-progress {
+  margin-top: 12px;
 }
 
 .progress-text {
   color: #1890ff;
   font-weight: 500;
-}
-
-.delete-icon {
-  cursor: pointer;
-  font-size: 14px;
-  color: #ff4d4f;
-}
-
-.delete-icon:hover {
-  color: #ff7875;
+  font-size: 12px;
 }
 
 .progress-bar {
@@ -1218,6 +1592,7 @@ defineExpose({
   background-color: #f0f0f0;
   border-radius: 2px;
   overflow: hidden;
+  margin-top: 4px;
 }
 
 .progress-fill {
@@ -1229,18 +1604,20 @@ defineExpose({
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid #f0f0f0;
 }
 
 .btn {
-  padding: 4px 15px;
-  border-radius: 4px;
+  padding: 8px 16px;
+  border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
   border: 1px solid;
   transition: all 0.3s;
+  font-weight: 500;
+  min-width: 80px;
 }
 
 .btn-secondary {
@@ -1263,5 +1640,198 @@ defineExpose({
 .btn-primary:hover {
   background-color: #40a9ff;
   border-color: #40a9ff;
+}
+
+/* Tags input styling */
+.tags-input {
+  width: 100%;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background-color: white;
+  transition: border-color 0.3s;
+}
+
+.tags-container:focus-within {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #1890ff;
+}
+
+.tag-remove {
+  cursor: pointer;
+  color: #1890ff;
+  font-weight: bold;
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+.tag-remove:hover {
+  color: #ff4d4f;
+}
+
+.tag-input {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  background: transparent;
+  min-width: 100px;
+  padding: 4px 0;
+}
+
+.add-tag-btn {
+  color: #1890ff;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px dashed #91d5ff;
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.add-tag-btn:hover {
+  border-color: #40a9ff;
+  color: #40a9ff;
+}
+
+/* View Modal Styles */
+.form-text {
+  padding: 0;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.85);
+  background-color: transparent;
+  border-radius: 0;
+  min-height: auto;
+  display: block;
+  border: none;
+}
+
+.tags-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-height: auto;
+  padding: 0;
+  background-color: transparent;
+  border-radius: 0;
+  border: none;
+}
+
+.no-tags {
+  color: rgba(0, 0, 0, 0.45);
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* View modal specific file info styling */
+.modal-body .file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+  padding: 0;
+  background-color: transparent;
+  border-radius: 0;
+  border: none;
+}
+
+:deep(.ant-table-cell .action-cell) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 150px;
+}
+
+:deep(.ant-table-cell .action-cell .view-link) {
+  color: #1890ff !important;
+  font-weight: bold;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+:deep(.ant-table-cell .action-cell .view-link:hover) {
+  color: #40a9ff !important;
+}
+
+:deep(.ant-table-cell .action-cell .edit-link) {
+  color: #1890ff !important;
+  font-weight: bold;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+:deep(.ant-table-cell .action-cell .edit-link:hover) {
+  color: #40a9ff !important;
+}
+
+/* Ensure delete link is highly visible */
+:deep(.ant-table-cell .action-cell .danger-link) {
+  color: #ff4d4f !important;
+  font-weight: bold;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s;
+  opacity: 1 !important;
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+:deep(.ant-table-cell .action-cell .danger-link:hover) {
+  color: #ff7875 !important;
+}
+
+:deep(.ant-table-cell .action-cell .danger-link:active) {
+  color: #d9363e !important;
+}
+
+/* Additional specific rule to override any potential conflicts */
+:deep(.ant-table .ant-table-cell .action-cell a.danger-link) {
+  color: #ff4d4f !important;
+  font-weight: bold !important;
+  font-size: 14px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Additional global style to ensure left alignment */
+:deep(.ant-pagination .ant-select-selection-item) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
+}
+</style>
+
+<style>
+/* Global style to override Ant Design pagination dropdown alignment */
+.ant-pagination .ant-select .ant-select-selector .ant-select-selection-item {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
 }
 </style>

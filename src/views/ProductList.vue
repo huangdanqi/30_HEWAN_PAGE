@@ -88,7 +88,7 @@
     <div class="table-container">
       <a-table
         :columns="columns"
-        :data-source="filteredData"
+        :data-source="paginatedData"
         :pagination="filteredData.length === 0 ? false : pagination"
         :loading="loading"
         :size="tableSize"
@@ -111,6 +111,16 @@
       </template>
     </template>
       </a-table>
+      
+      <!-- No data message -->
+      <div v-if="showNoDataMessage" class="no-data-message">
+        <a-empty 
+          :description="noDataMessage"
+          :image="Empty.PRESENTED_IMAGE_SIMPLE"
+        >
+          <a-button type="primary" @click="clearSearch">清除搜索</a-button>
+        </a-empty>
+      </div>
     </div>
 
   </a-config-provider>
@@ -122,6 +132,14 @@ import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import { useRoute } from 'vue-router';
+import axios from 'axios';
+import { Empty } from 'ant-design-vue';
+
+const route = useRoute();
+
+// API base URL
+const API_BASE_URL = '/api';
 
 const handleEditClick = () => {
   message.info('开发中');
@@ -136,17 +154,20 @@ const customLocale = computed(() => ({
 }));
 
 // Define the type for the table data
-interface ProductTableRow {
-  productId: string;
-  productName: string;
-  productCode: string;
-  productName2: string;
-  productType: string;
-  color: string;
-  memberType: string;
-  deviceId: string;
-  subAccountId: string;
-  activationTime: string;
+interface DataItem {
+  id?: number;
+  key?: number;
+  productId: string; // 商品ID
+  productName: string; // 商品名称
+  productCode: string; // 产品ID
+  productName2: string; // 产品名称
+  productType: string; // 产品类型
+  color: string; // 颜色
+  memberType: string; // 初始会员
+  deviceId: string; // 设备ID
+  subAccountId: string; // 子账户ID
+  activationTime: string; // 激活时间
+  updateTime: string; // 更新时间
 }
 
 // Define column configuration separately from the table columns
@@ -227,29 +248,104 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-const rawData: ProductTableRow[] = Array.from({ length: 30 }, (_, i) => {
-  const productTypes = ['普通挂件', '毛绒玩具', '模型'];
-  const productNames = ['粉色碳碳娃挂件富盒普通款', '蓝色小熊玩偶', '绿色恐龙模型'];
-const memberTypes = ['普通会员', 'VIP', 'SVIP'];
-  const colors = ['亮光粉', '天蓝', '草绿'];
-  return {
-    productId: `A${(i % 3) + 1}`,
-    productName: productNames[i % 3],
-    productCode: `HWSZ00100${(i % 3) + 1}`,
-    productName2: productNames[i % 3],
-    productType: productTypes[i % 3],
-    color: colors[i % 3],
-    memberType: memberTypes[i % 3],
-    deviceId: `0075A1B2SZTD5ZSD69I892XJU${String.fromCharCode(66 + i)}`,
-    subAccountId: `183****79${53 + (i % 10)}`,
-    activationTime: `2025-7-${13 + (i % 10)} ${10 + (i % 10)}:25:1${i % 10}`,
-    updateTime: `2025-7-${13 + (i % 10)} ${11 + (i % 10)}:30:2${i % 10}`,
-  };
-});
+// Replace static data with reactive data
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
 
-console.log('Raw Data:', rawData);
+// API functions
+const fetchProductList = async () => {
+  try {
+    loading.value = true;
+    console.log('Fetching product list data...');
+    
+    const response = await axios.get(`${API_BASE_URL}/product-list`);
+    console.log('Product list response:', response.data);
+    
+    // Transform the data to ensure all required fields are present
+    rawData.value = response.data.map((item: any, index: number) => ({
+      id: item.id,
+      key: index + 1,
+      productId: item.product_id || item.productId || '',
+      productName: item.product_name || item.productName || '',
+      productCode: item.product_code || item.productCode || '',
+      productName2: item.product_name2 || item.productName2 || '',
+      productType: item.product_type || item.productType || '',
+      color: item.color || '',
+      memberType: item.member_type || item.memberType || '',
+      deviceId: item.device_id || item.deviceId || '',
+      subAccountId: item.sub_account_id || item.subAccountId || '',
+      activationTime: item.activation_time || item.activationTime || '',
+      updateTime: item.update_time || item.updateTime || ''
+    }));
+    
+    console.log('Processed product list data:', rawData.value);
+  } catch (error) {
+    console.error('Error fetching product list:', error);
+    message.error('获取商品列表数据失败，请检查网络连接');
+    rawData.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 'updateTime'>) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/product-list`, productListData);
+    await fetchProductList(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error creating product list:', error);
+    throw error;
+  }
+};
+
+const updateProductList = async (id: number, productListData: Partial<DataItem>) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/product-list/${id}`, productListData);
+    await fetchProductList(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error updating product list:', error);
+    throw error;
+  }
+};
+
+const deleteProductList = async (id: number) => {
+  try {
+    await axios.delete(`${API_BASE_URL}/product-list/${id}`);
+    await fetchProductList(); // Refresh data
+  } catch (error) {
+    console.error('Error deleting product list:', error);
+    throw error;
+  }
+};
 
 const searchInputValue = ref('');
+
+// Handle search parameter from URL
+onMounted(() => {
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+  }
+  fetchProductList(); // Fetch data on component mount
+});
+
+// Computed property to show no data message
+const showNoDataMessage = computed(() => {
+  return searchInputValue.value && filteredData.value.length === 0;
+});
+
+// Computed property for no data message
+const noDataMessage = computed(() => {
+  if (searchInputValue.value && filteredData.value.length === 0) {
+    return `未找到包含 "${searchInputValue.value}" 的数据`;
+  }
+  return '';
+});
+
+const clearSearch = () => {
+  searchInputValue.value = '';
+};
 
 const handleTableChange = (
   paginationData: any,
@@ -257,8 +353,9 @@ const handleTableChange = (
   sorter: any,
 ) => {
   console.log('Table change:', paginationData, filters, sorter);
+  
+  // Handle sorting changes only - pagination is handled by separate handlers
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-
   if (currentSorter && currentSorter.order) {
     sorterInfo.value = {
       columnKey: currentSorter.columnKey,
@@ -271,16 +368,11 @@ const handleTableChange = (
       order: 'descend',
     };
   }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
 };
 
 const onSettingClick = () => {
   console.log('Setting clicked');
 };
-
-const loading = ref(false); // Add a loading state
 
 const tableSize = ref('middle'); // Default table size
 
@@ -317,17 +409,10 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 
 const onRefresh = () => {
   console.log('Refresh button clicked!');
-  loading.value = true; // Show loading icon
   searchInputValue.value = '';
-  productTypeValue.value = '';
-  productNameValue.value = '';
-  memberTypeValue.value = '';
+  currentPage.value = 1;
   resetColumns(); // Reset column order and visibility
-
-  // Simulate data fetching
-  setTimeout(() => {
-    loading.value = false; // Hide loading icon after a delay
-  }, 500); // Adjust delay as needed
+  fetchProductList(); // Fetch fresh data from API
 };
 
 // Add selector reactive values and computed options
@@ -338,12 +423,12 @@ const productTypeValue = ref('');
 const colorValue = ref('');
 const memberTypeValue = ref('');
 
-const productNameOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.map(item => item.productName))).map(v => ({ value: v, label: v }))]);
-const productTypeOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.map(item => item.productType))).map(v => ({ value: v, label: v }))]);
-const memberTypeOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.map(item => item.memberType))).map(v => ({ value: v, label: v }))]);
+const productNameOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.value.map(item => item.productName))).map(v => ({ value: v, label: v }))]);
+const productTypeOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.value.map(item => item.productType))).map(v => ({ value: v, label: v }))]);
+const memberTypeOptions = computed(() => [{ value: '', label: '全部' }, ...Array.from(new Set(rawData.value.map(item => item.memberType))).map(v => ({ value: v, label: v }))]);
 
 const filteredData = computed(() => {
-  let dataToFilter: ProductTableRow[] = [...rawData];
+  let dataToFilter: DataItem[] = [...rawData.value];
   
   if (productIdValue.value) {
     dataToFilter = dataToFilter.filter(item => item.productId === productIdValue.value);
@@ -390,15 +475,55 @@ const filteredData = computed(() => {
 const currentPage = ref(1);
 const pageSize = ref(10);
 
-const pagination = computed(() => ({
-  total: filteredData.value.length, 
-  current: currentPage.value,
-  pageSize: pageSize.value,
-  showSizeChanger: true, 
-  pageSizeOptions: ['10', '20', '50'], 
-  showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
-  showQuickJumper: { goButton: '页' }, 
-}));
+// Computed property for paginated data
+const paginatedData = computed(() => {
+  const startIndex = (currentPage.value - 1) * pageSize.value;
+  const endIndex = startIndex + pageSize.value;
+  const paginated = filteredData.value.slice(startIndex, endIndex);
+  console.log('PaginatedData:', {
+    currentPage: currentPage.value,
+    pageSize: pageSize.value,
+    startIndex,
+    endIndex,
+    totalItems: filteredData.value.length,
+    paginatedItems: paginated.length
+  });
+  return paginated;
+});
+
+// Pagination change handlers
+const handlePageChange = (page: number, size: number) => {
+  console.log('Pagination onChange called:', page, size);
+  currentPage.value = page;
+  if (size !== pageSize.value) {
+    pageSize.value = size;
+    currentPage.value = 1; // Reset to first page when page size changes
+  }
+  console.log('Current page after change:', currentPage.value);
+};
+
+const handlePageSizeChange = (current: number, size: number) => {
+  console.log('Pagination onShowSizeChange called:', current, size);
+  pageSize.value = size;
+  currentPage.value = 1; // Reset to first page when page size changes
+  console.log('Page size after change:', pageSize.value);
+};
+
+const pagination = computed(() => {
+  const paginationConfig = {
+    total: filteredData.value.length, 
+    current: currentPage.value,
+    pageSize: pageSize.value,
+    showSizeChanger: true, 
+    pageSizeOptions: ['10', '20', '50'], 
+    showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
+    showQuickJumper: { goButton: '页' },
+    onChange: handlePageChange,
+    onShowSizeChange: handlePageSizeChange
+  };
+  console.log('Pagination config:', paginationConfig);
+  return paginationConfig;
+});
 
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
@@ -407,6 +532,17 @@ onMounted(() => {
 defineExpose({
   handleTableChange, // Explicitly expose handleTableChange
 });
+
+// Handle delete record
+const handleDeleteRecord = async (record: DataItem) => {
+  try {
+    if (record.id) {
+      await deleteProductList(record.id);
+    }
+  } catch (error) {
+    console.error('Error deleting record:', error);
+  }
+};
 </script>
 <style scoped>
 #components-table-demo-summary tfoot th,
@@ -635,5 +771,23 @@ html, body {
 :deep(.ant-table-column-sorter-up.active),
 :deep(.ant-table-column-sorter-down.active) {
   color: #1677ff; /* blue when active */
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.no-data-message .ant-empty {
+  margin: 0;
+}
+
+.no-data-message .ant-empty-description {
+  color: #666;
+  font-size: 14px;
 }
 </style>

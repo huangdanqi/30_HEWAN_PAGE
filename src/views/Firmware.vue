@@ -134,11 +134,15 @@
       <template #bodyCell="{ column, record }">
       <template v-if="column.key === 'operation'">
         <a-space class="action-cell" direction="horizontal">
-          <a class="edit-link" @click="handleEditClick">编辑</a>
+          <a class="view-link" @click="handleViewClick(record)">查看</a>
+          <a-divider type="vertical" />
+          <a class="edit-link" @click="handleEditClick(record)">编辑</a>
+          <a-divider type="vertical" />
+          <a class="download-link" @click="handleDownloadClick(record)">固件下载</a>
           <a-divider type="vertical" />
           <a-popconfirm
             title="确定要删除该信息吗?"
-            @confirm="$emit('delete-record', record)"
+            @confirm="handleDeleteRecord(record)"
           >
             <a class="danger-link">删除</a>
           </a-popconfirm>
@@ -146,11 +150,22 @@
       </template>
     </template>
       </a-table>
+      
+      <!-- No data message -->
+      <!-- <div v-if="showNoDataMessage" class="no-data-message">
+        <a-empty 
+          :description="noDataMessage"
+          :image="Empty.PRESENTED_IMAGE_SIMPLE"
+        >
+          <a-button type="primary" @click="clearSearch">清除搜索</a-button>
+        </a-empty>
+      </div> -->
     </div>
 
     <FirmwareReleaseModal
       :visible="showReleaseModal"
       :uniqueDeviceModels="uniqueDeviceModels"
+      :editRecord="editRecord"
       @update:visible="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
@@ -166,20 +181,31 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, h } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import FirmwareReleaseModal from '@/components/FirmwareReleaseModal.vue';
 import FirmwareEditModal from '@/components/FirmwareEditModal.vue';
+import { useRoute, useRouter } from 'vue-router';
+import { Empty } from 'ant-design-vue';
+import axios from 'axios';
+
+const route = useRoute();
+const router = useRouter();
+
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
 
 interface DataItem {
-  key: number;
+  id?: number;
+  key?: number;
   deviceModel: string;
   releaseVersion: string;
   versionNumber: string;
   description: string;
+  fileAddress: string;
   creator: string;
   releaseTime: string;
   updateTime: string;
@@ -199,15 +225,16 @@ interface ColumnConfig {
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
   { key: 'deviceModel', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
   { key: 'releaseVersion', title: '发布版本', dataIndex: 'releaseVersion', width: 100 },
   { key: 'versionNumber', title: '版本号', dataIndex: 'versionNumber', width: 100, sorter: (a: any, b: any) => a.versionNumber.localeCompare(b.versionNumber), sortDirections: ['ascend', 'descend'] },
   { key: 'description', title: '内容描述', dataIndex: 'description', width: 600 },
-  { key: 'creator', title: '创建人', dataIndex: 'creator', width: 100 },
+  { key: 'fileAddress', title: '文件地址', dataIndex: 'fileAddress', width: 200 },
+  { key: 'creator', title: '更新人', dataIndex: 'creator', width: 100 },
   { key: 'releaseTime', title: '发布时间', dataIndex: 'releaseTime', width: 180, sorter: (a: any, b: any) => new Date(a.releaseTime).getTime() - new Date(b.releaseTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation', title: '操作', dataIndex: '', width: 100, fixed: 'right' },
+  { key: 'operation', title: '操作', dataIndex: '', width: 280, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -216,20 +243,40 @@ const selectedColumnKeys = ref<string[]>(columnConfigs.map(config => config.key)
 
 // Create columns from configs
 const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
-  return configs.map(config => ({
-    title: config.title,
-    dataIndex: config.dataIndex,
-    key: config.key,
-    width: config.width,
-    fixed: config.fixed,
-    sorter: config.sorter,
-    sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    defaultSortOrder: config.defaultSortOrder,
-    customRender: config.customRender
-      ? config.customRender
-      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
-  })) as ColumnsType;
+  return configs.map(config => {
+    const column: any = {
+      title: config.title,
+      dataIndex: config.dataIndex,
+      key: config.key,
+      width: config.width,
+      fixed: config.fixed,
+      sorter: config.sorter,
+      sortDirections: config.sortDirections,
+      sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
+      defaultSortOrder: config.defaultSortOrder,
+    };
+
+    // Handle rowIndex column
+    if (config.key === 'rowIndex') {
+      column.customRender = ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1;
+    } else if (config.key === 'deviceModel') {
+      // Handle deviceModel column with hyperlink
+      column.customRender = ({ text }: { text: any }) => {
+        if (text) {
+          return h('a', {
+            style: { color: '#1890ff', cursor: 'pointer' },
+            onClick: () => router.push({ name: 'device-type', query: { search: text } })
+          }, text);
+        }
+        return '-';
+      };
+    } else if (config.key !== 'operation') {
+      // Use customRender for other columns that need custom rendering (except operation)
+      column.customRender = ({ text }: { text: any }) => (text === undefined || text === null || text === '' ? '-' : text);
+    }
+
+    return column;
+  }) as ColumnsType;
 };
 
 // Computed property for visible columns
@@ -252,38 +299,113 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-// Generate virtual data for the new columns
-const rawData: DataItem[] = [
-  // HWSZ001
-  { key: 1, deviceModel: 'HWSZ001', releaseVersion: '主版本', versionNumber: 'Z001 V 1.0.0', description: 'desc', creator: '张三', releaseTime: '2025-07-13 19:25:11', updateTime: '2025-07-13 19:25:11' },
-  { key: 2, deviceModel: 'HWSZ001', releaseVersion: '主版本', versionNumber: 'Z001 V 2.0.0', description: 'desc', creator: '张三', releaseTime: '2025-08-13 19:25:11', updateTime: '2025-08-13 19:25:11' },
-  // HWSZ002
-  { key: 3, deviceModel: 'HWSZ002', releaseVersion: '主版本', versionNumber: 'Z002 V 1.0.0', description: 'desc', creator: '李四', releaseTime: '2025-07-14 19:25:11', updateTime: '2025-07-14 19:25:11' },
-  { key: 4, deviceModel: 'HWSZ002', releaseVersion: '主版本', versionNumber: 'Z002 V 2.0.0', description: 'desc', creator: '李四', releaseTime: '2025-08-14 19:25:11', updateTime: '2025-08-14 19:25:11' },
-  // HWSZ003
-  { key: 5, deviceModel: 'HWSZ003', releaseVersion: '主版本', versionNumber: 'Z003 V 1.0.0', description: 'desc', creator: '王五', releaseTime: '2025-07-15 19:25:11', updateTime: '2025-07-15 19:25:11' },
-  { key: 6, deviceModel: 'HWSZ003', releaseVersion: '主版本', versionNumber: 'Z003 V 2.0.0', description: 'desc', creator: '王五', releaseTime: '2025-08-15 19:25:11', updateTime: '2025-08-15 19:25:11' },
-  { key: 7, deviceModel: 'HWSZ003', releaseVersion: '主版本', versionNumber: 'Z003 V 3.0.0', description: 'desc', creator: '王五', releaseTime: '2025-09-15 19:25:11', updateTime: '2025-09-15 19:25:11' },
-];
+// Replace static data with reactive data
+const rawData = ref<DataItem[]>([]);
+const loading = ref(false);
+const total = ref(0); // Add total count for server-side pagination
 
-console.log('Raw Data:', rawData);
+// API functions
+const fetchFirmware = async () => {
+  try {
+    loading.value = true;
+    console.log('Fetching firmware with page:', currentPage.value, 'pageSize:', pageSize.value);
+    
+    const response = await axios.get(`${API_BASE_URL}/firmware`, {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value
+      }
+    });
+    
+    if (response.data && response.data.data) {
+      // Server-side pagination response
+      rawData.value = response.data.data.map((item: any, index: number) => ({
+        ...item,
+        key: index + 1
+      }));
+      
+      // Update pagination info from server
+      if (response.data.pagination) {
+        currentPage.value = response.data.pagination.current;
+        pageSize.value = response.data.pagination.pageSize;
+        total.value = response.data.pagination.total;
+        
+        console.log('Updated pagination - current:', currentPage.value, 'pageSize:', pageSize.value, 'total:', total.value);
+      }
+    } else {
+      // Fallback for old API format
+      rawData.value = response.data.map((item: any, index: number) => ({
+        ...item,
+        key: index + 1
+      }));
+      total.value = response.data.length;
+    }
+  } catch (error) {
+    console.error('Error fetching firmware:', error);
+    // Fallback to static data if API fails
+    const fallbackData: DataItem[] = [
+      // HWSZ001
+      { key: 1, deviceModel: 'HWSZ001', releaseVersion: '主版本', versionNumber: 'Z001 V 1.0.0', description: 'desc', fileAddress: 'https://example.com/firmware.bin', creator: '张三', releaseTime: '2025-07-13 19:25:11', updateTime: '2025-07-13 19:25:11' },
+      { key: 2, deviceModel: 'HWSZ001', releaseVersion: '主版本', versionNumber: 'Z001 V 2.0.0', description: 'desc', fileAddress: 'https://example.com/firmware.bin', creator: '张三', releaseTime: '2025-08-13 19:25:11', updateTime: '2025-08-13 19:25:11' },
+      // HWSZ002
+
+    ];
+    rawData.value = fallbackData;
+    total.value = fallbackData.length;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const createFirmware = async (firmwareData: Omit<DataItem, 'key' | 'id' | 'releaseTime' | 'updateTime'>) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/firmware`, firmwareData);
+    await fetchFirmware(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error creating firmware:', error);
+    throw error;
+  }
+};
+
+const updateFirmware = async (id: number, firmwareData: Partial<DataItem>) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/firmware/${id}`, firmwareData);
+    await fetchFirmware(); // Refresh data
+    return response.data;
+  } catch (error) {
+    console.error('Error updating firmware:', error);
+    throw error;
+  }
+};
+
+const deleteFirmware = async (id: number) => {
+  try {
+    await axios.delete(`${API_BASE_URL}/firmware/${id}`);
+    await fetchFirmware(); // Refresh data
+  } catch (error) {
+    console.error('Error deleting firmware:', error);
+    throw error;
+  }
+};
+
 
 const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
 const releaseVersionValue = ref({ key: 'all', label: '全部', value: 'all' });
 const versionNumberValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const deviceModelOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.deviceModel)));
+  const unique = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
 const releaseVersionOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.releaseVersion)));
+  const unique = Array.from(new Set(rawData.value.map(item => item.releaseVersion)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
 const versionNumberOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.map(item => item.versionNumber)));
+  const unique = Array.from(new Set(rawData.value.map(item => item.versionNumber)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
@@ -315,31 +437,39 @@ const sorterInfo = ref<any>({
   order: 'descend',
 });
 
+// Create pagination handlers as separate functions
+const handlePageChange = (page: number, size: number) => {
+  console.log('handlePageChange called:', page, size);
+  currentPage.value = page;
+  pageSize.value = size;
+  // No need to fetch firmware since we're using client-side filtering
+};
+
+const handlePageSizeChange = (current: number, size: number) => {
+  console.log('handlePageSizeChange called:', current, size);
+  currentPage.value = current;
+  pageSize.value = size;
+  // No need to fetch firmware since we're using client-side filtering
+};
+
+// Create pagination as a computed property
 const pagination = computed(() => ({
-  total: filteredData.value.length, 
+  total: filteredData.value.length,
   current: currentPage.value,
   pageSize: pageSize.value,
-  showSizeChanger: true, 
-  pageSizeOptions: ['10', '20', '50'], 
-  showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`, 
-  showQuickJumper: { goButton: '页' }, 
-  onShowSizeChange: (current: number, size: number) => {
-    console.log('onShowSizeChange', current, size);
-    currentPage.value = current;
-    pageSize.value = size;
-  },
-  onChange: (page: number, size: number) => {
-    console.log('onChange', page, size);
-    currentPage.value = page;
-    pageSize.value = size;
-  },
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '50'],
+  showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`,
+  showQuickJumper: { goButton: '页' },
+  onShowSizeChange: handlePageSizeChange,
+  onChange: handlePageChange,
 }));
 
 const onRefresh = () => {
   console.log('Refresh button clicked!');
-  loading.value = true; // Show loading icon
   searchInputValue.value = '';
   currentPage.value = 1;
+  pageSize.value = 10;
   resetColumns(); // Reset column order and visibility
 
   // Reset all selector values to '全部'
@@ -347,14 +477,11 @@ const onRefresh = () => {
   releaseVersionValue.value = { key: 'all', label: '全部', value: 'all' };
   versionNumberValue.value = { key: 'all', label: '全部', value: 'all' };
 
-  // Simulate data fetching
-  setTimeout(() => {
-    loading.value = false; // Hide loading icon after a delay
-  }, 500); // Adjust delay as needed
+  fetchFirmware(); // Fetch fresh data from API
 };
 
 const filteredData = computed<DataItem[]>(() => {
-  let dataToFilter: DataItem[] = [...rawData];
+  let dataToFilter: DataItem[] = [...rawData.value];
 
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
@@ -407,6 +534,24 @@ const filteredData = computed<DataItem[]>(() => {
   return dataToFilter;
 });
 
+// Computed property to show no data message
+const showNoDataMessage = computed(() => {
+  return searchInputValue.value && filteredData.value.length === 0;
+});
+
+// Computed property for no data message
+const noDataMessage = computed(() => {
+  if (searchInputValue.value && filteredData.value.length === 0) {
+    return `未找到包含 "${searchInputValue.value}" 的固件`;
+  }
+  return '';
+});
+
+const clearSearch = () => {
+  searchInputValue.value = '';
+  currentPage.value = 1; // Reset to first page when clearing search
+};
+
 const searchInputValue = ref('');
 
 const handleTableChange = (
@@ -415,6 +560,15 @@ const handleTableChange = (
   sorter: any,
 ) => {
   console.log('Table change:', paginationData, filters, sorter);
+  
+  // Handle pagination changes - this is handled by the pagination handlers
+  if (paginationData && (paginationData.current !== currentPage.value || paginationData.pageSize !== pageSize.value)) {
+    currentPage.value = paginationData.current;
+    pageSize.value = paginationData.pageSize;
+    // No need to fetch firmware since we're using client-side filtering
+    return; // Exit early to avoid duplicate calls
+  }
+  
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
 
   if (currentSorter && currentSorter.order) {
@@ -422,23 +576,20 @@ const handleTableChange = (
       columnKey: currentSorter.columnKey,
       order: currentSorter.order,
     };
+    // No need to fetch firmware since we're using client-side filtering
   } else {
     // When sorting is cleared, revert to default
     sorterInfo.value = {
       columnKey: 'updateTime',
       order: 'descend',
     };
+    // No need to fetch firmware since we're using client-side filtering
   }
-  
-  // When table changes, we should probably go back to the first page
-  currentPage.value = 1;
 };
 
 const onSettingClick = () => {
   console.log('Setting clicked');
 };
-
-const loading = ref(false); // Add a loading state
 
 const tableSize = ref('middle'); // Default table size
 
@@ -474,41 +625,128 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 };
 
 const showReleaseModal = ref(false);
-const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.map(item => item.deviceModel))));
+const showEditModal = ref(false);
+const editRecord = ref<any>(null);
+const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.value.map(item => item.deviceModel))));
 
 const handleVersionRelease = () => {
   showReleaseModal.value = true;
 };
-const handleReleaseModalClose = () => {
-  showReleaseModal.value = false;
-};
-const handleReleaseModalSubmit = (_data: any) => {
-  // You can handle the submit data here
-  showReleaseModal.value = false;
-};
 
-const showEditModal = ref(false);
-const editRecord = ref<any>(null);
-
-const handleEditClick = () => {
-  message.info('开发中');
+const handleEditClick = (record: DataItem) => {
+  editRecord.value = record;
+  showEditModal.value = true;
 };
 
 const handleEditModalClose = () => {
   showEditModal.value = false;
   editRecord.value = null;
 };
-const handleEditModalSubmit = (_data: any) => {
-  // Update the data in your table as needed
-  showEditModal.value = false;
+
+const handleEditModalSubmit = async (data: any) => {
+  try {
+    // Handle edit submission
+    if (data.isEdit && data.originalRecord?.id) {
+      await updateFirmware(data.originalRecord.id, {
+        deviceModel: data.deviceModel,
+        releaseVersion: data.releaseType,
+        versionNumber: data.versionNumber,
+        description: data.contentDescription,
+        fileAddress: data.fileAddress,
+      });
+    }
+    showEditModal.value = false;
+    editRecord.value = null;
+    message.success('固件编辑成功!');
+    fetchFirmware(); // Refresh data
+  } catch (error) {
+    console.error('Edit failed:', error);
+    message.error('编辑失败，请重试');
+  }
+};
+
+const handleReleaseModalClose = () => {
+  showReleaseModal.value = false;
   editRecord.value = null;
+};
+
+const handleReleaseModalSubmit = async (data: any) => {
+  try {
+    // Handle new firmware submission
+    if (!data.isEdit) {
+      await createFirmware({
+        deviceModel: data.deviceModel,
+        releaseVersion: data.releaseType,
+        versionNumber: data.versionNumber,
+        description: data.contentDescription,
+        fileAddress: data.fileAddress,
+        creator: '当前用户', // This should come from user context
+      });
+    } else {
+      // Handle edit submission
+      if (data.originalRecord?.id) {
+        await updateFirmware(data.originalRecord.id, {
+          deviceModel: data.deviceModel,
+          releaseVersion: data.releaseType,
+          versionNumber: data.versionNumber,
+          description: data.contentDescription,
+          fileAddress: data.fileAddress,
+        });
+      }
+    }
+    showReleaseModal.value = false;
+    editRecord.value = null;
+    message.success(data.isEdit ? '固件编辑成功!' : '固件发布成功!');
+    fetchFirmware(); // Refresh data
+  } catch (error) {
+    console.error('Submit failed:', error);
+    message.error('操作失败，请重试');
+  }
+};
+
+const handleViewClick = (record: DataItem) => {
+  // Show firmware details in a modal or navigate to detail page
+  message.info(`查看固件详情: ${record.deviceModel} - ${record.versionNumber}`);
+  // You can implement a view modal here similar to edit modal
+  console.log('View firmware details:', record);
+};
+
+const handleDownloadClick = (record: DataItem) => {
+  // Download firmware file
+  if (record.fileAddress) {
+    // Check if it's a relative path (starts with /firmware/)
+    if (record.fileAddress.startsWith('/firmware/')) {
+      // Use the download endpoint
+      const downloadUrl = `${API_BASE_URL}/firmware/download/${record.fileAddress.split('/').pop()}`;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${record.deviceModel}_${record.versionNumber}.bin`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      message.success(`开始下载固件: ${record.deviceModel} - ${record.versionNumber}`);
+    } else {
+      // Handle external URLs
+      const link = document.createElement('a');
+      link.href = record.fileAddress;
+      link.download = `${record.deviceModel}_${record.versionNumber}.bin`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      message.success(`开始下载固件: ${record.deviceModel} - ${record.versionNumber}`);
+    }
+  } else {
+    message.error('固件文件地址不存在');
+  }
 };
 
 const nextVersionNumber = computed(() => {
   const deviceModel = deviceModelValue.value.value;
   const releaseType = releaseVersionValue.value.label;
   if (!deviceModel || deviceModel === 'all' || !releaseType) return '';
-  const versions = rawData
+  const versions = rawData.value
     .filter(item => item.deviceModel === deviceModel)
     .map(item => item.versionNumber)
     .map(v => {
@@ -525,7 +763,7 @@ const nextVersionNumber = computed(() => {
     })
     .filter(Boolean);
   console.log('Selected deviceModel:', deviceModel);
-  console.log('All versions for this model:', rawData.filter(item => item.deviceModel === deviceModel).map(item => item.versionNumber));
+  console.log('All versions for this model:', rawData.value.filter(item => item.deviceModel === deviceModel).map(item => item.versionNumber));
   console.log('Parsed versions:', versions);
   if (versions.length === 0) {
     if (releaseType === '主版本') return 'V 1.0.0';
@@ -554,13 +792,53 @@ const customLocale = computed(() => ({
   },
 }));
 
+// Handle search parameter from URL
 onMounted(() => {
-  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  // Handle search parameter from URL
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+  }
+  
+  // Handle versionName parameter from DeviceType.vue navigation
+  if (route.query.versionName) {
+    searchInputValue.value = route.query.versionName as string;
+  }
+  
+  // Handle deviceModel parameter from DeviceType.vue navigation
+  if (route.query.deviceModel) {
+    const deviceModel = route.query.deviceModel as string;
+    // Find the matching device model option
+    const matchingOption = deviceModelOptions.value.find(option => 
+      option.value === deviceModel || option.label === deviceModel
+    );
+    if (matchingOption) {
+      deviceModelValue.value = matchingOption;
+    }
+  }
+  
+  // Handle action parameter (for "add" action)
+  if (route.query.action === 'add') {
+    // You can add specific logic here for the "add" action
+    console.log('Navigated from DeviceType with add action');
+  }
+  
+  fetchFirmware(); // Fetch data on component mount
 });
 
 defineExpose({
   handleTableChange, // Explicitly expose handleTableChange
 });
+
+// Handle delete record
+const handleDeleteRecord = async (record: DataItem) => {
+  try {
+    if (record.id) {
+      await deleteFirmware(record.id);
+    }
+  } catch (error) {
+    console.error('Error deleting record:', error);
+  }
+};
 </script>
 <style scoped>
 #components-table-demo-summary tfoot th,
@@ -729,19 +1007,96 @@ html, body {
   padding-right: 18px !important; /* keep space for arrow */
 }
 
-/* Make the action buttons horizontal and style '编辑' as blue and bold */
+/* Operation column specific styling to prevent text wrapping */
+:deep(.ant-table-cell[data-col-key="operation"]) {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  text-wrap: nowrap !important;
+  overflow: visible !important;
+}
+
+/* Ensure operation column content stays horizontal */
+:deep(.ant-table-tbody .ant-table-cell:last-child) {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  text-wrap: nowrap !important;
+}
+
+/* Additional styling for cells containing action-cell */
 :deep(.ant-table-cell .action-cell) {
   display: flex;
   align-items: center;
   gap: 4px;
-  min-width: 90px;
+  min-width: 200px;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+:deep(.ant-table-cell .action-cell .ant-space) {
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+}
+:deep(.ant-table-cell .action-cell .ant-space-item) {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+:deep(.ant-table-cell .action-cell .ant-divider-vertical) {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+:deep(.ant-table-cell .action-cell a) {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  text-wrap: nowrap !important;
+  flex-shrink: 0;
+}
+:deep(.ant-table-cell .action-cell .view-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
 }
 :deep(.ant-table-cell .action-cell .edit-link) {
+  color: #1890ff !important; /* Ant Design blue */
+  font-weight: bold;
+}
+:deep(.ant-table-cell .action-cell .download-link) {
   color: #1890ff !important; /* Ant Design blue */
   font-weight: bold;
 }
 :deep(.ant-table-cell .action-cell .danger-link) {
   color: #ff4d4f !important; /* Ant Design red */
   font-weight: bold;
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.no-data-message .ant-empty {
+  margin: 0;
+}
+
+.no-data-message .ant-empty-description {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Hyperlink styling */
+:deep(.ant-table-tbody .ant-table-cell a) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:active) {
+  color: #096dd9;
 }
 </style>

@@ -48,6 +48,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { useAuthStore } from '../stores/auth'
 
 interface FormState {
   username: string
@@ -55,6 +56,7 @@ interface FormState {
 }
 
 const router = useRouter()
+const authStore = useAuthStore()
 const loading = ref(false)
 
 const formState = reactive<FormState>({
@@ -62,21 +64,20 @@ const formState = reactive<FormState>({
   password: '',
 })
 
-const onFinish = async (_values: FormState) => {
+const onFinish = async (values: FormState) => {
   loading.value = true
   try {
-    // TODO: Replace with actual API call
-    // const response = await loginApi(values)
-    // localStorage.setItem('token', response.token)
-
-    // Simulated API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    localStorage.setItem('token', 'dummy-token')
-
-    message.success('登陆成功!')
-    router.push('/')
+    // Use the auth store for login
+    const success = await authStore.login(values.username, values.password)
+    
+    if (success) {
+      message.success('登录成功!')
+      router.push('/')
+    } else {
+      message.error('登录失败，请检查账号和密码！')
+    }
   } catch (error) {
-    message.error('登陆失败，请重试！')
+    message.error('登录失败，请重试！')
   } finally {
     loading.value = false
   }

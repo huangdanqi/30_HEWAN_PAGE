@@ -38,14 +38,14 @@
             </a-select>
           </a-tooltip>
         </div>
-        <div class="select-container agent-mode-select" style="margin-left: 10px;">
+        <!-- <div class="select-container agent-mode-select" style="margin-left: 10px;">
           <span class="select-always-placeholder">语音名称:</span>
           <a-tooltip :title="agentModeValue.label">
             <a-select v-model:value="agentModeValue" style="width: 120px;" :options="agentModeOptions" @change="handleAgentModeChange" :allowClear="true" label-in-value>
               <a-select-option value="all">全部</a-select-option>
             </a-select>
           </a-tooltip>
-        </div>
+        </div> -->
       </div>
       
       <div class="right-aligned-icons">
@@ -105,8 +105,48 @@
               </a-popconfirm>
             </a-space>
           </template>
+          <template v-if="column.key === 'ipAttribution_3'">
+            <a @click="handleIpNameClick(record.ipAttribution)">{{ record.ipAttribution }}</a>
+          </template>
+          <template v-if="column.key === 'vad_4'">
+            <a @click="handleVadClick(record.vad)">{{ record.vad }}</a>
+          </template>
+          <template v-if="column.key === 'asr_5'">
+            <a @click="handleAsrClick(record.asr)">{{ record.asr }}</a>
+          </template>
+          <template v-if="column.key === 'speechRecognition_6'">
+            <a @click="handleIntelligentAgentClick(record.speechRecognition)">{{ record.speechRecognition }}</a>
+          </template>
+          <template v-if="column.key === 'emotionRecognition_7'">
+            <a @click="handleIntelligentAgentClick(record.emotionRecognition)">{{ record.emotionRecognition }}</a>
+          </template>
+          <template v-if="column.key === 'llm_8'">
+            <a @click="handleLlmClick(record.llm)">{{ record.llm }}</a>
+          </template>
+          <template v-if="column.key === 'memory_9'">
+            <a @click="handleMemoryClick(record.memory)">{{ record.memory }}</a>
+          </template>
+          <template v-if="column.key === 'tools_10'">
+            <a @click="handleToolsClick(record.tools)">{{ record.tools }}</a>
+          </template>
+          <template v-if="column.key === 'tts_11'">
+            <a @click="handleTtsClick(record.tts, record.ttsRoleName)">{{ record.tts }} {{ record.ttsRoleName }}</a>
+          </template>
+          <template v-if="column.key === 'ipVcm_13'">
+            <a @click="handleIpVcmClick(record.ipVcm, record.vcmRoleName)">{{ record.ipVcm }} {{ record.vcmRoleName }}</a>
+          </template>
         </template>
       </a-table>
+      
+      <!-- No data message -->
+      <div v-if="showNoDataMessage" class="no-data-message">
+        <a-empty 
+          :description="noDataMessage"
+          :image="Empty.PRESENTED_IMAGE_SIMPLE"
+        >
+          <a-button type="primary" @click="clearSearch">清除搜索</a-button>
+        </a-empty>
+      </div>
     </div>
 
     <!-- 新增Agent Modal -->
@@ -126,16 +166,16 @@
           <a-input v-model:value="createForm.agentName" placeholder="请输入" />
         </a-form-item>
 
-        <a-form-item label="VAD" name="vad" required>
-          <a-select v-model:value="createForm.vad" placeholder="请选择">
+        <a-form-item label="VAD" name="vadName" required>
+          <a-select v-model:value="createForm.vadName" placeholder="请选择">
             <a-select-option value="VAD类型">VAD类型</a-select-option>
             <a-select-option value="静音检测">静音检测</a-select-option>
             <a-select-option value="语音活动检测">语音活动检测</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="ASR" name="asr" required>
-          <a-select v-model:value="createForm.asr" placeholder="请选择">
+        <a-form-item label="ASR" name="asrName" required>
+          <a-select v-model:value="createForm.asrName" placeholder="请选择">
             <a-select-option value="蓝色语音ASR">蓝色语音ASR</a-select-option>
             <a-select-option value="百度ASR">百度ASR</a-select-option>
             <a-select-option value="讯飞ASR">讯飞ASR</a-select-option>
@@ -143,16 +183,16 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item label="语音识别" name="speechRecognition">
-          <a-select v-model:value="createForm.speechRecognition" placeholder="请选择">
-            <a-select-option value="16路语音识别">16路语音识别</a-select-option>
-            <a-select-option value="8路语音识别">8路语音识别</a-select-option>
-            <a-select-option value="4路语音识别">4路语音识别</a-select-option>
-            <a-select-option value="单路语音识别">单路语音识别</a-select-option>
+        <a-form-item label="意图识别" name="intelligentAgentName">
+          <a-select v-model:value="createForm.intelligentAgentName" placeholder="请选择">
+            <a-select-option value="16路意图识别">16路意图识别</a-select-option>
+            <a-select-option value="8路意图识别">8路意图识别</a-select-option>
+            <a-select-option value="4路意图识别">4路意图识别</a-select-option>
+            <a-select-option value="单路意图识别">单路意图识别</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="情绪识别" name="emotionRecognition">
+        <a-form-item label="智能体" name="emotionRecognition">
           <a-select v-model:value="createForm.emotionRecognition" placeholder="请选择">
             <a-select-option value="情感识别情绪陪伴">情感识别情绪陪伴</a-select-option>
             <a-select-option value="基础情感识别">基础情感识别</a-select-option>
@@ -160,8 +200,8 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item label="LLM" name="llm">
-          <a-select v-model:value="createForm.llm" placeholder="请选择">
+        <a-form-item label="LLM" name="llmName">
+          <a-select v-model:value="createForm.llmName" placeholder="请选择">
             <a-select-option value="Deep Seek R1">Deep Seek R1</a-select-option>
             <a-select-option value="GPT-4">GPT-4</a-select-option>
             <a-select-option value="Claude">Claude</a-select-option>
@@ -174,8 +214,8 @@
           <a-textarea v-model:value="createForm.prompt" placeholder="请输入" :rows="3" />
         </a-form-item>
 
-        <a-form-item label="Memory" name="memory">
-          <a-select v-model:value="createForm.memory" placeholder="请选择">
+        <a-form-item label="Memory" name="memoryName">
+          <a-select v-model:value="createForm.memoryName" placeholder="请选择">
             <a-select-option value="Memory 0">Memory 0</a-select-option>
             <a-select-option value="Memory 1">Memory 1</a-select-option>
             <a-select-option value="Memory 2">Memory 2</a-select-option>
@@ -195,21 +235,21 @@
         <a-form-item label="语音合成类型" name="speechSynthesisType" required>
           <a-radio-group v-model:value="createForm.speechSynthesisType">
             <a-radio value="TTS">TTS</a-radio>
-            <a-radio value="自定义识别">自定义识别</a-radio>
+            <a-radio value="音色复刻">音色复刻</a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item v-if="createForm.speechSynthesisType === 'TTS'" label="TTS" name="tts" required>
-          <a-select v-model:value="createForm.tts" placeholder="请选择">
+        <a-form-item v-if="createForm.speechSynthesisType === 'TTS'" label="TTS" name="ttsName" required>
+          <a-select v-model:value="createForm.ttsName" placeholder="请选择">
             <a-select-option value="微软TTS">微软TTS</a-select-option>
             <a-select-option value="阿里TTS">阿里TTS</a-select-option>
             <a-select-option value="讯飞TTS">讯飞TTS</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item v-if="createForm.speechSynthesisType === '自定义识别'" label="IP VCM" name="ipVcm" required>
-          <a-select v-model:value="createForm.ipVcm" placeholder="请选择">
-            <a-select-option value="蓝色语音识别">蓝色语音识别</a-select-option>
+        <a-form-item v-if="createForm.speechSynthesisType === '音色复刻'" label="IP VCM" name="ipVcmName" required>
+          <a-select v-model:value="createForm.ipVcmName" placeholder="请选择">
+            <a-select-option value="蓝色意图识别">蓝色意图识别</a-select-option>
             <a-select-option value="百度VCM">百度VCM</a-select-option>
             <a-select-option value="讯飞VCM">讯飞VCM</a-select-option>
             <a-select-option value="阿里VCM">阿里VCM</a-select-option>
@@ -252,7 +292,7 @@
         </a-form-item>
 
         <a-form-item label="VAD" name="vad" required>
-          <a-select v-model:value="editForm.vad" placeholder="请选择">
+          <a-select v-model:value="editForm.vadName" placeholder="请选择">
             <a-select-option value="VAD类型">VAD类型</a-select-option>
             <a-select-option value="静音检测">静音检测</a-select-option>
             <a-select-option value="语音活动检测">语音活动检测</a-select-option>
@@ -260,7 +300,7 @@
         </a-form-item>
 
         <a-form-item label="ASR" name="asr" required>
-          <a-select v-model:value="editForm.asr" placeholder="请选择">
+          <a-select v-model:value="editForm.asrName" placeholder="请选择">
             <a-select-option value="ASR类型">ASR类型</a-select-option>
             <a-select-option value="蓝色语音ASR">蓝色语音ASR</a-select-option>
             <a-select-option value="百度ASR">百度ASR</a-select-option>
@@ -269,19 +309,19 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item label="语音识别" name="speechRecognition">
-          <a-select v-model:value="editForm.speechRecognition" placeholder="请选择">
-            <a-select-option value="智能语音识别">智能语音识别</a-select-option>
-            <a-select-option value="16路语音识别">16路语音识别</a-select-option>
-            <a-select-option value="8路语音识别">8路语音识别</a-select-option>
-            <a-select-option value="4路语音识别">4路语音识别</a-select-option>
-            <a-select-option value="单路语音识别">单路语音识别</a-select-option>
+        <a-form-item label="意图识别" name="intentRecognition">
+          <a-select v-model:value="editForm.intelligentAgentName" placeholder="请选择">
+            <a-select-option value="智能意图识别">智能意图识别</a-select-option>
+            <a-select-option value="16路意图识别">16路意图识别</a-select-option>
+            <a-select-option value="8路意图识别">8路意图识别</a-select-option>
+            <a-select-option value="4路意图识别">4路意图识别</a-select-option>
+            <a-select-option value="单路意图识别">单路意图识别</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="情绪识别" name="emotionRecognition">
+        <a-form-item label="智能体" name="emotionRecognition">
           <a-select v-model:value="editForm.emotionRecognition" placeholder="请选择">
-            <a-select-option value="情绪识别">情绪识别</a-select-option>
+            <a-select-option value="智能体">智能体</a-select-option>
             <a-select-option value="情感识别情绪陪伴">情感识别情绪陪伴</a-select-option>
             <a-select-option value="基础情感识别">基础情感识别</a-select-option>
             <a-select-option value="高级情感识别">高级情感识别</a-select-option>
@@ -289,7 +329,7 @@
         </a-form-item>
 
         <a-form-item label="LLM" name="llm">
-          <a-select v-model:value="editForm.llm" placeholder="请选择">
+          <a-select v-model:value="editForm.llmName" placeholder="请选择">
             <a-select-option value="LLM">LLM</a-select-option>
             <a-select-option value="Deep Seek R1">Deep Seek R1</a-select-option>
             <a-select-option value="GPT-4">GPT-4</a-select-option>
@@ -304,7 +344,7 @@
         </a-form-item>
 
         <a-form-item label="Memory" name="memory">
-          <a-select v-model:value="editForm.memory" placeholder="请选择">
+          <a-select v-model:value="editForm.memoryName" placeholder="请选择">
             <a-select-option value="Memory0">Memory0</a-select-option>
             <a-select-option value="Memory 0">Memory 0</a-select-option>
             <a-select-option value="Memory 1">Memory 1</a-select-option>
@@ -333,7 +373,7 @@
         </a-form-item>
 
         <a-form-item v-if="editForm.speechSynthesisType === 'TTS'" label="TTS" name="tts" required>
-          <a-select v-model:value="editForm.tts" placeholder="请选择">
+          <a-select v-model:value="editForm.ttsName" placeholder="请选择">
             <a-select-option value="TTS">TTS</a-select-option>
             <a-select-option value="微软TTS">微软TTS</a-select-option>
             <a-select-option value="阿里TTS">阿里TTS</a-select-option>
@@ -342,9 +382,9 @@
         </a-form-item>
 
         <a-form-item v-if="editForm.speechSynthesisType === '自定义识别'" label="IP VCM" name="ipVcm" required>
-          <a-select v-model:value="editForm.ipVcm" placeholder="请选择">
+          <a-select v-model:value="editForm.ipVcmName" placeholder="请选择">
             <a-select-option value="IP VCM">IP VCM</a-select-option>
-            <a-select-option value="蓝色语音识别">蓝色语音识别</a-select-option>
+            <a-select-option value="蓝色意图识别">蓝色意图识别</a-select-option>
             <a-select-option value="百度VCM">百度VCM</a-select-option>
             <a-select-option value="讯飞VCM">讯飞VCM</a-select-option>
             <a-select-option value="阿里VCM">阿里VCM</a-select-option>
@@ -380,6 +420,12 @@ import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined } from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import { useRoute, useRouter } from 'vue-router';
+import { Empty } from 'ant-design-vue';
+import axios from 'axios';
+
+const route = useRoute();
+const router = useRouter();
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -390,25 +436,26 @@ const customLocale = computed(() => ({
 }));
 
 interface DataItem {
-  key: number;
+  id: number;
   agentId: string;
   agentName: string;
-  ipAttribution: string;
+  botId: string;
+  apiUrl: string;
+  apiKey: string;
+  ipName: string;
   vad: string;
   asr: string;
-  speechRecognition: string;
-  emotionRecognition: string;
+  intelligentAgent: string;
   llm: string;
   memory: string;
   tools: string;
   tts: string;
-  ttsRoleName: string;
+  ttsVoiceName: string;
   ipVcm: string;
-  vcmRoleName: string;
-  voiceName: string;
+  vcmVoiceName: string;
   updater: string;
-  createdAt: string;
-  updatedAt: string;
+  createTime: string;
+  updateTime: string;
 }
 
 // Define column configuration separately from the table columns
@@ -425,22 +472,22 @@ interface ColumnConfig {
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customCell: ({ index }) => ({ children: (currentPage.value - 1) * pageSize.value + index + 1 }) },
   { key: 'agentId_1', title: 'Agent ID', dataIndex: 'agentId', width: 150 },
   { key: 'agentName_2', title: 'Agent名称', dataIndex: 'agentName', width: 180 },
-  { key: 'ipAttribution_3', title: 'IP归属', dataIndex: 'ipAttribution', width: 100 },
+  { key: 'ipAttribution_3', title: 'IP名称', dataIndex: 'ipAttribution', width: 100 },
   { key: 'vad_4', title: 'VAD', dataIndex: 'vad', width: 100 },
   { key: 'asr_5', title: 'ASR', dataIndex: 'asr', width: 120 },
-  { key: 'speechRecognition_6', title: '语音识别', dataIndex: 'speechRecognition', width: 120 },
-  { key: 'emotionRecognition_7', title: '情绪识别', dataIndex: 'emotionRecognition', width: 120 },
+  { key: 'intentRecognition_6', title: '意图识别', dataIndex: 'intentRecognition', width: 120 },
+  { key: 'emotionRecognition_7', title: '智能体', dataIndex: 'emotionRecognition', width: 120 },
   { key: 'llm_8', title: 'LLM', dataIndex: 'llm', width: 120 },
   { key: 'memory_9', title: 'Memory', dataIndex: 'memory', width: 100 },
   { key: 'tools_10', title: '工具', dataIndex: 'tools', width: 150 },
   { key: 'tts_11', title: 'TTS', dataIndex: 'tts', width: 100 },
-  { key: 'ttsRoleName_12', title: 'TTS角色名称', dataIndex: 'ttsRoleName', width: 120 },
+  { key: 'ttsRoleName_12', title: 'TTS音色名称', dataIndex: 'ttsRoleName', width: 120 },
   { key: 'ipVcm_13', title: 'IP VCM', dataIndex: 'ipVcm', width: 120 },
-  { key: 'vcmRoleName_14', title: 'VCM角色名称', dataIndex: 'vcmRoleName', width: 120 },
-  { key: 'voiceName_15', title: '语音名称', dataIndex: 'voiceName', width: 100 },
+  { key: 'vcmRoleName_14', title: 'VCM音色名称', dataIndex: 'vcmRoleName', width: 120 },
+//   { key: 'voiceName_15', title: '语音名称', dataIndex: 'voiceName', width: 100 },
   { key: 'updater_16', title: '更新人', dataIndex: 'updater', width: 100 },
   { key: 'createdAt_17', title: '创建时间', dataIndex: 'createdAt', width: 150, sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updatedAt_18', title: '更新时间', dataIndex: 'updatedAt', width: 160, sorter: (a: any, b: any) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(), sortDirections: ['ascend', 'descend'] },
@@ -481,56 +528,47 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-const rawData: DataItem[] = [];
-const ipAttributions = ['超能', '小智', '小爱', '小度', '小冰'];
-const vadTypes = ['VAD类型', '静音检测', '语音活动检测'];
-const asrTypes = ['蓝色语音ASR', '百度ASR', '讯飞ASR', '阿里ASR'];
-const speechRecognitionTypes = ['16路语音识别', '8路语音识别', '4路语音识别', '单路语音识别'];
-const emotionRecognitionTypes = ['情感识别情绪陪伴', '基础情感识别', '高级情感识别'];
-const llmTypes = ['Deep Seek R1', 'GPT-4', 'Claude', 'Gemini', '文心一言'];
-const memoryTypes = ['Memory 0', 'Memory 1', 'Memory 2', 'Memory 3'];
-const toolTypes = ['bing, RAG, ...', 'bing, 搜索', 'RAG, 知识库', 'bing, RAG, 搜索'];
-const ttsTypes = ['-', '微软TTS', '阿里TTS', '讯飞TTS'];
-const ttsRoleNames = ['-', '小智', '小爱', '小度'];
-const ipVcmTypes = ['蓝色语音识别', '百度VCM', '讯飞VCM', '阿里VCM'];
-const vcmRoleNames = ['嘿嘿', '小智', '小爱', '小度'];
-const voiceNames = ['33', '小智', '小爱', '小度', '小冰'];
-const updaters = ['33', 'admin', 'user1', 'user2'];
+// Hyperlink functions
+const handleIpNameClick = (ipName: string) => {
+  router.push({ path: '/ip-management', query: { search: ipName } });
+};
 
-for (let i = 0; i < 150; i++) {
-  const date = new Date(2025, 5, 23, 23, 25, 33);
-  date.setDate(date.getDate() + i);
-  date.setHours(date.getHours() + (i % 24));
-  date.setMinutes(date.getMinutes() + (i % 60));
-  date.setSeconds(date.getSeconds() + (i % 60));
+const handleVadClick = (vad: string) => {
+  router.push({ path: '/model-configuration', query: { search: vad } });
+};
 
-  const createdAt = date.toISOString().slice(0, 19).replace('T', ' ');
-  const updatedDate = new Date(date);
-  updatedDate.setHours(date.getHours() + 2);
-  const updatedAt = updatedDate.toISOString().slice(0, 19).replace('T', ' ');
+const handleAsrClick = (asr: string) => {
+  router.push({ path: '/model-configuration', query: { search: asr } });
+};
 
-  rawData.push({
-    key: i + 1,
-    agentId: `hjhwnt832yj${i + 1}`,
-    agentName: `嘿嘿多模态情感陪伴玩具${i + 1}`,
-    ipAttribution: ipAttributions[i % ipAttributions.length],
-    vad: vadTypes[i % vadTypes.length],
-    asr: asrTypes[i % asrTypes.length],
-    speechRecognition: speechRecognitionTypes[i % speechRecognitionTypes.length],
-    emotionRecognition: emotionRecognitionTypes[i % emotionRecognitionTypes.length],
-    llm: llmTypes[i % llmTypes.length],
-    memory: memoryTypes[i % memoryTypes.length],
-    tools: toolTypes[i % toolTypes.length],
-    tts: ttsTypes[i % ttsTypes.length],
-    ttsRoleName: ttsRoleNames[i % ttsRoleNames.length],
-    ipVcm: ipVcmTypes[i % ipVcmTypes.length],
-    vcmRoleName: vcmRoleNames[i % vcmRoleNames.length],
-    voiceName: voiceNames[i % voiceNames.length],
-    updater: updaters[i % updaters.length],
-    createdAt: createdAt,
-    updatedAt: updatedAt,
-  });
-}
+const handleIntelligentAgentClick = (intelligentAgent: string) => {
+  router.push({ path: '/model-configuration', query: { search: intelligentAgent } });
+};
+
+const handleLlmClick = (llm: string) => {
+  router.push({ path: '/model-configuration', query: { search: llm } });
+};
+
+const handleMemoryClick = (memory: string) => {
+  router.push({ path: '/model-configuration', query: { search: memory } });
+};
+
+const handleToolsClick = (tools: string) => {
+  router.push({ path: '/tool-configuration', query: { search: tools } });
+};
+
+const handleTtsClick = (tts: string, ttsVoiceName: string) => {
+  const searchQuery = ttsVoiceName && ttsVoiceName !== '-' ? `${tts} ${ttsVoiceName}` : tts;
+  router.push({ path: '/model-configuration', query: { search: searchQuery } });
+};
+
+const handleIpVcmClick = (ipVcm: string, vcmVoiceName: string) => {
+  const searchQuery = vcmVoiceName && vcmVoiceName !== '-' ? `${ipVcm} ${vcmVoiceName}` : ipVcm;
+  router.push({ path: '/model-configuration', query: { search: searchQuery } });
+};
+
+
+ 
 
 const agentTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
 const agentStatusValue = ref({ key: 'all', label: '全部', value: 'all' });
@@ -539,31 +577,31 @@ const agentRegionValue = ref({ key: 'all', label: '全部', value: 'all' });
 const agentModeValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const agentTypeOptions = computed(() => {
-  const uniqueAgentTypes = Array.from(new Set(rawData.map(item => item.ipAttribution)));
+  const uniqueAgentTypes = Array.from(new Set(rawData.value.map(item => item.ipAttribution)));
   const options = uniqueAgentTypes.map(type => ({ key: type, value: type, label: type }));
   return [{ key: 'all', value: 'all', label: '全部' }, ...options];
 });
 
 const agentStatusOptions = computed(() => {
-  const uniqueStatuses = Array.from(new Set(rawData.map(item => item.asr)));
+  const uniqueStatuses = Array.from(new Set(rawData.value.map(item => item.asr)));
   const options = uniqueStatuses.map(status => ({ key: status, value: status, label: status }));
   return [{ key: 'all', value: 'all', label: '全部' }, ...options];
 });
 
 const agentVersionOptions = computed(() => {
-  const uniqueVersions = Array.from(new Set(rawData.map(item => item.llm)));
+  const uniqueVersions = Array.from(new Set(rawData.value.map(item => item.llm)));
   const options = uniqueVersions.map(version => ({ key: version, value: version, label: version }));
   return [{ key: 'all', value: 'all', label: '全部' }, ...options];
 });
 
 const agentRegionOptions = computed(() => {
-  const uniqueRegions = Array.from(new Set(rawData.map(item => item.vcmRoleName)));
+  const uniqueRegions = Array.from(new Set(rawData.value.map(item => item.vcmRoleName)));
   const options = uniqueRegions.map(region => ({ key: region, value: region, label: region }));
   return [{ key: 'all', value: 'all', label: '全部' }, ...options];
 });
 
 const agentModeOptions = computed(() => {
-  const uniqueModes = Array.from(new Set(rawData.map(item => item.voiceName)));
+  const uniqueModes = Array.from(new Set(rawData.value.map(item => item.voiceName)));
   const options = uniqueModes.map(mode => ({ key: mode, value: mode, label: mode }));
   return [{ key: 'all', value: 'all', label: '全部' }, ...options];
 });
@@ -612,6 +650,31 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 const sorterInfo = ref<any>({ columnKey: 'updatedAt', order: 'descend' });
 const searchInputValue = ref('');
+
+// Handle search parameter from URL
+onMounted(() => {
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+  }
+});
+
+// Computed property to show no data message
+const showNoDataMessage = computed(() => {
+  return searchInputValue.value && filteredData.value.length === 0;
+});
+
+// Computed property for no data message
+const noDataMessage = computed(() => {
+  if (searchInputValue.value && filteredData.value.length === 0) {
+    return `未找到包含 "${searchInputValue.value}" 的数据`;
+  }
+  return '';
+});
+
+const clearSearch = () => {
+  searchInputValue.value = '';
+};
+
 const loading = ref(false);
 const tableSize = ref('middle');
 const showCreateAgentModal = ref(false);
@@ -620,7 +683,7 @@ const editForm = ref({
   agentName: '',
   vad: '',
   asr: '',
-  speechRecognition: '',
+  intentRecognition: '',
   emotionRecognition: '',
   llm: '',
   prompt: '',
@@ -637,46 +700,159 @@ const editFormRef = ref();
 // Create form data
 const createForm = ref({
   agentName: '',
-  vad: '',
-  asr: '',
-  speechRecognition: '',
-  emotionRecognition: '',
-  llm: '',
+  intelligentAgentId: '',
+  apiUrl: '',
+  apiKey: '',
+  vadName: '',
+  asrName: '',
+  intelligentAgentName: '',
+  llmName: '',
   prompt: '',
-  memory: '',
+  memoryName: '',
   tools: '',
   speechSynthesisType: 'TTS',
-  tts: '',
-  ipVcm: '',
-  roleSelection: ''
+  ttsName: '',
+  ttsVoiceSelection: '',
+  ipVcmName: '',
+  ipVcmVoiceSelection: ''
 });
 
 // Form validation rules
 const createFormRules = {
-  agentName: [{ required: true, message: '请输入Agent名称', trigger: 'blur' }],
-  vad: [{ required: true, message: '请选择VAD', trigger: 'change' }],
-  asr: [{ required: true, message: '请选择ASR', trigger: 'change' }],
-  speechSynthesisType: [{ required: true, message: '请选择语音合成类型', trigger: 'change' }],
-  tts: [{ required: true, message: '请选择TTS', trigger: 'change' }],
-  ipVcm: [{ required: true, message: '请选择IP VCM', trigger: 'change' }],
-  roleSelection: [{ required: true, message: '请选择角色', trigger: 'change' }]
+  agentName: [
+    { required: true, message: '请输入Agent名称', trigger: 'blur' },
+    { max: 15, message: 'Agent名称不能超过15个字符', trigger: 'blur' }
+  ],
+  apiUrl: [{ required: true, message: '请输入API地址/文件目录', trigger: 'blur' }],
+  vadName: [{ required: true, message: '请选择VAD名称', trigger: 'blur' }],
+  asrName: [{ required: true, message: '请选择ASR名称', trigger: 'blur' }],
+  speechSynthesisType: [{ required: true, message: '请选择语音合成模型', trigger: 'blur' }],
+  ttsName: [{ required: true, message: '请选择TTS名称', trigger: 'blur' }],
+  ttsVoiceSelection: [{ required: true, message: '请选择TTS音色', trigger: 'blur' }],
+  ipVcmName: [{ required: true, message: '请选择IP VCM名称', trigger: 'blur' }],
+  ipVcmVoiceSelection: [{ required: true, message: '请选择IP VCM音色', trigger: 'blur' }]
 };
 
+// Import auth store for dynamic username
+import { useAuthStore } from '../stores/auth';
+
+const authStore = useAuthStore();
+
+// API base URL
+const API_BASE_URL = 'http://localhost:2829/api';
+
+// Form refs
 const createFormRef = ref();
+
+// Check for duplicate agent names
+const checkAgentNameUniqueness = async (agentName: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/agent-configuration`, {
+      params: { search: agentName }
+    });
+    
+    if (response.data.success) {
+      const existingAgents = response.data.data.filter(agent => agent.agentName === agentName);
+      return existingAgents.length === 0;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error checking agent name uniqueness:', error);
+    return true;
+  }
+};
 
 // Modal handlers
 const handleCreateModalCancel = () => {
   showCreateAgentModal.value = false;
   createFormRef.value?.resetFields();
+  // Reset form data
+  createForm.value = {
+    agentName: '',
+    intelligentAgentId: '',
+    apiUrl: '',
+    apiKey: '',
+    vadName: '',
+    asrName: '',
+    intelligentAgentName: '',
+    llmName: '',
+    prompt: '',
+    memoryName: '',
+    speechSynthesisType: 'TTS',
+    ttsName: '',
+    ttsVoiceSelection: '',
+    ipVcmName: '',
+    ipVcmVoiceSelection: ''
+  };
 };
 
 const handleCreateAgent = async () => {
+  alert('确定 button clicked! Testing...');
+  console.log('=== handleCreateAgent called ===');
+  console.log('Form data:', createForm.value);
+  
   try {
     await createFormRef.value?.validate();
-    console.log('Create agent form data:', createForm.value);
-    // Here you would typically send the data to your API
+    console.log('Form validation passed');
+    
+    // Get dynamic username from auth store
+    const dynamicUsername = authStore.user?.name || authStore.user?.username || 'admin';
+    console.log('Dynamic username:', dynamicUsername);
+    
+    // For now, just show success message without API call
+    console.log('Agent would be created successfully');
+    alert('Agent created successfully! (Test mode)');
     showCreateAgentModal.value = false;
     createFormRef.value?.resetFields();
+    
+    // TODO: Uncomment when API is working
+    /*
+    // Check for duplicate agent name
+    const isUnique = await checkAgentNameUniqueness(createForm.value.agentName);
+    if (!isUnique) {
+      // Show error message for duplicate name
+      console.error('Agent名称已存在，请使用其他名称');
+      return;
+    }
+    
+    console.log('Create agent form data:', createForm.value);
+    
+    // Prepare data for API submission
+    const agentData = {
+      agentName: createForm.value.agentName,
+      intelligentAgentId: createForm.value.intelligentAgentId,
+      apiUrl: createForm.value.apiUrl,
+      apiKey: createForm.value.apiKey,
+      vad: createForm.value.vadName,
+      asr: createForm.value.asrName,
+      intelligentAgent: createForm.value.intelligentAgentName,
+      llm: createForm.value.llmName,
+      prompt: createForm.value.prompt,
+      memory: createForm.value.memoryName,
+      tools: createForm.value.tools || '',
+      speechSynthesisType: createForm.value.speechSynthesisType,
+      tts: createForm.value.speechSynthesisType === 'TTS' ? createForm.value.ttsName : '',
+      ttsVoiceName: createForm.value.speechSynthesisType === 'TTS' ? createForm.value.ttsVoiceSelection : '',
+      ipVcm: createForm.value.speechSynthesisType === '音色复刻' ? createForm.value.ipVcmName : '',
+      vcmVoiceName: createForm.value.speechSynthesisType === '音色复刻' ? createForm.value.ipVcmVoiceSelection : '',
+      updater: dynamicUsername // Get from auth store
+    };
+    
+    console.log('Agent data to submit:', agentData);
+    
+    // Submit to API
+    const response = await axios.post(`${API_BASE_URL}/agent-configuration`, agentData);
+    
+    if (response.data.success) {
+      console.log('Agent created successfully');
+    showCreateAgentModal.value = false;
+    createFormRef.value?.resetFields();
+      // Refresh the table data
+      // fetchData();
+    } else {
+      console.error('Failed to create agent:', response.data);
+    }
+    */
   } catch (error) {
     console.error('Form validation failed:', error);
   }
@@ -685,6 +861,8 @@ const handleCreateAgent = async () => {
 const handleCreateAgentClick = () => {
   console.log('Create Agent button clicked');
   showCreateAgentModal.value = true;
+  // Fetch model data when opening the modal
+  // fetchModelData(); // This function is no longer needed as data is fetched from MySQL
 };
 
 const handleEditAgent = (record: DataItem) => {
@@ -694,7 +872,7 @@ const handleEditAgent = (record: DataItem) => {
     agentName: record.agentName,
     vad: record.vad,
     asr: record.asr,
-    speechRecognition: record.speechRecognition,
+    intentRecognition: record.speechRecognition,
     emotionRecognition: record.emotionRecognition,
     llm: record.llm,
     prompt: '您好，我是智能多模态情感分析产品，我可以为您提供情感分析服务。', // Default prompt
@@ -726,7 +904,7 @@ const handleEditAgentSubmit = async () => {
 };
 
 const pagination = computed(() => ({
-  total: rawData.length,
+  total: totalCount.value,
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true,
@@ -744,7 +922,7 @@ const pagination = computed(() => ({
 }));
 
 const filteredData = computed(() => {
-  let dataToFilter = rawData;
+  let dataToFilter = rawData.value;
 
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
@@ -792,15 +970,98 @@ const filteredData = computed(() => {
   return dataToFilter;
 });
 
-const handleTableChange = (_paginationData: any, _filters: any, sorter: any) => {
+const handleTableChange = (paginationData: any, _filters: any, sorter: any) => {
+  // Handle pagination
+  if (paginationData) {
+    currentPage.value = paginationData.current;
+    pageSize.value = paginationData.pageSize;
+  }
+  
+  // Handle sorting
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
   if (currentSorter && currentSorter.order) {
     sorterInfo.value = { columnKey: currentSorter.columnKey, order: currentSorter.order };
   } else {
     sorterInfo.value = { columnKey: 'updatedAt', order: 'descend' };
   }
-  currentPage.value = 1;
+  // Remove this line that was causing the pagination issue
+  // currentPage.value = 1;
 };
+
+// Data fetching - using BuiltAlarm.vue pattern
+const rawData = ref<DataItem[]>([]);
+
+const fetchData = async () => {
+  console.log('fetchData called');
+  loading.value = true;
+  try {
+    console.log('Calling agent-configuration endpoint');
+    // Request all data without pagination parameters
+    const response = await axios.get(`${API_BASE_URL}/agent-configuration?page=1&pageSize=1000`);
+    console.log('Agent configuration response:', response.data);
+
+    const items = response.data.data || [];
+    totalCount.value = response.data.total || items.length;
+
+    rawData.value = items.map(item => ({
+      ...item,
+      key: item.id, // Use id as key for table rows
+      // Map MySQL fields to display fields
+      ipAttribution: item.ipName || '-',
+      intentRecognition: item.intelligentAgent || '-',
+      emotionRecognition: item.intelligentAgent || '-',
+      ttsRoleName: item.ttsVoiceName || '-',
+      vcmRoleName: item.vcmVoiceName || '-',
+      voiceName: item.vcmVoiceName || '-',
+      createdAt: item.createTime || '-',
+      updatedAt: item.updateTime || '-'
+    }));
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    // Add some static data for testing if API fails
+    rawData.value = [
+      {
+        id: 1,
+        key: 1,
+        agentId: 'test-agent-1',
+        agentName: '测试Agent 1',
+        botId: 'bot-1',
+        apiUrl: 'http://test.com',
+        apiKey: 'test-key',
+        ipName: '测试IP',
+        vad: 'VAD类型',
+        asr: '蓝色语音ASR',
+        intelligentAgent: '智能意图识别',
+        llm: 'Deep Seek R1',
+        memory: 'Memory 0',
+        tools: 'bing, RAG, ...',
+        tts: '微软TTS',
+        ttsVoiceName: '小智',
+        ipVcm: '蓝色意图识别',
+        vcmVoiceName: '嘿嘿',
+        updater: 'admin',
+        createTime: '2025-01-01 10:00:00',
+        updateTime: '2025-01-01 10:00:00',
+        ipAttribution: '测试IP',
+        intentRecognition: '智能意图识别',
+        emotionRecognition: '智能意图识别',
+        ttsRoleName: '小智',
+        vcmRoleName: '嘿嘿',
+        voiceName: '嘿嘿',
+        createdAt: '2025-01-01 10:00:00',
+        updatedAt: '2025-01-01 10:00:00'
+      }
+    ];
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Call fetchData on component mount
+onMounted(() => {
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  fetchData(); // Fetch from MySQL
+});
 
 const onRefresh = () => {
   loading.value = true;
@@ -812,7 +1073,7 @@ const onRefresh = () => {
   agentVersionValue.value = { key: 'all', label: '全部', value: 'all' };
   agentRegionValue.value = { key: 'all', label: '全部', value: 'all' };
   agentModeValue.value = { key: 'all', label: '全部', value: 'all' };
-  setTimeout(() => { loading.value = false; }, 500);
+  fetchData(); // Refresh data from MySQL
 };
 
 const onSettingClick = () => { console.log('Setting clicked'); };
@@ -841,8 +1102,37 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
   }
 };
 
+// Add MySQL data fetching
+const fetchDataFromMySQL = async () => {
+  loading.value = true;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/agent-configuration`, {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value,
+        search: searchInputValue.value || undefined
+      }
+    });
+    
+    if (response.data.success) {
+      // Replace static data with MySQL data
+      rawData.value.length = 0; // Clear existing data
+      rawData.value.push(...response.data.data);
+      console.log('MySQL data fetched successfully:', rawData.value);
+    } else {
+      console.error('Failed to fetch MySQL data:', response.data);
+    }
+  } catch (error) {
+    console.error('Error fetching MySQL data:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Call MySQL data fetching on mount
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  fetchDataFromMySQL(); // Fetch from MySQL instead of using static data
 });
 
 defineExpose({ handleTableChange });
@@ -1106,5 +1396,23 @@ html, body {
 :deep(.ant-modal .ant-select-selection-item > span) {
   padding-left: 0 !important;
   margin-left: 0 !important;
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.no-data-message .ant-empty {
+  margin: 0;
+}
+
+.no-data-message .ant-empty-description {
+  color: #666;
+  font-size: 14px;
 }
 </style> 

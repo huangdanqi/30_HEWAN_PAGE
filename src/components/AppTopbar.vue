@@ -21,7 +21,7 @@
                <a-avatar size="small">
                  <template #icon><UserOutlined /></template>
                </a-avatar>
-               <span>管理员</span>
+               <span>{{ userName }}</span>
                <DownOutlined />
             </a-space>
           </a>
@@ -31,7 +31,7 @@
                 <router-link to="/login">登录</router-link>
               </a-menu-item>
               <a-menu-item key="logout" v-if="loggedInStatus" @click="handleLogout">
-                退出登录
+                退出
               </a-menu-item>
             </a-menu>
           </template>
@@ -53,6 +53,12 @@ const authStore = useAuthStore(); // Use the auth store
 
 // Create a computed property for login status
 const loggedInStatus = computed(() => authStore.isAuthenticated());
+
+// Create a computed property for user name
+const userName = computed(() => {
+  // Show the actual username if available, otherwise fallback to "管理员"
+  return authStore.user?.name || authStore.user?.username || '管理员';
+});
 
 const handleLogout = () => {
   authStore.logout(router); // Call the logout action from the auth store and pass the router instance

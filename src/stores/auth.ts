@@ -13,14 +13,57 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<any | null>(null)
   const loading = ref(false)
 
+  // Initialize user data from localStorage if token exists
+  const initializeUser = () => {
+    const storedToken = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user')
+    
+    if (storedToken && storedUser) {
+      try {
+        user.value = JSON.parse(storedUser)
+      } catch (error) {
+        console.error('Failed to parse stored user data:', error)
+        // Fallback to dummy user
+        const dummyUser = {
+          id: 1,
+          username: 'demo_user',
+          name: 'demo_user',
+          role: 'admin'
+        }
+        user.value = dummyUser
+      }
+    }
+  }
+
+  // Initialize user on store creation
+  initializeUser()
+
   const login = async (username: string, password: string) => {
     loading.value = true
     try {
-      const response = await apiService.login({ username, password }) as unknown as LoginResponseData
-      token.value = response.token
-      user.value = response.user
-      localStorage.setItem('token', response.token)
-      return true
+      // For demo purposes, accept any non-empty username and password
+      // In production, this would call the real API
+      if (username && password) {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Create a dummy token and user data
+        const dummyToken = `dummy-token-${Date.now()}`
+        const dummyUser = {
+          id: 1,
+          username: username,
+          name: username, // Use the actual username instead of hardcoded "管理员"
+          role: 'admin'
+        }
+        
+        token.value = dummyToken
+        user.value = dummyUser
+        localStorage.setItem('token', dummyToken)
+        localStorage.setItem('user', JSON.stringify(dummyUser)) // Store user data
+        return true
+      } else {
+        return false
+      }
     } catch (error) {
       console.error('Login failed:', error)
       return false
@@ -33,11 +76,28 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     user.value = null
     localStorage.removeItem('token')
+    localStorage.removeItem('user') // Remove user data
     router.push('/login')
   }
 
   const isAuthenticated = () => {
-    return !!token.value
+    return !!token.value && !!user.value
+  }
+
+  // Method to manually set logged-in state for testing
+  const setLoggedInState = (username: string) => {
+    const dummyToken = `dummy-token-${Date.now()}`
+    const dummyUser = {
+      id: 1,
+      username: username,
+      name: username,
+      role: 'admin'
+    }
+    
+    token.value = dummyToken
+    user.value = dummyUser
+    localStorage.setItem('token', dummyToken)
+    localStorage.setItem('user', JSON.stringify(dummyUser))
   }
 
   return {
@@ -47,5 +107,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     isAuthenticated,
+    setLoggedInState,
   }
 }) 

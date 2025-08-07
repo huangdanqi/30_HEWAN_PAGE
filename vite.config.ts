@@ -15,12 +15,13 @@ export default defineConfig({
     outDir: 'docs'
   },
   server: {
-    port: 3000,
+    port: 2830,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://127.0.0.1:2829',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: false,
+        rewrite: (path) => path,
       },
     },
   },

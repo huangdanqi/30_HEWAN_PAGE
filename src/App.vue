@@ -5,9 +5,8 @@ import AppSidebar from './components/AppSidebar.vue';
 
 const route = useRoute();
 
-// Assume the login route is named 'Login' in your router configuration.
-// If your login route has a different name, update the condition accordingly.
-const isLoginPage = () => route.name === 'Login';
+// Check if current route is the login page
+const isLoginPage = () => route.name === 'login';
 
 </script>
 
@@ -62,8 +61,14 @@ body {
 
 /* Style to make page content full width when sidebar is hidden */
 .page-content.full-width {
-    padding: 0; /* Remove padding on login page if desired */
-    /* flex-grow: 1 is already set, which should make it full width */
+    padding: 0; /* Remove padding on login page */
+    margin: 0; /* Remove margin on login page */
+    height: 100vh; /* Take full viewport height */
+    width: 100vw; /* Take full viewport width */
+    position: fixed; /* Position fixed to cover entire viewport */
+    top: 0;
+    left: 0;
+    z-index: 1000; /* Ensure it's above other elements */
 }
 
 /* Remove or adjust styles that might conflict with the new layout */
