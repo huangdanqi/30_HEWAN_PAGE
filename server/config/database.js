@@ -3,13 +3,21 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Clean the password (remove quotes if present)
+// Clean the password (remove quotes if present and handle escaped characters)
 let password = process.env.DB_PASSWORD || 'h05010501';
 if (password.startsWith('"') && password.endsWith('"')) {
   password = password.slice(1, -1);
 }
 if (password.startsWith("'") && password.endsWith("'")) {
   password = password.slice(1, -1);
+}
+
+// Handle escaped brackets - convert \[ to [ for MySQL
+if (password.includes('\\[')) {
+  password = password.replace(/\\\[/g, '[');
+}
+if (password.includes('\\]')) {
+  password = password.replace(/\\\]/g, ']');
 }
 
 // Database connection pool

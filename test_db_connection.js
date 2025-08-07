@@ -6,8 +6,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env from server directory
-dotenv.config({ path: path.join(__dirname, 'server', '.env') });
+// Load .env from server directory and override existing variables
+dotenv.config({ path: path.join(__dirname, 'server', '.env'), override: true });
 
 async function testConnection() {
   try {
@@ -18,13 +18,21 @@ async function testConnection() {
     console.log('Password length:', process.env.DB_PASSWORD ? process.env.DB_PASSWORD.length : 0);
     console.log('Password (first 3 chars):', process.env.DB_PASSWORD ? process.env.DB_PASSWORD.substring(0, 3) + '***' : 'undefined');
     
-    // Clean the password (remove quotes if present)
+    // Clean the password (remove quotes if present and handle escaped characters)
     let password = process.env.DB_PASSWORD || 'h05010501';
     if (password.startsWith('"') && password.endsWith('"')) {
       password = password.slice(1, -1);
     }
     if (password.startsWith("'") && password.endsWith("'")) {
       password = password.slice(1, -1);
+    }
+    
+    // Handle escaped brackets - convert \[ to [ for MySQL
+    if (password.includes('\\[')) {
+      password = password.replace(/\\\[/g, '[');
+    }
+    if (password.includes('\\]')) {
+      password = password.replace(/\\\]/g, ']');
     }
     
     console.log('Cleaned password length:', password.length);
@@ -65,6 +73,14 @@ async function testConnection() {
       }
       if (password.startsWith("'") && password.endsWith("'")) {
         password = password.slice(1, -1);
+      }
+      
+      // Handle escaped brackets
+      if (password.includes('\\[')) {
+        password = password.replace(/\\\[/g, '[');
+      }
+      if (password.includes('\\]')) {
+        password = password.replace(/\\\]/g, ']');
       }
       
       const connection = await mysql.createConnection({
