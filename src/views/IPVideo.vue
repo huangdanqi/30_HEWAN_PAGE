@@ -566,7 +566,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
+import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, ExportOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import { 
   createColumnConfigs, 
@@ -574,6 +574,7 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
 
 const router = useRouter();
@@ -659,7 +660,7 @@ const fetchData = async () => {
   loading.value = true;
   try {
     console.log('Calling IPvideo endpoint');
-    const response = await axios.get(`${API_BASE_URL}/ipvideo?page=1&pageSize=1000`);
+    const response = await axios.get(constructApiUrl('ipvideo?page=1&pageSize=1000'));
     console.log('IPvideo response:', response.data);
     rawData.value = response.data.data.map((item: any) => ({
       ...item,
@@ -958,7 +959,7 @@ const handlePlay = (record: DataItem) => {
   const videoUrl = record.videoFileAddress;
   if (videoUrl && videoUrl !== 'https://example.com/firmware.bin') {
     // Use the actual video file path
-    currentVideoUrl.value = `${API_BASE_URL}${videoUrl}`;
+    currentVideoUrl.value = constructApiUrl(videoUrl);
     currentVideoInfo.value = {
       videoName: record.videoName,
       ipName: record.ipName,
