@@ -5,7 +5,8 @@ param(
     [string]$ServerIP = "121.43.196.106",
     [string]$Username = "root",
     [string]$Password = "aV2[kO2#iX",
-    [string]$RemotePath = "/root/frontendCode/vue3"
+    [string]$RemotePath = "/root/frontendCode/vue3",
+    [int]$Port = 2830
 )
 
 Write-Host "🚀 Starting Vue.js Project Deployment..." -ForegroundColor Green
@@ -97,7 +98,7 @@ Write-Host "🌐 To serve your Vue.js app, you can use one of these methods:" -F
 Write-Host ""
 Write-Host "Option 1 - Using npm serve:" -ForegroundColor White
 Write-Host "npm install -g serve" -ForegroundColor Yellow
-Write-Host "serve -s docs -l 3000" -ForegroundColor Yellow
+Write-Host "serve -s docs -l $Port" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Option 2 - Using nginx (recommended for production):" -ForegroundColor White
 Write-Host "apt update && apt install nginx" -ForegroundColor Yellow

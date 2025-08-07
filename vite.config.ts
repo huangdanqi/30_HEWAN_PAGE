@@ -16,6 +16,7 @@ export default defineConfig({
   },
   server: {
     port: 2830,
+    host: '0.0.0.0', // Allow external access
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:2829',
