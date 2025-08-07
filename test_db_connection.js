@@ -2,12 +2,35 @@ import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Clear any existing DB_PASSWORD from environment
+delete process.env.DB_PASSWORD;
+
 // Load .env from server directory and override existing variables
 dotenv.config({ path: path.join(__dirname, 'server', '.env'), override: true });
+
+// If dotenv didn't work, manually read the .env file
+if (!process.env.DB_PASSWORD || process.env.DB_PASSWORD.length < 10) {
+  console.log('🔍 Manually reading server/.env file...');
+  const envPath = path.join(__dirname, 'server', '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const lines = envContent.split('\n');
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('DB_PASSWORD=')) {
+        const password = trimmedLine.substring('DB_PASSWORD='.length);
+        process.env.DB_PASSWORD = password;
+        console.log('✅ Manually set DB_PASSWORD from server/.env');
+        break;
+      }
+    }
+  }
+}
 
 async function testConnection() {
   try {
@@ -17,6 +40,7 @@ async function testConnection() {
     console.log('Database:', process.env.DB_NAME);
     console.log('Password length:', process.env.DB_PASSWORD ? process.env.DB_PASSWORD.length : 0);
     console.log('Password (first 3 chars):', process.env.DB_PASSWORD ? process.env.DB_PASSWORD.substring(0, 3) + '***' : 'undefined');
+    console.log('Raw password:', process.env.DB_PASSWORD);
     
     // Clean the password (remove quotes if present and handle escaped characters)
     let password = process.env.DB_PASSWORD || 'h05010501';
@@ -37,6 +61,7 @@ async function testConnection() {
     
     console.log('Cleaned password length:', password.length);
     console.log('Cleaned password (first 3 chars):', password.substring(0, 3) + '***');
+    console.log('Cleaned password:', password);
     
     const connection = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',
