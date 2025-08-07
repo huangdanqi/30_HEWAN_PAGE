@@ -20,7 +20,7 @@ export default defineConfig({
     strictPort: true, // Fail if port is already in use
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:2829',
+        target: 'http://127.0.0.1:2829', // Use localhost since both are on same server
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path,
