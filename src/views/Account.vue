@@ -178,15 +178,15 @@
   </a-config-provider>
 </template>
 <script lang="ts" setup>
+import { ref, computed, onMounted, watch, h } from 'vue';
+import { useRouter } from 'vue-router';
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, ExportOutlined } from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
-import { useRouter } from 'vue-router';
-import { h } from 'vue';
 
 const router = useRouter();
 
@@ -233,11 +233,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Define API endpoints for different data sources
 const API_ENDPOINTS = {
-  basic: `${API_BASE_URL}/accounts/basic`,
-  membership: `${API_BASE_URL}/accounts/membership`,
-  fourgService: `${API_BASE_URL}/accounts/4g-service`,
-  usage: `${API_BASE_URL}/accounts/usage`,
-  all: `${API_BASE_URL}/accounts`
+  basic: constructApiUrl('accounts/basic'),
+  membership: constructApiUrl('accounts/membership'),
+  fourgService: constructApiUrl('accounts/4g-service'),
+  usage: constructApiUrl('accounts/usage'),
+  all: constructApiUrl('accounts')
 };
 
 // Define column configuration separately from the table columns
@@ -458,7 +458,7 @@ const combinedData = computed(() => {
 // Fetch filter options from API
 const fetchFilterOptions = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/filter-options`);
+    const response = await axios.get(constructApiUrl('accounts/filter-options'));
     const { ipRoles, memberTypes, memberPayments, fourGPlans, fourGPayments } = response.data;
     
     // Update the computed options
