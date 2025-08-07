@@ -1,7 +1,13 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env from server directory
+dotenv.config({ path: path.join(__dirname, 'server', '.env') });
 
 async function testConnection() {
   try {
@@ -22,6 +28,7 @@ async function testConnection() {
     }
     
     console.log('Cleaned password length:', password.length);
+    console.log('Cleaned password (first 3 chars):', password.substring(0, 3) + '***');
     
     const connection = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',
@@ -71,28 +78,19 @@ async function testConnection() {
       console.error('❌ Connection without database failed:', err.message);
     }
     
-    // Method 2: Try with different password formats
-    console.log('\n🔄 Trying different password formats...');
-    const passwords = [
-      'aV2[kO2#iX',
-      'aV2\\[kO2#iX',
-      'aV2[kO2#iX',
-      process.env.DB_PASSWORD
-    ];
-    
-    for (let i = 0; i < passwords.length; i++) {
-      try {
-        const connection = await mysql.createConnection({
-          host: process.env.DB_HOST || 'localhost',
-          user: process.env.DB_USER || 'root',
-          password: passwords[i]
-        });
-        console.log(`✅ Connection successful with password format ${i + 1}`);
-        await connection.end();
-        break;
-      } catch (err) {
-        console.log(`❌ Password format ${i + 1} failed:`, err.message);
-      }
+    // Method 2: Try with the exact password we know works
+    console.log('\n🔄 Trying with exact password...');
+    try {
+      const connection = await mysql.createConnection({
+        host: 'localhost',
+        user: 'root',
+        password: 'aV2[kO2#iX',
+        database: 'page_test'
+      });
+      console.log('✅ Connection successful with exact password!');
+      await connection.end();
+    } catch (err) {
+      console.error('❌ Even exact password failed:', err.message);
     }
     
     return false;
