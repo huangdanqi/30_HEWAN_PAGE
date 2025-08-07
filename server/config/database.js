@@ -28,21 +28,13 @@ if (!process.env.DB_PASSWORD || process.env.DB_PASSWORD.length < 10) {
   }
 }
 
-// Clean the password (remove quotes if present and handle escaped characters)
+// Clean the password (remove quotes if present)
 let password = process.env.DB_PASSWORD || 'h05010501';
 if (password.startsWith('"') && password.endsWith('"')) {
   password = password.slice(1, -1);
 }
 if (password.startsWith("'") && password.endsWith("'")) {
   password = password.slice(1, -1);
-}
-
-// Handle escaped brackets - convert \[ to [ for MySQL
-if (password.includes('\\[')) {
-  password = password.replace(/\\\[/g, '[');
-}
-if (password.includes('\\]')) {
-  password = password.replace(/\\\]/g, ']');
 }
 
 // Database connection pool
