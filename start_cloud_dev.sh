@@ -24,11 +24,6 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
-# Set environment variables for cloud deployment
-export NODE_ENV=development
-export VITE_API_BASE_URL=http://127.0.0.1:2829
-export VITE_PORT=2830
-
 # Get the public IP address
 echo "🌐 Detecting public IP address..."
 PUBLIC_IP=$(curl -s --max-time 5 ifconfig.me 2>/dev/null || curl -s --max-time 5 ipinfo.io/ip 2>/dev/null || curl -s --max-time 5 icanhazip.com 2>/dev/null || echo "localhost")
@@ -38,6 +33,12 @@ if [ "$PUBLIC_IP" = "localhost" ] || [ -z "$PUBLIC_IP" ]; then
     # Try to get IP from network interfaces
     PUBLIC_IP=$(ip route get 8.8.8.8 | awk '{print $7; exit}' 2>/dev/null || echo "localhost")
 fi
+
+# Set environment variables for cloud deployment
+export NODE_ENV=development
+export VITE_API_BASE_URL=http://127.0.0.1:2829
+export VITE_PORT=2830
+export VITE_HOST=0.0.0.0
 
 echo "🌐 Server will be accessible at:"
 echo "   Local: http://localhost:2830"
@@ -58,6 +59,9 @@ fi
 # Start the development server
 echo "🎯 Starting development server..."
 echo "   Press Ctrl+C to stop the server"
+echo ""
+echo "💡 IMPORTANT: Use the Public IP address above to access from outside:"
+echo "   http://$PUBLIC_IP:2830"
 echo ""
 
 # Use npx to ensure we're using the local vite installation
