@@ -29,6 +29,7 @@ if not exist "node_modules" (
 REM Set environment variables for cloud deployment
 set NODE_ENV=development
 set VITE_API_BASE_URL=http://127.0.0.1:2829
+set VITE_PORT=2830
 
 echo 🌐 Server will be accessible at:
 echo    Local: http://localhost:2830
@@ -40,4 +41,5 @@ echo 🎯 Starting development server...
 echo    Press Ctrl+C to stop the server
 echo.
 
-npm run dev 
+REM Use npx to ensure we're using the local vite installation
+npx vite --port 2830 --host 

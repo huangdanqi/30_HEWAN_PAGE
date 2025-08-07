@@ -27,6 +27,7 @@ fi
 # Set environment variables for cloud deployment
 export NODE_ENV=development
 export VITE_API_BASE_URL=http://127.0.0.1:2829
+export VITE_PORT=2830
 
 # Get the public IP address
 PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || echo "localhost")
@@ -45,4 +46,5 @@ echo "🎯 Starting development server..."
 echo "   Press Ctrl+C to stop the server"
 echo ""
 
-npm run dev 
+# Use npx to ensure we're using the local vite installation
+npx vite --port 2830 --host 

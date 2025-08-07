@@ -15,8 +15,9 @@ export default defineConfig({
     outDir: 'docs'
   },
   server: {
-    port: 2830,
-    host: '0.0.0.0', // Allow external access
+    port: parseInt(process.env.VITE_PORT || '2830'),
+    host: true, // Allow external access (equivalent to '0.0.0.0')
+    strictPort: true, // Fail if port is already in use
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:2829',
