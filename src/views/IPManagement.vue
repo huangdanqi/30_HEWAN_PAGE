@@ -469,7 +469,7 @@ const router = useRouter();
 const route = useRoute();
 
 // API base URL
-const API_BASE_URL = 'http://localhost:2829/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Auth store for getting current user
 const authStore = useAuthStore();

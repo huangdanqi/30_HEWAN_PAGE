@@ -709,7 +709,6 @@ const createForm = ref({
   llmName: '',
   prompt: '',
   memoryName: '',
-  tools: '',
   speechSynthesisType: 'TTS',
   ttsName: '',
   ttsVoiceSelection: '',
@@ -739,7 +738,7 @@ import { useAuthStore } from '../stores/auth';
 const authStore = useAuthStore();
 
 // API base URL
-const API_BASE_URL = 'http://localhost:2829/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Form refs
 const createFormRef = ref();

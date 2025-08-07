@@ -578,7 +578,7 @@ import axios from 'axios';
 
 const router = useRouter();
 
-const API_BASE_URL = 'http://localhost:2829/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -958,7 +958,7 @@ const handlePlay = (record: DataItem) => {
   const videoUrl = record.videoFileAddress;
   if (videoUrl && videoUrl !== 'https://example.com/firmware.bin') {
     // Use the actual video file path
-    currentVideoUrl.value = `http://localhost:2829${videoUrl}`;
+    currentVideoUrl.value = `${API_BASE_URL}${videoUrl}`;
     currentVideoInfo.value = {
       videoName: record.videoName,
       ipName: record.ipName,

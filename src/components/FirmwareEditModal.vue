@@ -171,7 +171,7 @@ const isRestricted = computed(() => {
 });
 
 // Upload configuration
-const uploadAction = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:2829'}/api/firmware/upload`;
+const uploadAction = `${import.meta.env.VITE_API_BASE_URL || '/api'}/api/firmware/upload`;
 const uploadHeaders = {
   // Add any required headers for authentication
 };

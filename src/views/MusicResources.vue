@@ -356,7 +356,8 @@ import { ReloadOutlined, SettingOutlined, SearchOutlined, InfoCircleOutlined, Pl
 import { createColumnConfigs, useTableColumns, createColumn, type ColumnDefinition } from '../utils/tableConfig';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:2829/api';
+// API base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -600,7 +601,7 @@ const handleAudition = (record: DataItem) => {
 
   if (!audioElement) {
     // Construct the full URL for the audio file using the backend server
-    const audioUrl = `http://localhost:2829${record.musicFileAddress}`;
+    const audioUrl = `${API_BASE_URL}${record.musicFileAddress}`;
     console.log('Audio URL:', audioUrl);
     
     audioElement = new Audio(audioUrl);

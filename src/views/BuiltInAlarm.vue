@@ -216,7 +216,7 @@ const handleAudition = (record: AlarmItem) => {
 
   if (!audioElement) {
     // Construct the full URL for the audio file using the backend server
-    const audioUrl = `http://localhost:2829${record.alarmFileAddress}`;
+    const audioUrl = `${import.meta.env.VITE_API_BASE_URL || '/api'}${record.alarmFileAddress}`;
     console.log('Audio URL:', audioUrl);
     
     audioElement = new Audio(audioUrl);

@@ -468,7 +468,7 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 
 // API base URL
-const API_BASE_URL = 'http://localhost:2829/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -1101,14 +1101,14 @@ const getImageUrl = (imagePath: string) => {
   // Handle different path formats for image display
   if (imagePath.startsWith('public\\images\\')) {
     // Use folder site - get the first image from the folder
-    return `http://localhost:2829/images/top.jpg`;
+    return `${API_BASE_URL}/images/top.jpg`;
   } else if (imagePath.startsWith('\\images\\')) {
-    return `http://localhost:2829/images/top.jpg`;
+    return `${API_BASE_URL}/images/top.jpg`;
   } else if (imagePath.endsWith('\\')) {
     // Handle folder paths ending with backslash
-    return `http://localhost:2829/images/top.jpg`;
+    return `${API_BASE_URL}/images/top.jpg`;
   } else {
-    return `http://localhost:2829${imagePath}`;
+    return `${API_BASE_URL}${imagePath}`;
   }
 };
 

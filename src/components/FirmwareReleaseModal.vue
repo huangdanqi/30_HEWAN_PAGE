@@ -183,7 +183,7 @@ const isRestricted = computed(() => {
 
 // Upload configuration
 const uploadAction = computed(() => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:2829';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
   const url = `${baseUrl}/api/firmware/upload`;
   console.log('Upload action URL:', url);
   return url;
