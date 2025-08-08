@@ -365,6 +365,7 @@ import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import { useRoute, useRouter } from 'vue-router';
+import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
 
 const route = useRoute();
@@ -506,7 +507,7 @@ const fetchDeviceProduction = async () => {
     loading.value = true;
     console.log('Fetching device production with page:', currentPage.value, 'pageSize:', pageSize.value);
     
-    const response = await axios.get(`${API_BASE_URL}/device-production`, {
+    const response = await axios.get(constructApiUrl('device-production'), {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value
@@ -557,7 +558,7 @@ const fetchDeviceProduction = async () => {
 
 const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key' | 'id' | 'totalPrice'>) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/device-production`, deviceProductionData);
+    const response = await axios.post(constructApiUrl('device-production'), deviceProductionData);
     await fetchDeviceProduction(); // Refresh data
     return response.data;
   } catch (error) {
@@ -568,7 +569,7 @@ const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key'
 
 const updateDeviceProduction = async (id: number, deviceProductionData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/device-production/${id}`, deviceProductionData);
+    const response = await axios.put(constructApiUrl(`device-production/${id}`), deviceProductionData);
     await fetchDeviceProduction(); // Refresh data
     return response.data;
   } catch (error) {
@@ -579,7 +580,7 @@ const updateDeviceProduction = async (id: number, deviceProductionData: Partial<
 
 const deleteDeviceProduction = async (id: number) => {
   try {
-    await axios.delete(`${API_BASE_URL}/device-production/${id}`);
+    await axios.delete(constructApiUrl(`device-production/${id}`));
     await fetchDeviceProduction(); // Refresh data
   } catch (error) {
     console.error('Error deleting device production:', error);
@@ -844,7 +845,7 @@ const firmwareOptionsForForm = computed(() => {
 // Function to fetch device models from API
 const fetchDeviceModels = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/device-type`);
+    const response = await axios.get(constructApiUrl('device-type'));
     if (response.data && response.data.data) {
       // Update device model options with data from API
       return response.data.data.map((item: any) => ({
@@ -862,7 +863,7 @@ const fetchDeviceModels = async () => {
 // Function to fetch firmware versions for a specific device model
 const fetchFirmwareVersions = async (deviceModel: string) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/firmware?deviceModel=${deviceModel}`);
+    const response = await axios.get(constructApiUrl(`firmware?deviceModel=${deviceModel}`));
     if (response.data && response.data.data) {
       return response.data.data.map((item: any) => ({
         key: item.versionNumber,

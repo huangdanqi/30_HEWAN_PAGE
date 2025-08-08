@@ -191,6 +191,13 @@ import FirmwareEditModal from '@/components/FirmwareEditModal.vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Empty } from 'ant-design-vue';
 import axios from 'axios';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -310,7 +317,7 @@ const fetchFirmware = async () => {
     loading.value = true;
     console.log('Fetching firmware with page:', currentPage.value, 'pageSize:', pageSize.value);
     
-    const response = await axios.get(`${API_BASE_URL}/firmware`, {
+    const response = await axios.get(constructApiUrl('firmware'), {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value
@@ -359,7 +366,7 @@ const fetchFirmware = async () => {
 
 const createFirmware = async (firmwareData: Omit<DataItem, 'key' | 'id' | 'releaseTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/firmware`, firmwareData);
+    const response = await axios.post(constructApiUrl('firmware'), firmwareData);
     await fetchFirmware(); // Refresh data
     return response.data;
   } catch (error) {
@@ -370,7 +377,7 @@ const createFirmware = async (firmwareData: Omit<DataItem, 'key' | 'id' | 'relea
 
 const updateFirmware = async (id: number, firmwareData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/firmware/${id}`, firmwareData);
+    const response = await axios.put(constructApiUrl(`firmware/${id}`), firmwareData);
     await fetchFirmware(); // Refresh data
     return response.data;
   } catch (error) {
@@ -381,7 +388,7 @@ const updateFirmware = async (id: number, firmwareData: Partial<DataItem>) => {
 
 const deleteFirmware = async (id: number) => {
   try {
-    await axios.delete(`${API_BASE_URL}/firmware/${id}`);
+    await axios.delete(constructApiUrl(`firmware/${id}`));
     await fetchFirmware(); // Refresh data
   } catch (error) {
     console.error('Error deleting firmware:', error);
@@ -717,7 +724,7 @@ const handleDownloadClick = (record: DataItem) => {
     // Check if it's a relative path (starts with /firmware/)
     if (record.fileAddress.startsWith('/firmware/')) {
       // Use the download endpoint
-      const downloadUrl = `${API_BASE_URL}/firmware/download/${record.fileAddress.split('/').pop()}`;
+      const downloadUrl = constructApiUrl(`firmware/download/${record.fileAddress.split('/').pop()}`);
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = `${record.deviceModel}_${record.versionNumber}.bin`;
