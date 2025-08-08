@@ -842,17 +842,48 @@ const handleIpNameClick = (record: DataItem) => {
 
 const handleAudition = (record: DataItem) => {
   console.log('Audition clicked:', record);
+  console.log('Full record:', record);
   
   // Get or create the audio element for this record
   let audioElement = audioElements.value.get(record.id);
 
   if (!audioElement) {
     // Construct the full URL for the audio file using the backend server
-    const audioUrl = constructApiUrl(record.audioFileAddress);
+    const audioUrl = `http://121.43.196.106:2829${record.audioFileAddress}`;
     console.log('Audio URL:', audioUrl);
+    console.log('Original audioFileAddress:', record.audioFileAddress);
+    console.log('Record ID:', record.id);
+    
+    // Test if the file exists first
+    fetch(audioUrl, { method: 'HEAD' })
+      .then(response => {
+        console.log('File exists check response:', response.status, response.statusText);
+        if (response.ok) {
+          console.log('Audio file exists and is accessible');
+        } else {
+          console.error('Audio file not found or not accessible:', response.status);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking if audio file exists:', error);
+      });
     
     audioElement = new Audio(audioUrl);
     audioElements.value.set(record.id, audioElement);
+    
+    // Add event listeners for debugging
+    audioElement.addEventListener('loadstart', () => {
+      console.log('Audio load started for record ID:', record.id);
+    });
+    
+    audioElement.addEventListener('canplay', () => {
+      console.log('Audio can play for record ID:', record.id);
+    });
+    
+    audioElement.addEventListener('error', (e) => {
+      console.error('Audio error for record ID:', record.id, e);
+      console.error('Audio error details:', audioElement.error);
+    });
     
     // Add event listener for when audio ends
     audioElement.addEventListener('ended', () => {
@@ -886,6 +917,10 @@ const handleAudition = (record: DataItem) => {
     // Play the audio
     audioElement.play().catch(error => {
       console.error('Error playing audio:', error);
+      console.error('Audio element readyState:', audioElement.readyState);
+      console.error('Audio element networkState:', audioElement.networkState);
+      console.error('Audio element error:', audioElement.error);
+      
       // If the file doesn't exist, show a message
       alert('音频文件不存在或无法播放');
       record.isPlaying = false; // Revert to false on error
