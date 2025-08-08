@@ -423,6 +423,13 @@ import draggable from 'vuedraggable';
 import { useRoute, useRouter } from 'vue-router';
 import { Empty } from 'ant-design-vue';
 import axios from 'axios';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -996,7 +1003,7 @@ const fetchData = async () => {
   try {
     console.log('Calling agent-configuration endpoint');
     // Request all data without pagination parameters
-    const response = await axios.get(`${API_BASE_URL}/agent-configuration?page=1&pageSize=1000`);
+    const response = await axios.get(constructApiUrl('agent-configuration?page=1&pageSize=1000'));
     console.log('Agent configuration response:', response.data);
 
     const items = response.data.data || [];

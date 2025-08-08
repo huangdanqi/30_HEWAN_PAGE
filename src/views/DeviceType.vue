@@ -237,6 +237,13 @@ import { useRoute } from 'vue-router';
 import { useRouter } from 'vue-router';
 import { Empty } from 'ant-design-vue';
 import axios from 'axios';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -346,7 +353,7 @@ const fetchDeviceTypes = async () => {
     loading.value = true;
     console.log('Fetching device types with page:', currentPage.value, 'pageSize:', pageSize.value);
     
-    const response = await axios.get(`${API_BASE_URL}/device-type`, {
+    const response = await axios.get(constructApiUrl('device-type'), {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value
@@ -421,7 +428,7 @@ const fetchDeviceTypes = async () => {
 
 const createDeviceType = async (deviceTypeData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/device-type`, deviceTypeData);
+    const response = await axios.post(constructApiUrl('device-type'), deviceTypeData);
     await fetchDeviceTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -432,7 +439,7 @@ const createDeviceType = async (deviceTypeData: Omit<DataItem, 'key' | 'id' | 'c
 
 const updateDeviceType = async (id: number, deviceTypeData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/device-type/${id}`, deviceTypeData);
+    const response = await axios.put(constructApiUrl(`device-type/${id}`), deviceTypeData);
     await fetchDeviceTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -443,7 +450,7 @@ const updateDeviceType = async (id: number, deviceTypeData: Partial<DataItem>) =
 
 const deleteDeviceType = async (id: number) => {
   try {
-    await axios.delete(`${API_BASE_URL}/device-type/${id}`);
+    await axios.delete(constructApiUrl(`device-type/${id}`));
     await fetchDeviceTypes(); // Refresh data
   } catch (error) {
     console.error('Error deleting device type:', error);

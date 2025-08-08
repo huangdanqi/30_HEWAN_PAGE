@@ -413,12 +413,21 @@
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, PlusOutlined, MinusOutlined, MinusCircleOutlined} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, ExportOutlined, PlusOutlined, MinusOutlined, MinusCircleOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
+
+const router = useRouter();
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -532,7 +541,7 @@ const fetchData = async () => {
   loading.value = true;
   try {
     console.log('Calling tool-configuration endpoint');
-    const response = await axios.get(`${API_BASE_URL}/tool-configuration?page=${currentPage.value}&pageSize=${pageSize.value}`);
+    const response = await axios.get(constructApiUrl(`tool-configuration?page=${currentPage.value}&pageSize=${pageSize.value}`));
     console.log('Tool configuration response:', response.data);
     
     if (response.data.success && response.data.data) {
