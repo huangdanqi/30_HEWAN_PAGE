@@ -389,7 +389,7 @@
 import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted, watch, h } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
-import { theme, message } from 'ant-design-vue';
+import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExportOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import { useRouter } from 'vue-router';
@@ -501,42 +501,48 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           if (config.key === 'boundSubAccount_3') {
             // 绑定帐号 - Jump to Account Information Page filtered by sub-account ID
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              class: 'hyperlink',
               onClick: () => handleBoundAccountClick(text)
-            }, text) : '-';
+            }, text) : h('span', { class: 'no-data-notice' }, '暂无数据');
           }
           if (config.key === 'deviceModel_4') {
             // 设备型号 - Jump to Device Model Page filtered by device model name
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              class: 'hyperlink',
               onClick: () => handleDeviceModelClick(text)
             }, text) : '-';
           }
           if (config.key === 'productionBatch_5') {
             // 生产批次 - Jump to Production Information Page filtered by production batch
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              class: 'hyperlink',
               onClick: () => handleProductionBatchClick(text)
             }, text) : '-';
           }
           if (config.key === 'initialFirmware_7') {
             // 初始烧录固件版本 - Jump to Firmware Management Page
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              class: 'hyperlink',
               onClick: () => handleInitialFirmwareClick(record)
             }, text) : '-';
           }
           if (config.key === 'latestFirmware_8') {
             // 最新可更新的固件版本 - Jump to Firmware Management Page
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              class: 'hyperlink',
               onClick: () => handleLatestFirmwareClick(record)
             }, text) : '-';
           }
           if (config.key === 'currentFirmwareVersion_9') {
             // 当前固件版本 - Jump to Firmware Management Page
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              class: 'hyperlink',
               onClick: () => handleCurrentFirmwareClick(record)
             }, text) : '-';
           }
@@ -1110,105 +1116,78 @@ const handleDeleteRecord = async (record: DataItem) => {
 const handleBoundAccountClick = (subAccountId: string) => {
   console.log('Bound account clicked:', subAccountId);
   if (subAccountId && subAccountId !== '-') {
-    try {
-      router.push({ 
-        path: '/account', 
-        query: { search: subAccountId }
-      });
-    } catch (error) {
-      console.error('Navigation error:', error);
-      message.error('导航失败，请稍后重试');
-    }
+    router.push({ 
+      path: '/account', 
+      query: { search: subAccountId }
+    });
   } else {
-    message.info('该设备未绑定子账户，无法查看账户信息');
+    // Show notice instead of alert
+    console.log('该设备未绑定子账户，无法查看账户信息');
   }
 };
 
 const handleDeviceModelClick = (deviceModel: string) => {
   console.log('Device model clicked:', deviceModel);
   if (deviceModel && deviceModel !== '-') {
-    try {
-      router.push({ 
-        name: 'device-type', 
-        query: { search: deviceModel }
-      });
-    } catch (error) {
-      console.error('Navigation error:', error);
-      message.error('导航失败，请稍后重试');
-    }
+    router.push({ 
+      path: '/device-type', 
+      query: { search: deviceModel }
+    });
   } else {
-    message.info('设备型号信息不存在');
+    console.log('设备型号信息不存在');
   }
 };
 
 const handleProductionBatchClick = (productionBatch: string) => {
   console.log('Production batch clicked:', productionBatch);
   if (productionBatch && productionBatch !== '-') {
-    try {
-      router.push({ 
-        name: 'device-production', 
-        query: { search: productionBatch }
-      });
-    } catch (error) {
-      console.error('Navigation error:', error);
-      message.error('导航失败，请稍后重试');
-    }
+    router.push({ 
+      path: '/device-production', 
+      query: { search: productionBatch }
+    });
   } else {
-    message.info('生产批次信息不存在');
+    console.log('生产批次信息不存在');
   }
 };
 
 const handleInitialFirmwareClick = (record: DataItem) => {
   console.log('Initial firmware clicked:', record);
-  if (record.deviceModel && record.deviceModel !== '-' && 
-      record.productionBatch && record.productionBatch !== '-' && 
-      record.manufacturer && record.manufacturer !== '-') {
-    try {
-      const searchTerm = `${record.deviceModel}+${record.productionBatch}+${record.manufacturer}`;
-      router.push({ 
-        name: 'firmware', 
-        query: { search: searchTerm }
-      });
-    } catch (error) {
-      console.error('Navigation error:', error);
-      message.error('导航失败，请稍后重试');
-    }
+  if (record.deviceModel && record.productionBatch && record.manufacturer && 
+      record.deviceModel !== '-' && record.productionBatch !== '-' && record.manufacturer !== '-') {
+    // Query device production information table with concatenated value
+    const searchTerm = `${record.deviceModel}+${record.productionBatch}+${record.manufacturer}`;
+    router.push({ 
+      path: '/firmware', 
+      query: { search: searchTerm, type: 'initial' }
+    });
   } else {
-    message.info('设备信息不完整，无法查看初始固件信息');
+    console.log('设备信息不完整，无法查看初始固件信息');
   }
 };
 
 const handleLatestFirmwareClick = (record: DataItem) => {
   console.log('Latest firmware clicked:', record);
   if (record.deviceModel && record.deviceModel !== '-') {
-    try {
-      router.push({ 
-        name: 'firmware', 
-        query: { search: record.deviceModel }
-      });
-    } catch (error) {
-      console.error('Navigation error:', error);
-      message.error('导航失败，请稍后重试');
-    }
+    // Query device model table for latest firmware
+    router.push({ 
+      path: '/firmware', 
+      query: { search: record.deviceModel, type: 'latest' }
+    });
   } else {
-    message.info('设备型号信息不存在，无法查看最新固件信息');
+    console.log('设备型号信息不存在，无法查看最新固件信息');
   }
 };
 
 const handleCurrentFirmwareClick = (record: DataItem) => {
   console.log('Current firmware clicked:', record);
   if (record.deviceId && record.deviceId !== '-') {
-    try {
-      router.push({ 
-        name: 'firmware', 
-        query: { search: record.deviceId }
-      });
-    } catch (error) {
-      console.error('Navigation error:', error);
-      message.error('导航失败，请稍后重试');
-    }
+    // Query device table for current firmware
+    router.push({ 
+      path: '/firmware', 
+      query: { search: record.deviceId, type: 'current' }
+    });
   } else {
-    message.info('设备ID信息不存在，无法查看当前固件信息');
+    console.log('设备ID信息不存在，无法查看当前固件信息');
   }
 };
 
@@ -1995,5 +1974,24 @@ html, body {
 .no-data-message .ant-empty-description {
   color: #666;
   font-size: 14px;
+}
+
+/* Hyperlink styling */
+:deep(.hyperlink) {
+  color: #1890ff !important;
+  text-decoration: none !important;
+  transition: all 0.3s ease;
+}
+
+:deep(.hyperlink:hover) {
+  color: #40a9ff !important;
+  text-decoration: underline !important;
+}
+
+/* No data notice styling */
+:deep(.no-data-notice) {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+  font-style: italic;
 }
 </style> 
