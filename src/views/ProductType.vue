@@ -294,7 +294,7 @@ import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExportOutlined } from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
-import { useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { Empty } from 'ant-design-vue';
 import { 
   createColumnConfigs, 
@@ -302,10 +302,11 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
 import { message } from 'ant-design-vue';
 
-const route = useRoute();
+const router = useRouter();
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -416,7 +417,7 @@ const loading = ref(false);
 const fetchProductTypes = async () => {
   try {
     loading.value = true;
-    const response = await axios.get(`${API_BASE_URL}/product-type`);
+    const response = await axios.get(constructApiUrl('product-type'));
     
     // Transform the data to ensure all required fields are present
     rawData.value = response.data.map((item: any, index: number) => ({
@@ -446,7 +447,7 @@ const fetchProductTypes = async () => {
 
 const createProductType = async (productTypeData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/product-type`, productTypeData);
+    const response = await axios.post(constructApiUrl('product-type'), productTypeData);
     await fetchProductTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -457,7 +458,7 @@ const createProductType = async (productTypeData: Omit<DataItem, 'key' | 'id' | 
 
 const updateProductType = async (id: number, productTypeData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/product-type/${id}`, productTypeData);
+    const response = await axios.put(constructApiUrl(`product-type/${id}`), productTypeData);
     await fetchProductTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -468,7 +469,7 @@ const updateProductType = async (id: number, productTypeData: Partial<DataItem>)
 
 const deleteProductType = async (id: number) => {
   try {
-    await axios.delete(`${API_BASE_URL}/product-type/${id}`);
+    await axios.delete(constructApiUrl(`product-type/${id}`));
     await fetchProductTypes(); // Refresh data
   } catch (error) {
     console.error('Error deleting product type:', error);
@@ -481,8 +482,8 @@ const searchInputValue = ref('');
 
 // Handle search parameter from URL
 onMounted(() => {
-  if (route.query.search) {
-    searchInputValue.value = route.query.search as string;
+  if (router.currentRoute.value.query.search) {
+    searchInputValue.value = router.currentRoute.value.query.search as string;
   }
   fetchProductTypes(); // Fetch data on component mount
 });

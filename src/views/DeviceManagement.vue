@@ -390,13 +390,20 @@ import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted, watch } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExportOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
-import { useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { Empty } from 'ant-design-vue';
 import axios from 'axios';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 
-const route = useRoute();
+const router = useRouter();
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -524,7 +531,7 @@ const fetchDeviceManagement = async () => {
     loading.value = true;
     console.log('Fetching device management data...');
     
-    const response = await axios.get(`${API_BASE_URL}/device-management`);
+    const response = await axios.get(constructApiUrl('device-management'));
     
     if (response.data && Array.isArray(response.data)) {
       // Transform the data to match the DataItem interface
@@ -583,7 +590,7 @@ const fetchDeviceManagement = async () => {
 
 const createDeviceManagement = async (deviceManagementData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/device-management`, deviceManagementData);
+    const response = await axios.post(constructApiUrl('device-management'), deviceManagementData);
     await fetchDeviceManagement(); // Refresh data
     return response.data;
   } catch (error) {
@@ -594,7 +601,7 @@ const createDeviceManagement = async (deviceManagementData: Omit<DataItem, 'key'
 
 const updateDeviceManagement = async (id: number, deviceManagementData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/device-management/${id}`, deviceManagementData);
+    const response = await axios.put(constructApiUrl(`device-management/${id}`), deviceManagementData);
     await fetchDeviceManagement(); // Refresh data
     return response.data;
   } catch (error) {
@@ -605,7 +612,7 @@ const updateDeviceManagement = async (id: number, deviceManagementData: Partial<
 
 const deleteDeviceManagement = async (id: number) => {
   try {
-    await axios.delete(`${API_BASE_URL}/device-management/${id}`);
+    await axios.delete(constructApiUrl(`device-management/${id}`));
     await fetchDeviceManagement(); // Refresh data
   } catch (error) {
     console.error('Error deleting device management:', error);
@@ -757,8 +764,8 @@ const searchInputValue = ref('');
 
 // Handle search parameter from URL
 onMounted(() => {
-  if (route.query.search) {
-    searchInputValue.value = route.query.search as string;
+  if (router.currentRoute.value.query.search) {
+    searchInputValue.value = router.currentRoute.value.query.search as string;
   }
   fetchDeviceManagement(); // Fetch data on component mount
 });
