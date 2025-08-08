@@ -387,7 +387,7 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExportOutlined} from '@ant-design/icons-vue';
@@ -496,7 +496,53 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
     customRender: config.customRender
       ? config.customRender
-      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+      : ({ text, record }) => {
+          // Handle hyperlinks for specific columns based on requirements
+          if (config.key === 'boundSubAccount_3') {
+            // 绑定帐号 - Jump to Account Information Page filtered by sub-account ID
+            return text && text !== '-' ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'underline' },
+              onClick: () => handleBoundAccountClick(text)
+            }, text) : '-';
+          }
+          if (config.key === 'deviceModel_4') {
+            // 设备型号 - Jump to Device Model Page filtered by device model name
+            return text && text !== '-' ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'underline' },
+              onClick: () => handleDeviceModelClick(text)
+            }, text) : '-';
+          }
+          if (config.key === 'productionBatch_5') {
+            // 生产批次 - Jump to Production Information Page filtered by production batch
+            return text && text !== '-' ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'underline' },
+              onClick: () => handleProductionBatchClick(text)
+            }, text) : '-';
+          }
+          if (config.key === 'initialFirmware_7') {
+            // 初始烧录固件版本 - Jump to Firmware Management Page
+            return text && text !== '-' ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'underline' },
+              onClick: () => handleInitialFirmwareClick(record)
+            }, text) : '-';
+          }
+          if (config.key === 'latestFirmware_8') {
+            // 最新可更新的固件版本 - Jump to Firmware Management Page
+            return text && text !== '-' ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'underline' },
+              onClick: () => handleLatestFirmwareClick(record)
+            }, text) : '-';
+          }
+          if (config.key === 'currentFirmwareVersion_9') {
+            // 当前固件版本 - Jump to Firmware Management Page
+            return text && text !== '-' ? h('a', {
+              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'underline' },
+              onClick: () => handleCurrentFirmwareClick(record)
+            }, text) : '-';
+          }
+          // Default rendering for other columns
+          return text === undefined || text === null || text === '' ? '-' : text;
+        },
     className: config.className,
   })) as ColumnsType;
 };
@@ -768,6 +814,7 @@ onMounted(() => {
     searchInputValue.value = router.currentRoute.value.query.search as string;
   }
   fetchDeviceManagement(); // Fetch data on component mount
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
 });
 
 // Computed property to show no data message
@@ -1058,6 +1105,84 @@ const handleDeleteRecord = async (record: DataItem) => {
     console.error('Error deleting record:', error);
   }
 };
+
+// Hyperlink click handlers
+const handleBoundAccountClick = (subAccountId: string) => {
+  console.log('Bound account clicked:', subAccountId);
+  if (subAccountId && subAccountId !== '-') {
+    router.push({ 
+      path: '/account', 
+      query: { search: subAccountId }
+    });
+  } else {
+    alert('该设备未绑定子账户，无法查看账户信息');
+  }
+};
+
+const handleDeviceModelClick = (deviceModel: string) => {
+  console.log('Device model clicked:', deviceModel);
+  if (deviceModel && deviceModel !== '-') {
+    router.push({ 
+      path: '/device-type', 
+      query: { search: deviceModel }
+    });
+  } else {
+    alert('设备型号信息不存在');
+  }
+};
+
+const handleProductionBatchClick = (productionBatch: string) => {
+  console.log('Production batch clicked:', productionBatch);
+  if (productionBatch && productionBatch !== '-') {
+    router.push({ 
+      path: '/device-production', 
+      query: { search: productionBatch }
+    });
+  } else {
+    alert('生产批次信息不存在');
+  }
+};
+
+const handleInitialFirmwareClick = (record: DataItem) => {
+  console.log('Initial firmware clicked:', record);
+  const searchTerm = `${record.deviceModel}+${record.productionBatch}+${record.manufacturer}`;
+  if (record.deviceModel && record.productionBatch && record.manufacturer) {
+    router.push({ 
+      path: '/firmware', 
+      query: { search: searchTerm }
+    });
+  } else {
+    alert('设备信息不完整，无法查看初始固件信息');
+  }
+};
+
+const handleLatestFirmwareClick = (record: DataItem) => {
+  console.log('Latest firmware clicked:', record);
+  if (record.deviceModel && record.deviceModel !== '-') {
+    router.push({ 
+      path: '/firmware', 
+      query: { search: record.deviceModel }
+    });
+  } else {
+    alert('设备型号信息不存在，无法查看最新固件信息');
+  }
+};
+
+const handleCurrentFirmwareClick = (record: DataItem) => {
+  console.log('Current firmware clicked:', record);
+  if (record.deviceId && record.deviceId !== '-') {
+    router.push({ 
+      path: '/firmware', 
+      query: { search: record.deviceId }
+    });
+  } else {
+    alert('设备ID信息不存在，无法查看当前固件信息');
+  }
+};
+
+onMounted(() => {
+  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+});
 </script>
 <style scoped>
 #components-table-demo-summary tfoot th,
