@@ -886,7 +886,7 @@ const handleEditSubmit = () => {
         updater: currentUsername.value // Use the current username from auth store
       };
 
-      const response = await axios.put(`${API_BASE_URL}/ip-management/${editRecord.value.ipId}`, updatedIp);
+      const response = await axios.put(`http://121.43.196.106:2829/api/ip-management/${editRecord.value.ipId}`, updatedIp);
       console.log('IP updated:', response.data);
       message.success('更新成功');
       showEditModal.value = false;
@@ -987,8 +987,37 @@ const handleCreateSubmit = () => {
         updater: currentUsername.value // Use the current username from auth store
       };
 
-      const response = await axios.post(`${API_BASE_URL}/ip-management`, newIp);
-      console.log('New IP created:', response.data);
+      // Debug logging
+      console.log('=== CREATE IP DEBUG ===');
+      console.log('API_BASE_URL:', API_BASE_URL);
+      console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+      console.log('Constructed URL:', constructApiUrl('ip-management'));
+      console.log('Request data:', newIp);
+
+      // Use the correct API URL directly
+      const apiUrl = 'http://121.43.196.106:2829/api/ip-management';
+      console.log('Final API URL:', apiUrl);
+      
+      // Test with direct axios call to bypass interceptors
+      const testResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newIp)
+      });
+      
+      console.log('Test response status:', testResponse.status);
+      console.log('Test response ok:', testResponse.ok);
+      
+      if (!testResponse.ok) {
+        const errorText = await testResponse.text();
+        console.error('Test response error:', errorText);
+        throw new Error(`HTTP ${testResponse.status}: ${errorText}`);
+      }
+      
+      const responseData = await testResponse.json();
+      console.log('New IP created:', responseData);
       message.success('IP创建成功');
       showCreateIpModal.value = false;
       createFormData.value = {
@@ -1003,9 +1032,17 @@ const handleCreateSubmit = () => {
       fetchData(); // Refresh table
     } catch (error: any) {
       console.error('Error creating IP:', error);
+      console.error('Error response:', error.response);
+      console.error('Error config:', error.config);
+      console.error('Error status:', error.response?.status);
+      console.error('Error statusText:', error.response?.statusText);
+      console.error('Error data:', error.response?.data);
+      
       // Show specific error message from backend
       if (error.response && error.response.data && error.response.data.error) {
         message.error(`创建失败: ${error.response.data.error}`);
+      } else if (error.response?.status === 404) {
+        message.error('API端点不存在，请检查服务器配置');
       } else {
         message.error('IP创建失败，请检查网络连接');
       }
