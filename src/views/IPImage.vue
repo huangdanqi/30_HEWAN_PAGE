@@ -438,6 +438,8 @@
               :src="getImageUrl(previewImage)" 
               class="preview-image" 
               alt="Image preview"
+              @error="handleImageError"
+              @load="handleImageLoad"
             />
           </div>
           <div v-else class="no-image-message">
@@ -1093,24 +1095,61 @@ const closePreviewModal = () => {
 
 const handlePreview = (record: DataItem) => {
   console.log('File preview clicked:', record);
-  // Show image in modal instead of new tab
+  console.log('Original imageFileAddress:', record.imageFileAddress);
+  
+  // Construct the full URL for the image
+  const imageUrl = `http://121.43.196.106:2829${record.imageFileAddress}`;
+  console.log('Constructed image URL:', imageUrl);
+  
+  // Show image in modal
   previewImage.value = record.imageFileAddress;
   showPreviewModal.value = true;
 };
 
 const getImageUrl = (imagePath: string) => {
-  // Handle different path formats for image display
-  if (imagePath.startsWith('public\\images\\')) {
-    // Use folder site - get the first image from the folder
-    return constructApiUrl('images/top.jpg');
-  } else if (imagePath.startsWith('\\images\\')) {
-    return constructApiUrl('images/top.jpg');
-  } else if (imagePath.endsWith('\\')) {
-    // Handle folder paths ending with backslash
-    return constructApiUrl('images/top.jpg');
-  } else {
-    return constructApiUrl(imagePath);
+  console.log('getImageUrl called with path:', imagePath);
+  
+  if (!imagePath) {
+    console.log('No image path provided');
+    return '';
   }
+  
+  // Handle different path formats for image display
+  if (imagePath.startsWith('public\\images\\') || imagePath.startsWith('public/images/')) {
+    // Use folder site - get the first image from the folder
+    const url = `http://121.43.196.106:2829/images/top.jpg`;
+    console.log('Returning public images URL:', url);
+    return url;
+  } else if (imagePath.startsWith('\\images\\') || imagePath.startsWith('/images/')) {
+    const url = `http://121.43.196.106:2829/images/top.jpg`;
+    console.log('Returning images URL:', url);
+    return url;
+  } else if (imagePath.endsWith('\\') || imagePath.endsWith('/')) {
+    // Handle folder paths ending with backslash
+    const url = `http://121.43.196.106:2829/images/top.jpg`;
+    console.log('Returning folder URL:', url);
+    return url;
+  } else {
+    // Ensure the path starts with / if it doesn't already
+    const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+    const url = `http://121.43.196.106:2829${normalizedPath}`;
+    console.log('Returning direct URL:', url);
+    return url;
+  }
+};
+
+const handleImageError = (event: Event) => {
+  console.error('Image failed to load:', event);
+  const img = event.target as HTMLImageElement;
+  console.error('Failed image URL:', img.src);
+  // You could set a fallback image here
+  alert('图片加载失败，请检查图片路径是否正确');
+};
+
+const handleImageLoad = (event: Event) => {
+  console.log('Image loaded successfully:', event);
+  const img = event.target as HTMLImageElement;
+  console.log('Successfully loaded image URL:', img.src);
 };
 
 onMounted(() => {

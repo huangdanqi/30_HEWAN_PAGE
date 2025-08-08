@@ -543,6 +543,8 @@
             @ended="onVideoEnded"
             @play="onVideoPlay"
             @pause="onVideoPause"
+            @error="handleVideoError"
+            @loadeddata="handleVideoLoaded"
           >
             <source :src="currentVideoUrl" type="video/mp4">
             <source :src="currentVideoUrl" type="video/webm">
@@ -957,9 +959,29 @@ const handlePlay = (record: DataItem) => {
   
   // Set up video URL and info
   const videoUrl = record.videoFileAddress;
+  console.log('Original videoFileAddress:', videoUrl);
+  
   if (videoUrl && videoUrl !== 'https://example.com/firmware.bin') {
-    // Use the actual video file path
-    currentVideoUrl.value = constructApiUrl(videoUrl);
+    // Use the actual video file path - ensure proper URL construction
+    const normalizedPath = videoUrl.startsWith('/') ? videoUrl : `/${videoUrl}`;
+    const fullVideoUrl = `http://121.43.196.106:2829${normalizedPath}`;
+    currentVideoUrl.value = fullVideoUrl;
+    console.log('Constructed video URL:', currentVideoUrl.value);
+    
+    // Test if the file exists first
+    fetch(fullVideoUrl, { method: 'HEAD' })
+      .then(response => {
+        console.log('Video file exists check response:', response.status, response.statusText);
+        if (response.ok) {
+          console.log('Video file exists and is accessible');
+        } else {
+          console.error('Video file not found or not accessible:', response.status);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking if video file exists:', error);
+      });
+    
     currentVideoInfo.value = {
       videoName: record.videoName,
       ipName: record.ipName,
@@ -970,6 +992,7 @@ const handlePlay = (record: DataItem) => {
   } else {
     // Show demo video or placeholder
     currentVideoUrl.value = 'https://www.w3schools.com/html/mov_bbb.mp4'; // Demo video
+    console.log('Using demo video URL:', currentVideoUrl.value);
     currentVideoInfo.value = {
       videoName: record.videoName,
       ipName: record.ipName,
@@ -1102,6 +1125,20 @@ const onVideoPlay = () => {
 
 const onVideoPause = () => {
   // Video paused
+};
+
+const handleVideoError = (event: Event) => {
+  console.error('Video error:', event);
+  alert('视频加载失败，请检查网络或文件路径。');
+  playingVideoId.value = null;
+  showVideoModal.value = false;
+  if (videoPlayer.value) {
+    videoPlayer.value.pause();
+  }
+};
+
+const handleVideoLoaded = () => {
+  console.log('Video loaded successfully');
 };
 
 const handleCreateConfirm = async () => {
