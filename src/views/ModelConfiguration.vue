@@ -483,6 +483,13 @@ import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, 
 import draggable from 'vuedraggable';
 import axios from 'axios'; // Added axios import
 import { useRouter } from 'vue-router';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -613,7 +620,7 @@ const fetchData = async () => {
   try {
     console.log('Calling model-configuration endpoint');
     // Request all data without pagination parameters
-    const response = await axios.get(`${API_BASE_URL}/model-configuration?page=1&pageSize=1000`);
+    const response = await axios.get(constructApiUrl('model-configuration?page=1&pageSize=1000'));
     console.log('Model configuration response:', response.data);
     // Add key property to each item for table identification
     rawData.value = response.data.data.map((item: any) => ({

@@ -462,6 +462,7 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 
@@ -555,7 +556,7 @@ const fetchData = async () => {
   try {
     console.log('Calling IP image endpoint');
     
-    const response = await axios.get(`${API_BASE_URL}/ipimage?page=1&pageSize=1000`);
+    const response = await axios.get(constructApiUrl('ipimage?page=1&pageSize=1000'));
     console.log('IP image response:', response.data);
     
     // Map the API response to match our DataItem interface
@@ -1101,14 +1102,14 @@ const getImageUrl = (imagePath: string) => {
   // Handle different path formats for image display
   if (imagePath.startsWith('public\\images\\')) {
     // Use folder site - get the first image from the folder
-    return `${API_BASE_URL}/images/top.jpg`;
+    return constructApiUrl('images/top.jpg');
   } else if (imagePath.startsWith('\\images\\')) {
-    return `${API_BASE_URL}/images/top.jpg`;
+    return constructApiUrl('images/top.jpg');
   } else if (imagePath.endsWith('\\')) {
     // Handle folder paths ending with backslash
-    return `${API_BASE_URL}/images/top.jpg`;
+    return constructApiUrl('images/top.jpg');
   } else {
-    return `${API_BASE_URL}${imagePath}`;
+    return constructApiUrl(imagePath);
   }
 };
 

@@ -350,11 +350,21 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, SettingOutlined, SearchOutlined, InfoCircleOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
-import { createColumnConfigs, useTableColumns, createColumn, type ColumnDefinition } from '../utils/tableConfig';
+import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, ExportOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
+import draggable from 'vuedraggable';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
+
+const router = useRouter();
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -442,7 +452,7 @@ const fetchData = async () => {
   try {
     console.log('Calling IPmusic endpoint');
     // Request all data without pagination parameters
-    const response = await axios.get(`${API_BASE_URL}/ipmusic?page=1&pageSize=1000`);
+    const response = await axios.get(constructApiUrl('ipmusic?page=1&pageSize=1000'));
     console.log('IPmusic response:', response.data);
     console.log('Response data length:', response.data.data?.length);
     console.log('Response total:', response.data.total);
@@ -601,7 +611,7 @@ const handleAudition = (record: DataItem) => {
 
   if (!audioElement) {
     // Construct the full URL for the audio file using the backend server
-    const audioUrl = `${API_BASE_URL}${record.musicFileAddress}`;
+    const audioUrl = constructApiUrl(record.musicFileAddress);
     console.log('Audio URL:', audioUrl);
     
     audioElement = new Audio(audioUrl);

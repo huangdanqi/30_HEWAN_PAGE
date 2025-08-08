@@ -464,6 +464,13 @@ import { useRouter } from 'vue-router';
 import { h } from 'vue';
 import { Empty } from 'ant-design-vue';
 import { useRoute } from 'vue-router';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 
 const router = useRouter();
 const route = useRoute();
@@ -593,7 +600,7 @@ const fetchData = async () => {
   try {
     console.log('Calling IP management endpoint');
     
-    const response = await axios.get(`${API_BASE_URL}/ip-management`);
+    const response = await axios.get(constructApiUrl('ip-management'));
     console.log('IP management response:', response.data);
     
     rawData.value = response.data.data;
