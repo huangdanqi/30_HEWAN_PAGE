@@ -194,6 +194,13 @@ import axios from 'axios';
 import FirmwareReleaseModal from '@/components/FirmwareReleaseModal.vue';
 import FirmwareEditModal from '@/components/FirmwareEditModal.vue';
 import ProductCreateModal from '@/components/ProductCreateModal.vue';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -296,7 +303,7 @@ const loading = ref(false);
 const total = ref(0); // New ref for total items
 
 // API base URL
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // API functions
 const fetchToyProductionData = async () => {
@@ -304,7 +311,7 @@ const fetchToyProductionData = async () => {
     loading.value = true;
     console.log('Fetching toy production data with page:', currentPage.value, 'pageSize:', pageSize.value);
     
-    const response = await axios.get(`${API_BASE_URL}/toy-production-hyphen`, {
+    const response = await axios.get(constructApiUrl('toy-production-hyphen'), {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value

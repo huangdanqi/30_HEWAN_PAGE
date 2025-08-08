@@ -135,6 +135,13 @@ import draggable from 'vuedraggable';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { Empty } from 'ant-design-vue';
+import { 
+  createColumnConfigs, 
+  useTableColumns, 
+  createColumn,
+  type ColumnDefinition 
+} from '../utils/tableConfig';
+import { constructApiUrl } from '../utils/api';
 
 const route = useRoute();
 
@@ -258,7 +265,7 @@ const fetchProductList = async () => {
     loading.value = true;
     console.log('Fetching product list data...');
     
-    const response = await axios.get(`${API_BASE_URL}/product-list`);
+    const response = await axios.get(constructApiUrl('product-list'));
     console.log('Product list response:', response.data);
     
     // Transform the data to ensure all required fields are present
@@ -290,7 +297,7 @@ const fetchProductList = async () => {
 
 const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 'updateTime'>) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/product-list`, productListData);
+    const response = await axios.post(constructApiUrl('product-list'), productListData);
     await fetchProductList(); // Refresh data
     return response.data;
   } catch (error) {
@@ -301,7 +308,7 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
 
 const updateProductList = async (id: number, productListData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/product-list/${id}`, productListData);
+    const response = await axios.put(constructApiUrl(`product-list/${id}`), productListData);
     await fetchProductList(); // Refresh data
     return response.data;
   } catch (error) {
@@ -312,7 +319,7 @@ const updateProductList = async (id: number, productListData: Partial<DataItem>)
 
 const deleteProductList = async (id: number) => {
   try {
-    await axios.delete(`${API_BASE_URL}/product-list/${id}`);
+    await axios.delete(constructApiUrl(`product-list/${id}`));
     await fetchProductList(); // Refresh data
   } catch (error) {
     console.error('Error deleting product list:', error);
