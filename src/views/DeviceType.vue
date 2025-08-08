@@ -428,7 +428,7 @@ const fetchDeviceTypes = async () => {
 
 const createDeviceType = async (deviceTypeData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post(constructApiUrl('device-type'), deviceTypeData);
+    const response = await axios.post('http://121.43.196.106:2829/api/device-type', deviceTypeData);
     await fetchDeviceTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -439,7 +439,7 @@ const createDeviceType = async (deviceTypeData: Omit<DataItem, 'key' | 'id' | 'c
 
 const updateDeviceType = async (id: number, deviceTypeData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(constructApiUrl(`device-type/${id}`), deviceTypeData);
+    const response = await axios.put(`http://121.43.196.106:2829/api/device-type/${id}`, deviceTypeData);
     await fetchDeviceTypes(); // Refresh data
     return response.data;
   } catch (error) {

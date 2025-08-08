@@ -366,7 +366,7 @@ const fetchFirmware = async () => {
 
 const createFirmware = async (firmwareData: Omit<DataItem, 'key' | 'id' | 'releaseTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post(constructApiUrl('firmware'), firmwareData);
+    const response = await axios.post('http://121.43.196.106:2829/api/firmware', firmwareData);
     await fetchFirmware(); // Refresh data
     return response.data;
   } catch (error) {
@@ -377,7 +377,7 @@ const createFirmware = async (firmwareData: Omit<DataItem, 'key' | 'id' | 'relea
 
 const updateFirmware = async (id: number, firmwareData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(constructApiUrl(`firmware/${id}`), firmwareData);
+    const response = await axios.put(`http://121.43.196.106:2829/api/firmware/${id}`, firmwareData);
     await fetchFirmware(); // Refresh data
     return response.data;
   } catch (error) {

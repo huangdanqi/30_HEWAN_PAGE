@@ -967,7 +967,7 @@ const handleCreateConfirm = async () => {
     }
 
     // Send to backend
-    const response = await axios.post(`${API_BASE_URL}/ipaudio`, formData, {
+    const response = await axios.post('http://121.43.196.106:2829/api/ipaudio', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -1121,7 +1121,7 @@ const handleEditConfirm = async () => {
     }
 
     // Send to backend
-    const response = await axios.put(`${API_BASE_URL}/ipaudio/${editForm.value.id}`, formData, {
+    const response = await axios.put(`http://121.43.196.106:2829/api/ipaudio/${editForm.value.id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },

@@ -558,7 +558,7 @@ const fetchDeviceProduction = async () => {
 
 const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key' | 'id' | 'totalPrice'>) => {
   try {
-    const response = await axios.post(constructApiUrl('device-production'), deviceProductionData);
+    const response = await axios.post('http://121.43.196.106:2829/api/device-production', deviceProductionData);
     await fetchDeviceProduction(); // Refresh data
     return response.data;
   } catch (error) {
@@ -569,7 +569,7 @@ const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key'
 
 const updateDeviceProduction = async (id: number, deviceProductionData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(constructApiUrl(`device-production/${id}`), deviceProductionData);
+    const response = await axios.put(`http://121.43.196.106:2829/api/device-production/${id}`, deviceProductionData);
     await fetchDeviceProduction(); // Refresh data
     return response.data;
   } catch (error) {

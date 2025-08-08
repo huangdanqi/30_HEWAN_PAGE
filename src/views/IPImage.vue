@@ -859,7 +859,7 @@ const handleCreateConfirm = async () => {
     formData.append('imageFile', createForm.value.imageFile);
     formData.append('updater', '管理员');
 
-    const response = await axios.post(`${API_BASE_URL}/ipimage`, formData, {
+    const response = await axios.post('http://121.43.196.106:2829/api/ipimage', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -1005,7 +1005,7 @@ const handleEditConfirm = async () => {
     }
     formData.append('updater', '管理员');
 
-    const response = await axios.put(`${API_BASE_URL}/ipimage/${currentEditId.value}`, formData, {
+    const response = await axios.put(`http://121.43.196.106:2829/api/ipimage/${currentEditId.value}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

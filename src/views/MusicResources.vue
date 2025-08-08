@@ -746,7 +746,7 @@ const handleCreateConfirm = async () => {
       updater: authStore.username || '管理员'
     });
     
-    const response = await axios.post(`${API_BASE_URL}/ipmusic`, formData, {
+    const response = await axios.post('http://121.43.196.106:2829/api/ipmusic', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -867,7 +867,7 @@ const handleEditConfirm = async () => {
     }
     formData.append('updater', authStore.user?.name || authStore.user?.username || '管理员');
 
-    const response = await axios.put(`${API_BASE_URL}/ipmusic/${editForm.value.id}`, formData, {
+    const response = await axios.put(`http://121.43.196.106:2829/api/ipmusic/${editForm.value.id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },

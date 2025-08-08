@@ -590,7 +590,7 @@ const fetchDeviceManagement = async () => {
 
 const createDeviceManagement = async (deviceManagementData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post(constructApiUrl('device-management'), deviceManagementData);
+    const response = await axios.post('http://121.43.196.106:2829/api/device-management', deviceManagementData);
     await fetchDeviceManagement(); // Refresh data
     return response.data;
   } catch (error) {
@@ -601,7 +601,7 @@ const createDeviceManagement = async (deviceManagementData: Omit<DataItem, 'key'
 
 const updateDeviceManagement = async (id: number, deviceManagementData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(constructApiUrl(`device-management/${id}`), deviceManagementData);
+    const response = await axios.put(`http://121.43.196.106:2829/api/device-management/${id}`, deviceManagementData);
     await fetchDeviceManagement(); // Refresh data
     return response.data;
   } catch (error) {

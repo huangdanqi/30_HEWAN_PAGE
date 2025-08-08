@@ -994,15 +994,19 @@ const handleCreateSubmit = () => {
       console.log('Constructed URL:', constructApiUrl('ip-management'));
       console.log('Request data:', newIp);
 
-      // Use the correct API URL directly
-      const apiUrl = 'http://121.43.196.106:2829/api/ip-management';
+      // Use the correct API URL directly with cache busting
+      const timestamp = Date.now();
+      const apiUrl = `http://121.43.196.106:2829/api/ip-management?v=${timestamp}`;
       console.log('Final API URL:', apiUrl);
+      console.log('Using hardcoded URL to bypass constructApiUrl issues');
+      console.log('Cache busting timestamp:', timestamp);
       
       // Test with direct axios call to bypass interceptors
       const testResponse = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
         },
         body: JSON.stringify(newIp)
       });

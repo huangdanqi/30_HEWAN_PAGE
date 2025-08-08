@@ -297,7 +297,7 @@ const fetchProductList = async () => {
 
 const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 'updateTime'>) => {
   try {
-    const response = await axios.post(constructApiUrl('product-list'), productListData);
+    const response = await axios.post('http://121.43.196.106:2829/api/product-list', productListData);
     await fetchProductList(); // Refresh data
     return response.data;
   } catch (error) {
@@ -308,7 +308,7 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
 
 const updateProductList = async (id: number, productListData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(constructApiUrl(`product-list/${id}`), productListData);
+    const response = await axios.put(`http://121.43.196.106:2829/api/product-list/${id}`, productListData);
     await fetchProductList(); // Refresh data
     return response.data;
   } catch (error) {

@@ -851,7 +851,7 @@ const handleCreateToolModalConfirm = async () => {
     console.log('Creating tool configuration:', toolData);
     
     // Send POST request to create new tool
-    const response = await axios.post(`${API_BASE_URL}/tool-configuration`, toolData);
+    const response = await axios.post('http://121.43.196.106:2829/api/tool-configuration', toolData);
     
     if (response.data.success) {
       message.success('工具创建成功！');

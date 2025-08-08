@@ -447,7 +447,7 @@ const fetchProductTypes = async () => {
 
 const createProductType = async (productTypeData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post(constructApiUrl('product-type'), productTypeData);
+    const response = await axios.post('http://121.43.196.106:2829/api/product-type', productTypeData);
     await fetchProductTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -458,7 +458,7 @@ const createProductType = async (productTypeData: Omit<DataItem, 'key' | 'id' | 
 
 const updateProductType = async (id: number, productTypeData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(constructApiUrl(`product-type/${id}`), productTypeData);
+    const response = await axios.put(`http://121.43.196.106:2829/api/product-type/${id}`, productTypeData);
     await fetchProductTypes(); // Refresh data
     return response.data;
   } catch (error) {

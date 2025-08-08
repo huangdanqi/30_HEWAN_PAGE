@@ -1104,9 +1104,9 @@ const handleConfirmCreate = async () => {
 
     console.log('Submitting form data:', JSON.stringify(formData, null, 2));
     console.log('Username being sent as updater:', formData.updater);
-    console.log('API URL:', `${API_BASE_URL}/model-configuration`);
+    console.log('API URL:', 'http://121.43.196.106:2829/api/model-configuration');
 
-    const response = await axios.post(`${API_BASE_URL}/model-configuration`, formData);
+    const response = await axios.post('http://121.43.196.106:2829/api/model-configuration', formData);
     
     console.log('=== CREATE MODEL SUCCESS ===');
     console.log('Response status:', response.status);
