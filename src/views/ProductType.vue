@@ -135,7 +135,7 @@
             <a class="link-text" @click="handleDeviceModelClick(record)">{{ record.deviceModel }}</a>
           </template>
           <template v-if="column.key === 'ipName'">
-            <a class="link-text" @click="handleIpNameClick(record)">查看</a>
+            <span>{{ record.ipName }}</span>
           </template>
           <template v-if="column.key === 'creator'">
             <div class="creator-cell">
@@ -304,7 +304,7 @@ import {
 } from '../utils/tableConfig';
 import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 
 const router = useRouter();
 
@@ -421,20 +421,22 @@ const fetchProductTypes = async () => {
     
     // Transform the data to ensure all required fields are present
     rawData.value = response.data.map((item: any, index: number) => ({
-      id: item.id,
+      id: item.id || item.ID || index + 1,
       key: index + 1, // Ensure key is always a number
-      productId: item.productId || item.product_id || '',
-      productModel: item.productModel || item.product_model || '',
-      productName: item.productName || item.product_name || '',
-      productType: item.productType || item.product_type || '',
-      color: item.color || '',
-      productDetails: item.productDetails || item.product_details || '',
-      deviceModel: item.deviceModel || item.device_model || '',
-      ipName: item.ipName || item.ip_name || '',
-      creator: item.creator || '',
-      createTime: item.createTime || item.create_time || '',
-      updateTime: item.updateTime || item.update_time || ''
+      productId: item.productId || item.product_id || item.productId || '',
+      productModel: item.productModel || item.product_model || item.productModel || '',
+      productName: item.productName || item.product_name || item.productName || '',
+      productType: item.productType || item.product_type || item.productType || '',
+      color: item.color || item.Color || '',
+      productDetails: item.productDetails || item.product_details || item.productDetails || '',
+      deviceModel: item.deviceModel || item.device_model || item.deviceModel || '',
+      ipName: item.ipName || item.ip_name || item.ipName || '',
+      creator: item.creator || item.Creator || item.creator || '未知',
+      createTime: item.createTime || item.create_time || item.CreateTime || '',
+      updateTime: item.updateTime || item.update_time || item.UpdateTime || ''
     }));
+    
+    console.log('Fetched product types:', rawData.value);
   } catch (error) {
     console.error('Error fetching product types:', error);
     // Show error message to user instead of falling back to static data
@@ -447,7 +449,7 @@ const fetchProductTypes = async () => {
 
 const createProductType = async (productTypeData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post('http://121.43.196.106:2829/api/product-type', productTypeData);
+    const response = await axios.post(constructApiUrl('product-type'), productTypeData);
     await fetchProductTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -458,7 +460,7 @@ const createProductType = async (productTypeData: Omit<DataItem, 'key' | 'id' | 
 
 const updateProductType = async (id: number, productTypeData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`http://121.43.196.106:2829/api/product-type/${id}`, productTypeData);
+    const response = await axios.put(constructApiUrl(`product-type/${id}`), productTypeData);
     await fetchProductTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -677,16 +679,29 @@ const handleEdit = (record: DataItem) => {
   showEditModal.value = true;
 };
 
-const handleDelete = (record: DataItem) => {
-  console.log('Delete:', record);
+const handleDelete = async (record: DataItem) => {
+  try {
+    // Show confirmation dialog using Modal.confirm
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除产品 "${record.productName}" 吗？此操作不可撤销。`,
+      okText: '确定',
+      cancelText: '取消',
+      onOk: async () => {
+        if (record.id) {
+          await deleteProductType(record.id);
+          message.success('产品删除成功');
+        }
+      },
+    });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    message.error('删除产品失败，请重试');
+  }
 };
 
 const handleDeviceModelClick = (record: DataItem) => {
   console.log('Device model clicked:', record.deviceModel);
-};
-
-const handleIpNameClick = (record: DataItem) => {
-  console.log('IP name clicked:', record.ipName);
 };
 
 // Handle delete record
@@ -726,10 +741,37 @@ const closeCreateModal = () => {
   };
 };
 
-const handleCreateConfirm = () => {
-  console.log('Create product form submitted:', createForm.value);
-  // Here you would typically send the data to your API
-  closeCreateModal();
+const handleCreateConfirm = async () => {
+  try {
+    console.log('Create product form submitted:', createForm.value);
+    
+    // Validate required fields
+    if (!createForm.value.deviceModel || !createForm.value.productModel || 
+        !createForm.value.productName || !createForm.value.productType || 
+        !createForm.value.color || !createForm.value.productDetails || !createForm.value.ipName) {
+      message.error('请填写所有必填字段');
+      return;
+    }
+    
+    // Call API to create product
+    await createProductType({
+      productId: createForm.value.productModel, // Use productModel as productId
+      productModel: createForm.value.productModel,
+      productName: createForm.value.productName,
+      productType: createForm.value.productType,
+      color: createForm.value.color,
+      productDetails: createForm.value.productDetails,
+      deviceModel: createForm.value.deviceModel,
+      ipName: createForm.value.ipName,
+      creator: '当前用户', // You might want to get this from user context
+    });
+    
+    message.success('产品创建成功');
+    closeCreateModal();
+  } catch (error) {
+    console.error('Error creating product:', error);
+    message.error('创建产品失败，请重试');
+  }
 };
 
 const showEditModal = ref(false);
@@ -759,10 +801,38 @@ const closeEditModal = () => {
   };
 };
 
-const handleEditConfirm = () => {
-  console.log('Edit product form submitted:', editForm.value);
-  // Here you would typically send the data to your API
-  closeEditModal();
+const handleEditConfirm = async () => {
+  try {
+    console.log('Edit product form submitted:', editForm.value);
+    
+    // Validate required fields
+    if (!editForm.value.deviceModel || !editForm.value.productModel || 
+        !editForm.value.productName || !editForm.value.productType || 
+        !editForm.value.color || !editForm.value.productDetails || !editForm.value.ipName) {
+      message.error('请填写所有必填字段');
+      return;
+    }
+    
+    // Call API to update product
+    if (editForm.value.id) {
+      await updateProductType(editForm.value.id, {
+        productId: editForm.value.productModel, // Use productModel as productId
+        productModel: editForm.value.productModel,
+        productName: editForm.value.productName,
+        productType: editForm.value.productType,
+        color: editForm.value.color,
+        productDetails: editForm.value.productDetails,
+        deviceModel: editForm.value.deviceModel,
+        ipName: editForm.value.ipName,
+      });
+      
+      message.success('产品更新成功');
+      closeEditModal();
+    }
+  } catch (error) {
+    console.error('Error updating product:', error);
+    message.error('更新产品失败，请重试');
+  }
 };
 
 onMounted(() => {
