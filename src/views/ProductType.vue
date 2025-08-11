@@ -135,7 +135,7 @@
             <a class="link-text" @click="handleDeviceModelClick(record)">{{ record.deviceModel }}</a>
           </template>
           <template v-if="column.key === 'ipName'">
-            <span>{{ record.ipName }}</span>
+            <a class="link-text" @click="handleIpNameClick(record)">{{ record.ipName }}</a>
           </template>
           <template v-if="column.key === 'creator'">
             <div class="creator-cell">
@@ -701,6 +701,22 @@ const handleDelete = async (record: DataItem) => {
 
 const handleDeviceModelClick = (record: DataItem) => {
   console.log('Device model clicked:', record.deviceModel);
+  router.push({
+    path: '/device-model',
+    query: {
+      search: record.deviceModel,
+    },
+  });
+};
+
+const handleIpNameClick = (record: DataItem) => {
+  console.log('IP name clicked:', record.ipName);
+  router.push({
+    path: '/ip-management',
+    query: {
+      search: record.ipName,
+    },
+  });
 };
 
 // Handle delete record
@@ -979,6 +995,17 @@ defineExpose({
 :deep(.link-text) {
   color: #1890ff !important;
   font-weight: bold;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+:deep(.link-text:hover) {
+  color: #40a9ff !important;
+  text-decoration: underline;
+}
+
+:deep(.link-text:active) {
+  color: #096dd9 !important;
 }
 
 :deep(.creator-cell) {
