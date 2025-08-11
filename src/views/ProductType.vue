@@ -10,6 +10,18 @@
       <h3>Component is Loading!</h3>
       <p>If you see this, the component is working.</p>
     </div>
+
+    <!-- Basic Table Test -->
+    <div class="table-container">
+      <h3>Table Test</h3>
+      <a-table
+        :columns="basicColumns"
+        :data-source="basicData"
+        :pagination="false"
+        size="middle"
+      >
+      </a-table>
+    </div>
   </a-config-provider>
 </template>
 
@@ -25,6 +37,41 @@ const customLocale = computed(() => ({
     page: '',
   },
 }));
+
+// Basic table data for testing
+const basicData = ref([
+  {
+    key: '1',
+    name: '测试产品1',
+    type: '蓝牙配件',
+    color: '蓝色'
+  },
+  {
+    key: '2',
+    name: '测试产品2',
+    type: '耳机',
+    color: '黑色'
+  }
+]);
+
+// Basic table columns
+const basicColumns = ref([
+  {
+    title: '产品名称',
+    dataIndex: 'name',
+    key: 'name',
+  },
+  {
+    title: '产品类型',
+    dataIndex: 'type',
+    key: 'type',
+  },
+  {
+    title: '颜色',
+    dataIndex: 'color',
+    key: 'color',
+  }
+]);
 </script>
 
 <style scoped>
