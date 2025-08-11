@@ -170,51 +170,81 @@
     <div v-if="showCreateModal" class="modal-overlay" @click="closeCreateModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>新增产品</h3>
+          <h3>新建产品</h3>
           <button class="close-btn" @click="closeCreateModal">×</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 设备型号</label>
-            <select v-model="createForm.deviceModel" class="form-select">
-              <option value="">请选择</option>
-              <option value="HWSZ001">HWSZ001</option>
-              <option value="HWSZ002">HWSZ002</option>
-            </select>
+            <a-select
+              v-model:value="createForm.deviceModel"
+              placeholder="请选择"
+              style="width: 100%"
+              :options="deviceModelOptions"
+              show-search
+              allowClear
+            >
+            </a-select>
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 产品型号</label>
-            <input type="text" v-model="createForm.productModel" class="form-input" placeholder="请输入">
+            <a-input
+              v-model:value="createForm.productModel"
+              placeholder="自动生成"
+              disabled
+              style="background-color: #f5f5f5"
+            />
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 产品名称</label>
-            <input type="text" v-model="createForm.productName" class="form-input" placeholder="请输入">
+            <a-input
+              v-model:value="createForm.productName"
+              placeholder="请输入"
+              :maxLength="10"
+              showCount
+            />
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 产品类型</label>
-            <select v-model="createForm.productType" class="form-select">
-              <option value="">请选择</option>
-              <option value="蓝牙配件">蓝牙配件</option>
-              <option value="智能玩具">智能玩具</option>
-              <option value="教育设备">教育设备</option>
-            </select>
+            <a-auto-complete
+              v-model:value="createForm.productType"
+              placeholder="请输入"
+              :options="productTypeSuggestions"
+              :maxLength="10"
+              showCount
+            />
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 颜色</label>
-            <input type="text" v-model="createForm.color" class="form-input" placeholder="请输入">
+            <a-auto-complete
+              v-model:value="createForm.color"
+              placeholder="请输入"
+              :options="colorSuggestions"
+              :maxLength="10"
+              showCount
+            />
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 产品详情</label>
-            <textarea v-model="createForm.productDetails" class="form-textarea" placeholder="请输入" rows="3"></textarea>
+            <a-textarea
+              v-model:value="createForm.productDetails"
+              placeholder="请输入"
+              :maxLength="2000"
+              showCount
+              :rows="3"
+            />
           </div>
           <div class="form-group">
-            <label class="required-field"><span class="asterisk">*</span> IP名称</label>
-            <select v-model="createForm.ipName" class="form-select">
-              <option value="">请选择</option>
-              <option value="IP001">IP001</option>
-              <option value="IP002">IP002</option>
-              <option value="IP003">IP003</option>
-            </select>
+            <label class="required-field"><span class="asterisk">*</span> IP角色名称</label>
+            <a-select
+              v-model:value="createForm.ipRoleName"
+              placeholder="请选择"
+              style="width: 100%"
+              :options="ipRoleOptions"
+              show-search
+              allowClear
+            >
+            </a-select>
           </div>
         </div>
         <div class="modal-footer">
@@ -234,47 +264,75 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 设备型号</label>
-            <select v-model="editForm.deviceModel" class="form-select">
-              <option value="">请选择</option>
-              <option value="HWSZ001">HWSZ001</option>
-              <option value="HWSZ002">HWSZ002</option>
-            </select>
+            <a-select
+              v-model:value="editForm.deviceModel"
+              placeholder="请选择"
+              style="width: 100%"
+              :options="deviceModelOptions"
+              show-search
+              allowClear
+            >
+            </a-select>
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 产品型号</label>
-            <input type="text" v-model="editForm.productModel" class="form-input" placeholder="请输入">
+            <a-input
+              v-model:value="editForm.productModel"
+              placeholder="自动生成"
+              disabled
+              style="background-color: #f5f5f5"
+            />
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 产品名称</label>
-            <input type="text" v-model="editForm.productName" class="form-input" placeholder="请输入">
+            <a-input
+              v-model:value="editForm.productName"
+              placeholder="请输入"
+              :maxLength="10"
+              showCount
+            />
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 产品类型</label>
-            <select v-model="editForm.productType" class="form-select">
-              <option value="">请选择</option>
-              <option value="蓝牙配件">蓝牙配件</option>
-              <option value="智能玩具">智能玩具</option>
-              <option value="教育设备">教育设备</option>
-              <option value="盲盒配件">盲盒配件</option>
-            </select>
+            <a-auto-complete
+              v-model:value="editForm.productType"
+              placeholder="请输入"
+              :options="productTypeSuggestions"
+              :maxLength="10"
+              showCount
+            />
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 颜色</label>
-            <input type="text" v-model="editForm.color" class="form-input" placeholder="请输入">
+            <a-auto-complete
+              v-model:value="editForm.color"
+              placeholder="请输入"
+              :options="colorSuggestions"
+              :maxLength="10"
+              showCount
+            />
           </div>
           <div class="form-group">
-            <label class="required-field"><span class="asterisk">*</span> 产品信息</label>
-            <textarea v-model="editForm.productDetails" class="form-textarea" placeholder="请输入" rows="3"></textarea>
+            <label class="required-field"><span class="asterisk">*</span> 产品详情</label>
+            <a-textarea
+              v-model:value="editForm.productDetails"
+              placeholder="请输入"
+              :maxLength="2000"
+              showCount
+              :rows="3"
+            />
           </div>
           <div class="form-group">
-            <label class="required-field"><span class="asterisk">*</span> IP名称</label>
-            <select v-model="editForm.ipName" class="form-select">
-              <option value="">请选择</option>
-              <option value="IP001">IP001</option>
-              <option value="IP002">IP002</option>
-              <option value="IP003">IP003</option>
-              <option value="蝴蝶">蝴蝶</option>
-            </select>
+            <label class="required-field"><span class="asterisk">*</span> IP角色名称</label>
+            <a-select
+              v-model:value="editForm.ipRoleName"
+              placeholder="请选择"
+              style="width: 100%"
+              :options="ipRoleOptions"
+              show-search
+              allowClear
+            >
+            </a-select>
           </div>
         </div>
         <div class="modal-footer">
@@ -289,7 +347,7 @@
 
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExportOutlined } from '@ant-design/icons-vue';
@@ -331,6 +389,7 @@ interface DataItem {
   productDetails: string; // 产品详情
   deviceModel: string; // 设备型号
   ipName: string; // IP名称
+  ipRoleName?: string; // IP角色名称 (for form use)
   creator: string; // 创建人
   createTime: string; // 创建时间
   updateTime: string; // 更新时间
@@ -431,6 +490,7 @@ const fetchProductTypes = async () => {
       productDetails: item.productDetails || item.product_details || item.productDetails || '',
       deviceModel: item.deviceModel || item.device_model || item.deviceModel || '',
       ipName: item.ipName || item.ip_name || item.ipName || '',
+      ipRoleName: item.ipRoleName || item.ip_role_name || item.ipRoleName || '',
       creator: item.creator || item.Creator || item.creator || '未知',
       createTime: item.createTime || item.create_time || item.CreateTime || '',
       updateTime: item.updateTime || item.update_time || item.UpdateTime || ''
@@ -555,7 +615,27 @@ const handleDeviceModelChange = (val: any) => {
   } else {
     deviceModelValue.value = val;
   }
+  
+  // Auto-generate product model when device model is selected
+  if (createForm.value.deviceModel && createForm.value.deviceModel !== '') {
+    generateProductModel();
+  }
 };
+
+// Auto-generate product model
+const generateProductModel = () => {
+  if (createForm.value.deviceModel) {
+    const timestamp = Date.now().toString().slice(-6); // Get last 6 digits of timestamp
+    createForm.value.productModel = `${createForm.value.deviceModel}${timestamp}`;
+  }
+};
+
+// Watch for device model changes in create form
+watch(() => createForm.value.deviceModel, (newValue) => {
+  if (newValue) {
+    generateProductModel();
+  }
+});
 
 const handleProductTypeChange = (val: any) => {
   if (!val || !val.value || val.value === 'all') {
@@ -739,7 +819,7 @@ const createForm = ref({
   productType: '',
   color: '',
   productDetails: '',
-  ipName: ''
+  ipRoleName: ''
 });
 
 const closeCreateModal = () => {
@@ -752,9 +832,30 @@ const closeCreateModal = () => {
     productType: '',
     color: '',
     productDetails: '',
-    ipName: ''
+    ipRoleName: ''
   };
 };
+
+// Add computed properties for suggestions
+const productTypeSuggestions = computed(() => {
+  const uniqueProductTypes = Array.from(new Set(rawData.value.map(item => item.productType)));
+  return uniqueProductTypes.map(type => ({ value: type, label: type }));
+});
+
+const colorSuggestions = computed(() => {
+  const uniqueColors = Array.from(new Set(rawData.value.map(item => item.color)));
+  return uniqueColors.map(color => ({ value: color, label: color }));
+});
+
+const ipRoleOptions = computed(() => {
+  // Mock IP role options - you should fetch these from your IP role table
+  return [
+    { value: 'IP001', label: 'IP001' },
+    { value: 'IP002', label: 'IP002' },
+    { value: 'IP003', label: 'IP003' },
+    { value: '蝴蝶', label: '蝴蝶' },
+  ];
+});
 
 const handleCreateConfirm = async () => {
   try {
@@ -763,8 +864,23 @@ const handleCreateConfirm = async () => {
     // Validate required fields
     if (!createForm.value.deviceModel || !createForm.value.productModel || 
         !createForm.value.productName || !createForm.value.productType || 
-        !createForm.value.color || !createForm.value.productDetails || !createForm.value.ipName) {
+        !createForm.value.color || !createForm.value.productDetails || !createForm.value.ipRoleName) {
       message.error('请填写所有必填字段');
+      return;
+    }
+    
+    // Validate product name uniqueness
+    const existingProduct = rawData.value.find(item => 
+      item.productName === createForm.value.productName
+    );
+    if (existingProduct) {
+      message.error('产品名称已存在，请使用唯一的名称');
+      return;
+    }
+    
+    // Validate product name length
+    if (createForm.value.productName.length > 10) {
+      message.error('产品名称不能超过10个字符');
       return;
     }
     
@@ -777,7 +893,7 @@ const handleCreateConfirm = async () => {
       color: createForm.value.color,
       productDetails: createForm.value.productDetails,
       deviceModel: createForm.value.deviceModel,
-      ipName: createForm.value.ipName,
+      ipName: createForm.value.ipRoleName, // Map ipRoleName to ipName
       creator: '当前用户', // You might want to get this from user context
     });
     
@@ -798,7 +914,7 @@ const editForm = ref<Partial<DataItem>>({
   productType: '',
   color: '',
   productDetails: '',
-  ipName: ''
+  ipRoleName: ''
 });
 
 const closeEditModal = () => {
@@ -812,7 +928,7 @@ const closeEditModal = () => {
     productType: '',
     color: '',
     productDetails: '',
-    ipName: ''
+    ipRoleName: ''
   };
 };
 
@@ -823,8 +939,14 @@ const handleEditConfirm = async () => {
     // Validate required fields
     if (!editForm.value.deviceModel || !editForm.value.productModel || 
         !editForm.value.productName || !editForm.value.productType || 
-        !editForm.value.color || !editForm.value.productDetails || !editForm.value.ipName) {
+        !editForm.value.color || !editForm.value.productDetails || !editForm.value.ipRoleName) {
       message.error('请填写所有必填字段');
+      return;
+    }
+    
+    // Validate product name length
+    if (editForm.value.productName && editForm.value.productName.length > 10) {
+      message.error('产品名称不能超过10个字符');
       return;
     }
     
@@ -838,7 +960,7 @@ const handleEditConfirm = async () => {
         color: editForm.value.color,
         productDetails: editForm.value.productDetails,
         deviceModel: editForm.value.deviceModel,
-        ipName: editForm.value.ipName,
+        ipName: editForm.value.ipRoleName, // Map ipRoleName to ipName
       });
       
       message.success('产品更新成功');
