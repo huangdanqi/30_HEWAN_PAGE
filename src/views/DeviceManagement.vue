@@ -52,8 +52,10 @@
               <SearchOutlined />
             </template>
           </a-input>
-          <a-button type="primary" @click="showDeviceImportModal = true">设备导入</a-button>
+          <a-button type="primary" @click="handleDeviceImportClick">设备导入</a-button>
           <ReloadOutlined @click="onRefresh" />
+          <!-- <a-button type="default" @click="debugApiCall" style="margin-left: 8px;">调试API</a-button>
+          <a-button type="default" @click="healthCheck" style="margin-left: 8px;">健康检查</a-button> -->
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
             <template #overlay>
@@ -122,23 +124,6 @@
           <a class="danger-link" @click="handleDeleteRecord(record)">删除</a>
         </a-space>
       </template>
-      <template v-else-if="column.key === 'deviceModel_4'">
-        <a class="device-model-link">{{ record.deviceModel }}</a>
-      </template>
-      <template v-else-if="column.key === 'initialFirmware_7'">
-        <a class="firmware-link">{{ record.initialFirmware }}</a>
-      </template>
-      <template v-else-if="column.key === 'latestFirmware_8'">
-        <a class="firmware-link">{{ record.latestFirmware }}</a>
-      </template>
-      <template v-else-if="column.key === 'currentFirmwareVersion_9'">
-        <a class="firmware-link">{{ record.currentFirmwareVersion }}</a>
-      </template>
-      <template v-else-if="column.key === 'creator_18'">
-        <div class="creator-cell">
-          <a-avatar size="small" style="background-color: #1890ff;">33</a-avatar>
-        </div>
-      </template>
     </template>
       </a-table>
       
@@ -164,12 +149,12 @@
           </div>
           
           <div class="step-indicator">
-            <div class="step active">
-              <div class="step-number">1</div>
-              <span>首次选择</span>
+            <div class="step completed">
+              <div class="step-number">✓</div>
+              <span>批次选择</span>
             </div>
             <div class="step-line"></div>
-            <div class="step">
+            <div class="step active">
               <div class="step-number">2</div>
               <span>文件导入</span>
             </div>
@@ -177,24 +162,22 @@
 
           <div class="modal-body">
             <div class="form-group">
-              <label>导入方式:</label>
-              <div class="radio-group">
-                <label class="radio-item">
-                  <input type="radio" v-model="importMethod" value="excel" checked>
-                  <span>Excel导入</span>
-                </label>
-                <label class="radio-item">
-                  <input type="radio" v-model="importMethod" value="csv">
-                  <span>CSV导入</span>
-                </label>
-              </div>
+              <label class="required-field">设备型号: <span class="asterisk">*</span></label>
+              <select v-model="selectedDeviceModel" class="form-select" @change="handleImportDeviceModelChange">
+                <option value="">请选择设备型号</option>
+                <option v-for="model in deviceModelOptionsForForm" :key="model.value" :value="model.value">
+                  {{ model.label }}
+                </option>
+              </select>
             </div>
 
             <div class="form-group">
-              <label class="required-field">设备型号: <span class="asterisk">*</span></label>
-              <select v-model="selectedDeviceModel" class="form-select">
-                <option value="">请选择设备型号</option>
-                <option value="HW2001">HW2001</option>
+              <label class="required-field">生产批次: <span class="asterisk">*</span></label>
+              <select v-model="selectedProductionBatch" class="form-select" @change="handleImportProductionBatchChange">
+                <option value="">请选择生产批次</option>
+                <option v-for="batch in productionBatchOptionsForForm" :key="batch.value" :value="batch.value">
+                  {{ batch.label }}
+                </option>
               </select>
             </div>
 
@@ -202,8 +185,27 @@
               <label class="required-field">生产厂家: <span class="asterisk">*</span></label>
               <select v-model="selectedManufacturer" class="form-select">
                 <option value="">请选择生产厂家</option>
-                <option value="深圳天德胜科技有限公司">深圳天德胜科技有限公司</option>
+                <option v-for="manufacturer in manufacturerOptionsForForm" :key="manufacturer.value" :value="manufacturer.value">
+                  {{ manufacturer.label }}
+                </option>
               </select>
+            </div>
+
+            <div v-if="importMethod === 'csv'" class="form-group">
+              <label class="required-field">选择文件夹: <span class="asterisk">*</span></label>
+              <div class="folder-selector">
+                <input 
+                  type="text" 
+                  v-model="selectedFolderPath" 
+                  class="form-input folder-input" 
+                  placeholder="请选择包含CSV文件的文件夹"
+                  readonly
+                >
+                <button type="button" class="btn btn-secondary folder-btn" @click="selectFolder">
+                  选择文件夹
+                </button>
+              </div>
+              <div class="folder-hint">请选择包含CSV文件的文件夹，系统将自动识别并导入所有CSV文件</div>
             </div>
           </div>
 
@@ -223,7 +225,7 @@
           <div class="step-indicator">
             <div class="step completed">
               <div class="step-number">✓</div>
-              <span>首次选择</span>
+              <span>批量选择</span>
             </div>
             <div class="step-line"></div>
             <div class="step active">
@@ -236,9 +238,9 @@
             <div class="file-upload-section">
               <div class="file-upload-area" @click="triggerFileUpload" @drop="handleFileDrop" @dragover.prevent>
                 <input ref="fileInput" type="file" @change="handleFileSelect" accept=".xls,.xlsx,.csv" style="display: none;">
-                <div class="upload-icon">📦</div>
-                <div class="upload-text">点击或拖拽文件到此处上传</div>
-                <div class="upload-hint">支持.xls, .xlsx, .csv格式文件，文件大小不超过50MB，最多可导入10000条数据。</div>
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">点击或拖拽文件到此区域</div>
+                <div class="upload-hint">支持导入excel文件，文件大小不超过50M，支持文件格式：xls, xlsx.</div>
               </div>
               
               <div v-if="uploadedFileName" class="uploaded-file">
@@ -259,7 +261,7 @@
           <div class="modal-footer">
             <button class="btn btn-secondary" @click="closeDeviceImportModal">取消</button>
             <button class="btn btn-secondary" @click="prevStep">上一步</button>
-            <button class="btn btn-primary" @click="nextStep" :disabled="!selectedFile">开始导入</button>
+            <button class="btn btn-primary" @click="nextStep" :disabled="!selectedFile">导入</button>
           </div>
         </div>
 
@@ -273,7 +275,7 @@
           <div class="step-indicator">
             <div class="step completed">
               <div class="step-number">✓</div>
-              <span>首次选择</span>
+              <span>批次选择</span>
             </div>
             <div class="step-line"></div>
             <div class="step active">
@@ -300,13 +302,13 @@
         <!-- Success State -->
         <div v-if="importStep === 'success'" class="import-modal">
           <div class="modal-header">
-            <h3>导入成功</h3>
+            <h3>设备导入</h3>
             <button class="close-btn" @click="closeDeviceImportModal">×</button>
           </div>
 
           <div class="modal-body success">
             <div class="success-icon">✓</div>
-            <div class="success-text">已成功导入 {{ importedCount }} 条设备数据！</div>
+            <div class="success-text">已成功导入 {{ importedCount }} 条设备信息数据</div>
           </div>
 
           <div class="modal-footer">
@@ -317,14 +319,14 @@
         <!-- Failure State -->
         <div v-if="importStep === 'failure'" class="import-modal">
           <div class="modal-header">
-            <h3>导入失败</h3>
+            <h3>设备导入</h3>
             <button class="close-btn" @click="closeDeviceImportModal">×</button>
           </div>
 
           <div class="modal-body failure">
             <div class="failure-icon">✗</div>
             <div class="failure-text">{{ failureMessage }}</div>
-            <div v-if="failureMessage.includes('参照国际标准')" class="download-link">
+            <div class="download-link">
               <a href="#" class="error-download-link">下载错误文件</a>
             </div>
           </div>
@@ -349,31 +351,33 @@
             <div class="form-group">
               <label class="required-field"><span class="asterisk">*</span> 设备型号</label>
               <select v-model="editForm.deviceModel" class="form-select" @change="handleEditDeviceModelChange">
-                <option value="HWSZ001">HWSZ001</option>
-                <option value="HW2001">HW2001</option>
+                <option value="">请选择设备型号</option>
+                <option v-for="model in deviceModelOptionsForForm" :key="model.value" :value="model.value">
+                  {{ model.label }}
+                </option>
               </select>
             </div>
 
             <div class="form-group">
               <label class="required-field"><span class="asterisk">*</span> 生产批次</label>
-              <input 
-                type="date" 
-                v-model="editForm.productionBatch" 
-                class="form-input"
-                @change="handleEditProductionBatchChange"
-              >
+              <select v-model="editForm.productionBatch" class="form-select" @change="handleEditProductionBatchChange">
+                <option value="">请选择生产批次</option>
+                <option v-for="batch in productionBatchOptionsForEdit" :key="batch.value" :value="batch.value">
+                  {{ batch.label }}
+                </option>
+              </select>
             </div>
 
             <div class="form-group">
               <label class="required-field"><span class="asterisk">*</span> 生产厂家</label>
               <select v-model="editForm.manufacturer" class="form-select">
-                <option value="深圳天德胜技术有限公司">深圳天德胜技术有限公司</option>
-                <option value="深圳天德胜科技有限公司">深圳天德胜科技有限公司</option>
+                <option value="">请选择生产厂家</option>
+                <option v-for="manufacturer in manufacturerOptionsForEdit" :key="manufacturer.value" :value="manufacturer.value">
+                  {{ manufacturer.label }}
+                </option>
               </select>
             </div>
           </div>
-
-
         </div>
 
         <div class="modal-footer">
@@ -476,7 +480,7 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'creator_18', title: '创建人', dataIndex: 'creator', width: 100 },
   { key: 'createTime_19', title: '创建时间', dataIndex: 'createTime', width: 150, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime_20', title: '更新时间', dataIndex: 'updateTime', width: 150, sorter: (a, b) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation_21', title: '操作', dataIndex: '', width: 150, fixed: 'right' },
+  { key: 'operation_21', title: '操作', dataIndex: '', width: 200, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -504,7 +508,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
               style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
               class: 'hyperlink',
               onClick: () => handleBoundAccountClick(text)
-            }, text) : h('span', { class: 'no-data-notice' }, '暂无数据');
+            }, text) : h('span', { class: 'no-data-notice' }, '-');
           }
           if (config.key === 'deviceModel_4') {
             // 设备型号 - Jump to Device Model Page filtered by device model name
@@ -584,36 +588,109 @@ const fetchDeviceManagement = async () => {
     console.log('Fetching device management data...');
     
     const response = await axios.get(constructApiUrl('device-management'));
+    console.log('Raw API response:', response);
+    console.log('Response data:', response.data);
+    console.log('Response data type:', typeof response.data);
+    console.log('Response data is array:', Array.isArray(response.data));
     
     if (response.data && Array.isArray(response.data)) {
+      console.log('Processing array data with', response.data.length, 'items');
+      
       // Transform the data to match the DataItem interface
-      rawData.value = response.data.map((item: any, index: number) => ({
-        id: item.id,
-        key: index + 1,
-        deviceId: item.deviceId || item.device_id || '-',
-        boundSubAccount: item.boundSubAccount || item.bound_sub_account || '-',
-        deviceModel: item.deviceModel || item.device_model || '-',
-        productionBatch: item.productionBatch || item.production_batch || '-',
-        manufacturer: item.manufacturer || '-',
-        initialFirmware: item.initialFirmware || item.initial_firmware || '-',
-        latestFirmware: item.latestFirmware || item.latest_firmware || '-',
-        currentFirmwareVersion: item.currentFirmwareVersion || item.current_firmware_version || '-',
-        serialNumberCode: item.serialNumberCode || item.serial_number_code || '-',
-        chipId: item.chipId || item.chip_id || '-',
-        wifiMacAddress: item.wifiMacAddress || item.wifi_mac_address || '-',
-        bluetoothMacAddress: item.bluetoothMacAddress || item.bluetooth_mac_address || '-',
-        bluetoothName: item.bluetoothName || item.bluetooth_name || '-',
-        cellularNetworkId: item.cellularNetworkId || item.cellular_network_id || '-',
-        fourGCardNumber: item.fourGCardNumber || item.four_g_card_number || '-',
-        cpuSerialNumber: item.cpuSerialNumber || item.cpu_serial_number || '-',
-        creator: item.creator || '-',
-        createTime: item.createTime || item.create_time || '-',
-        updateTime: item.updateTime || item.update_time || '-'
-      }));
+      rawData.value = response.data.map((item: any, index: number) => {
+        console.log(`Processing item ${index}:`, item);
+        
+        const transformedItem = {
+          id: item.id || item.ID || item.Id || null,
+          key: index + 1,
+          deviceId: item.deviceId || item.device_id || item.deviceId || item.DEVICE_ID || item.DeviceId || item.deviceid || '-',
+          boundSubAccount: item.boundSubAccount || item.bound_sub_account || item.boundSubaccount || item.BOUND_SUB_ACCOUNT || item.BoundSubAccount || item.boundsubaccount || '-',
+          deviceModel: item.deviceModel || item.device_model || item.devicemodel || item.DEVICE_MODEL || item.DeviceModel || '-',
+          productionBatch: item.productionBatch || item.production_batch || item.productionbatch || item.PRODUCTION_BATCH || item.ProductionBatch || '-',
+          manufacturer: item.manufacturer || item.MANUFACTURER || item.Manufacturer || '-',
+          initialFirmware: item.initialFirmware || item.initial_firmware || item.initialfirmware || item.INITIAL_FIRMWARE || item.InitialFirmware || '-',
+          latestFirmware: item.latestFirmware || item.latest_firmware || item.latestfirmware || item.LATEST_FIRMWARE || item.LatestFirmware || '-',
+          currentFirmwareVersion: item.currentFirmwareVersion || item.current_firmware_version || item.currentfirmwareversion || item.CURRENT_FIRMWARE_VERSION || item.CurrentFirmwareVersion || '-',
+          serialNumberCode: item.serialNumberCode || item.serial_number_code || item.serialnumbercode || item.SERIAL_NUMBER_CODE || item.SerialNumberCode || '-',
+          chipId: item.chipId || item.chip_id || item.chipid || item.CHIP_ID || item.ChipId || '-',
+          wifiMacAddress: item.wifiMacAddress || item.wifi_mac_address || item.wifimacaddress || item.WIFI_MAC_ADDRESS || item.WifiMacAddress || '-',
+          bluetoothMacAddress: item.bluetoothMacAddress || item.bluetooth_mac_address || item.bluetoothmacaddress || item.BLUETOOTH_MAC_ADDRESS || item.BluetoothMacAddress || '-',
+          bluetoothName: item.bluetoothName || item.bluetooth_name || item.bluetoothname || item.BLUETOOTH_NAME || item.BluetoothName || '-',
+          cellularNetworkId: item.cellularNetworkId || item.cellular_network_id || item.cellularnetworkid || item.CELLULAR_NETWORK_ID || item.CellularNetworkId || '-',
+          fourGCardNumber: item.fourGCardNumber || item.four_g_card_number || item.fourgcardnumber || item.FOUR_G_CARD_NUMBER || item.FourGCardNumber || '-',
+          cpuSerialNumber: item.cpuSerialNumber || item.cpu_serial_number || item.cpuserialnumber || item.CPU_SERIAL_NUMBER || item.CpuSerialNumber || '-',
+          creator: item.creator || item.CREATOR || item.Creator || '-',
+          createTime: item.createTime || item.create_time || item.createtime || item.CREATE_TIME || item.CreateTime || '-',
+          updateTime: item.updateTime || item.update_time || item.updatetime || item.UPDATE_TIME || item.UpdateTime || '-'
+        };
+        
+        console.log(`Transformed item ${index}:`, transformedItem);
+        return transformedItem;
+      });
       
       console.log('Device management data loaded:', rawData.value.length, 'records');
+      console.log('Final transformed data:', rawData.value);
+    } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      // Handle case where API returns { data: [...], total: number } format
+      console.log('Processing nested data format with', response.data.data.length, 'items');
+      
+      rawData.value = response.data.data.map((item: any, index: number) => {
+        console.log(`Processing nested item ${index}:`, item);
+        
+        const transformedItem = {
+          id: item.id || item.ID || item.Id || null,
+          key: index + 1,
+          deviceId: item.deviceId || item.device_id || item.deviceId || item.DEVICE_ID || item.DeviceId || item.deviceid || '-',
+          boundSubAccount: item.boundSubAccount || item.bound_sub_account || item.boundSubaccount || item.BOUND_SUB_ACCOUNT || item.BoundSubAccount || item.boundsubaccount || '-',
+          deviceModel: item.deviceModel || item.device_model || item.devicemodel || item.DEVICE_MODEL || item.DeviceModel || '-',
+          productionBatch: item.productionBatch || item.production_batch || item.productionbatch || item.PRODUCTION_BATCH || item.ProductionBatch || '-',
+          manufacturer: item.manufacturer || item.MANUFACTURER || item.Manufacturer || '-',
+          initialFirmware: item.initialFirmware || item.initial_firmware || item.initialfirmware || item.INITIAL_FIRMWARE || item.InitialFirmware || '-',
+          latestFirmware: item.latestFirmware || item.latest_firmware || item.latestfirmware || item.LATEST_FIRMWARE || item.LatestFirmware || '-',
+          currentFirmwareVersion: item.currentFirmwareVersion || item.current_firmware_version || item.currentfirmwareversion || item.CURRENT_FIRMWARE_VERSION || item.CurrentFirmwareVersion || '-',
+          serialNumberCode: item.serialNumberCode || item.serial_number_code || item.serialnumbercode || item.SERIAL_NUMBER_CODE || item.SerialNumberCode || '-',
+          chipId: item.chipId || item.chip_id || item.chipid || item.CHIP_ID || item.ChipId || '-',
+          wifiMacAddress: item.wifiMacAddress || item.wifi_mac_address || item.wifimacaddress || item.WIFI_MAC_ADDRESS || item.WifiMacAddress || '-',
+          bluetoothMacAddress: item.bluetoothMacAddress || item.bluetooth_mac_address || item.bluetoothmacaddress || item.BLUETOOTH_MAC_ADDRESS || item.BluetoothMacAddress || '-',
+          bluetoothName: item.bluetoothName || item.bluetooth_name || item.bluetoothname || item.BLUETOOTH_NAME || item.BluetoothName || '-',
+          cellularNetworkId: item.cellularNetworkId || item.cellular_network_id || item.cellularnetworkid || item.CELLULAR_NETWORK_ID || item.CellularNetworkId || '-',
+          fourGCardNumber: item.fourGCardNumber || item.four_g_card_number || item.fourgcardnumber || item.FOUR_G_CARD_NUMBER || item.FourGCardNumber || '-',
+          cpuSerialNumber: item.cpuSerialNumber || item.cpu_serial_number || item.cpuserialnumber || item.CPU_SERIAL_NUMBER || item.CpuSerialNumber || '-',
+          creator: item.creator || item.CREATOR || item.Creator || '-',
+          createTime: item.createTime || item.create_time || item.createtime || item.CREATE_TIME || item.CreateTime || '-',
+          updateTime: item.updateTime || item.update_time || item.updatetime || item.UPDATE_TIME || item.UpdateTime || '-'
+        };
+        
+        console.log(`Transformed nested item ${index}:`, transformedItem);
+        return transformedItem;
+      });
+      
+      console.log('Device management data loaded from nested format:', rawData.value.length, 'records');
     } else {
       console.error('Invalid response format:', response.data);
+      console.log('Response structure:', JSON.stringify(response.data, null, 2));
+      
+      // Only fallback to static data if we have no data at all
+      if (!rawData.value || rawData.value.length === 0) {
+        console.log('No data available, using fallback data');
+        // Fallback to static data if API fails
+        const fallbackData: DataItem[] = [
+          { key: 1, deviceId: '0075A1B2SZTDS25061982X01', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X01', chipId: 'ESP32-0075A1B01', wifiMacAddress: 'DC:54:75:62:01:70', bluetoothMacAddress: 'DC:54:75:62:01:70', bluetoothName: 'ZBMU 001 250619X01', cellularNetworkId: '353801003000174', fourGCardNumber: '14776294300136', cpuSerialNumber: '0xFFFFFF6B', creator: '33', createTime: '2025-07-13 10:25:11', updateTime: '2025-07-13 10:25:11' },
+          { key: 2, deviceId: '0075A1B2SZTDS25061982X02', boundSubAccount: '-', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X02', chipId: 'ESP32-0075A1B02', wifiMacAddress: 'DC:54:75:62:02:70', bluetoothMacAddress: 'DC:54:75:62:02:70', bluetoothName: 'ZBMU 001 250619X02', cellularNetworkId: '353801003000274', fourGCardNumber: '14776294300236', cpuSerialNumber: '0xFFFFFF6A', creator: '33', createTime: '2025-07-14 11:25:12', updateTime: '2025-07-14 11:25:12' },
+          { key: 3, deviceId: '0075A1B2SZTDS25061982X03', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X03', chipId: 'ESP32-0075A1B03', wifiMacAddress: 'DC:54:75:62:03:70', bluetoothMacAddress: 'DC:54:75:62:03:70', bluetoothName: 'ZBMU 001 250619X03', cellularNetworkId: '353801003000374', fourGCardNumber: '14776294300336', cpuSerialNumber: '0xFFFFFF69', creator: '33', createTime: '2025-07-15 12:25:13', updateTime: '2025-07-15 12:25:13' },
+          { key: 4, deviceId: '0075A1B2SZTDS25061982X04', boundSubAccount: '-', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X04', chipId: 'ESP32-0075A1B04', wifiMacAddress: 'DC:54:75:62:04:70', bluetoothMacAddress: 'DC:54:75:62:04:70', bluetoothName: 'ZBMU 001 250619X04', cellularNetworkId: '353801003000474', fourGCardNumber: '14776294300436', cpuSerialNumber: '0xFFFFFF68', creator: '33', createTime: '2025-07-16 13:25:14', updateTime: '2025-07-16 13:25:14' },
+          { key: 5, deviceId: '0075A1B2SZTDS25061982X05', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X05', chipId: 'ESP32-0075A1B05', wifiMacAddress: 'DC:54:75:62:05:70', bluetoothMacAddress: 'DC:54:75:62:05:70', bluetoothName: 'ZBMU 001 250619X05', cellularNetworkId: '353801003000574', fourGCardNumber: '14776294300536', cpuSerialNumber: '0xFFFFFF67', creator: '33', createTime: '2025-07-17 14:25:15', updateTime: '2025-07-17 14:25:15' },
+        ];
+        rawData.value = fallbackData;
+      }
+    }
+  } catch (error: any) {
+    console.error('Error fetching device management:', error);
+    console.error('Error details:', error.response?.data || error.message);
+    
+    // Only fallback to static data if we have no data at all
+    if (!rawData.value || rawData.value.length === 0) {
+      console.log('No data available after error, using fallback data');
       // Fallback to static data if API fails
       const fallbackData: DataItem[] = [
         { key: 1, deviceId: '0075A1B2SZTDS25061982X01', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X01', chipId: 'ESP32-0075A1B01', wifiMacAddress: 'DC:54:75:62:01:70', bluetoothMacAddress: 'DC:54:75:62:01:70', bluetoothName: 'ZBMU 001 250619X01', cellularNetworkId: '353801003000174', fourGCardNumber: '14776294300136', cpuSerialNumber: '0xFFFFFF6B', creator: '33', createTime: '2025-07-13 10:25:11', updateTime: '2025-07-13 10:25:11' },
@@ -624,17 +701,6 @@ const fetchDeviceManagement = async () => {
       ];
       rawData.value = fallbackData;
     }
-  } catch (error) {
-    console.error('Error fetching device management:', error);
-    // Fallback to static data if API fails
-    const fallbackData: DataItem[] = [
-      { key: 1, deviceId: '0075A1B2SZTDS25061982X01', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X01', chipId: 'ESP32-0075A1B01', wifiMacAddress: 'DC:54:75:62:01:70', bluetoothMacAddress: 'DC:54:75:62:01:70', bluetoothName: 'ZBMU 001 250619X01', cellularNetworkId: '353801003000174', fourGCardNumber: '14776294300136', cpuSerialNumber: '0xFFFFFF6B', creator: '33', createTime: '2025-07-13 10:25:11', updateTime: '2025-07-13 10:25:11' },
-      { key: 2, deviceId: '0075A1B2SZTDS25061982X02', boundSubAccount: '-', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X02', chipId: 'ESP32-0075A1B02', wifiMacAddress: 'DC:54:75:62:02:70', bluetoothMacAddress: 'DC:54:75:62:02:70', bluetoothName: 'ZBMU 001 250619X02', cellularNetworkId: '353801003000274', fourGCardNumber: '14776294300236', cpuSerialNumber: '0xFFFFFF6A', creator: '33', createTime: '2025-07-14 11:25:12', updateTime: '2025-07-14 11:25:12' },
-      { key: 3, deviceId: '0075A1B2SZTDS25061982X03', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X03', chipId: 'ESP32-0075A1B03', wifiMacAddress: 'DC:54:75:62:03:70', bluetoothMacAddress: 'DC:54:75:62:03:70', bluetoothName: 'ZBMU 001 250619X03', cellularNetworkId: '353801003000374', fourGCardNumber: '14776294300336', cpuSerialNumber: '0xFFFFFF69', creator: '33', createTime: '2025-07-15 12:25:13', updateTime: '2025-07-15 12:25:13' },
-      { key: 4, deviceId: '0075A1B2SZTDS25061982X04', boundSubAccount: '-', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X04', chipId: 'ESP32-0075A1B04', wifiMacAddress: 'DC:54:75:62:04:70', bluetoothMacAddress: 'DC:54:75:62:04:70', bluetoothName: 'ZBMU 001 250619X04', cellularNetworkId: '353801003000474', fourGCardNumber: '14776294300436', cpuSerialNumber: '0xFFFFFF68', creator: '33', createTime: '2025-07-16 13:25:14', updateTime: '2025-07-16 13:25:14' },
-      { key: 5, deviceId: '0075A1B2SZTDS25061982X05', boundSubAccount: '183****7953', deviceModel: 'HW2001', productionBatch: '2025-06-30', manufacturer: '深圳天德胜科技有限公司', initialFirmware: 'HW2001 V 1.0.1', latestFirmware: 'HW2001 V 2.0.1', currentFirmwareVersion: 'HW2001 V 1.3.0', serialNumberCode: 'SZTDS25061982X05', chipId: 'ESP32-0075A1B05', wifiMacAddress: 'DC:54:75:62:05:70', bluetoothMacAddress: 'DC:54:75:62:05:70', bluetoothName: 'ZBMU 001 250619X05', cellularNetworkId: '353801003000574', fourGCardNumber: '14776294300536', cpuSerialNumber: '0xFFFFFF67', creator: '33', createTime: '2025-07-17 14:25:15', updateTime: '2025-07-17 14:25:15' },
-    ];
-    rawData.value = fallbackData;
   } finally {
     loading.value = false;
   }
@@ -645,7 +711,7 @@ const createDeviceManagement = async (deviceManagementData: Omit<DataItem, 'key'
     const response = await axios.post('http://121.43.196.106:2829/api/device-management', deviceManagementData);
     await fetchDeviceManagement(); // Refresh data
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating device management:', error);
     throw error;
   }
@@ -656,7 +722,7 @@ const updateDeviceManagement = async (id: number, deviceManagementData: Partial<
     const response = await axios.put(`http://121.43.196.106:2829/api/device-management/${id}`, deviceManagementData);
     await fetchDeviceManagement(); // Refresh data
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating device management:', error);
     throw error;
   }
@@ -666,7 +732,7 @@ const deleteDeviceManagement = async (id: number) => {
   try {
     await axios.delete(constructApiUrl(`device-management/${id}`));
     await fetchDeviceManagement(); // Refresh data
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting device management:', error);
     throw error;
   }
@@ -758,6 +824,65 @@ const onRefresh = () => {
   fetchDeviceManagement(); // Fetch fresh data from API
 };
 
+const debugApiCall = async () => {
+  console.log('=== DEBUG API CALL ===');
+  console.log('Current API base URL:', import.meta.env.VITE_API_BASE_URL);
+  console.log('Constructed API URL:', constructApiUrl('device-management'));
+  
+  try {
+    const response = await axios.get(constructApiUrl('device-management'));
+    console.log('=== API RESPONSE ===');
+    console.log('Full response:', response);
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    console.log('Response data:', response.data);
+    console.log('Response data type:', typeof response.data);
+    console.log('Response data is array:', Array.isArray(response.data));
+    
+    if (response.data && typeof response.data === 'object') {
+      console.log('Response data keys:', Object.keys(response.data));
+      if (response.data.data) {
+        console.log('Nested data keys:', Object.keys(response.data.data));
+        console.log('Nested data is array:', Array.isArray(response.data.data));
+        if (Array.isArray(response.data.data)) {
+          console.log('First item in nested data:', response.data.data[0]);
+        }
+      }
+    }
+    
+    // Try to parse as JSON if it's a string
+    if (typeof response.data === 'string') {
+      try {
+        const parsed = JSON.parse(response.data);
+        console.log('Parsed JSON data:', parsed);
+      } catch (e) {
+        console.log('Could not parse as JSON:', e);
+      }
+    }
+    
+  } catch (error: any) {
+    console.error('=== API ERROR ===');
+    console.error('Error:', error);
+    console.error('Error response:', error.response);
+    console.error('Error message:', error.message);
+  }
+  
+  console.log('=== END DEBUG ===');
+};
+
+const healthCheck = async () => {
+  console.log('=== HEALTH CHECK ===');
+  try {
+    const response = await axios.get(constructApiUrl('health'));
+    console.log('Health check response:', response);
+    alert(`服务器健康状态: ${response.status === 200 ? '正常' : '异常'}`);
+  } catch (error: any) {
+    console.error('Health check failed:', error);
+    alert(`服务器连接失败: ${error.message}`);
+  }
+  console.log('=== END HEALTH CHECK ===');
+};
+
 const filteredData = computed(() => {
   let dataToFilter = rawData.value;
 
@@ -820,6 +945,8 @@ onMounted(() => {
     searchInputValue.value = router.currentRoute.value.query.search as string;
   }
   fetchDeviceManagement(); // Fetch data on component mount
+  fetchDeviceModels(); // Fetch device models from DeviceProduction API
+  fetchManufacturers(); // Fetch manufacturers from DeviceProduction API
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
 });
 
@@ -917,33 +1044,161 @@ const showDeviceImportModal = ref(false);
 // Device Import Modal Logic
 const importStep = ref<'1' | '2' | 'processing' | 'success' | 'failure'>('1');
 const importMethod = ref('excel');
-const selectedDeviceModel = ref('HW2001'); // Set default value
+const selectedDeviceModel = ref(''); // Set default value to empty
+const selectedProductionBatch = ref(''); // Add production batch
 const selectedManufacturer = ref('深圳天德胜科技有限公司'); // Set default value
 const selectedFile = ref<File | null>(null);
+const selectedFolderPath = ref(''); // Add folder path
 const progressPercent = ref(0);
 const importedCount = ref(0);
 const failureMessage = ref('');
 const fileInput = ref<HTMLInputElement>();
 const uploadedFileName = ref('');
 
+// Device model options for the import form
+const deviceModelsFromAPI = ref<any[]>([]);
+
+// Manufacturer options for the import form
+const manufacturersFromAPI = ref<any[]>([]);
+
+// Computed property for device model options in the import form
+const deviceModelOptionsForForm = computed(() => {
+  // Use API data if available, otherwise fall back to existing data
+  if (deviceModelsFromAPI.value.length > 0) {
+    // Extract unique device models from the API data
+    const uniqueDeviceModels = Array.from(new Set(deviceModelsFromAPI.value.map((item: any) => item.deviceModel)));
+    return uniqueDeviceModels.map(model => ({
+      key: model,
+      value: model,
+      label: model,
+    }));
+  }
+  
+  // Fallback to existing data
+  const uniqueDeviceModels = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
+  return uniqueDeviceModels.map(model => ({
+    key: model,
+    value: model,
+    label: model,
+  }));
+});
+
+// Computed property for manufacturer options in the import form
+const manufacturerOptionsForForm = computed(() => {
+  // Need both device model and production batch to be selected
+  if (!selectedDeviceModel.value || !selectedProductionBatch.value) {
+    return [];
+  }
+  
+  // Use API data if available for the selected device model and production batch
+  if (deviceModelsFromAPI.value.length > 0) {
+    // Filter manufacturers based on selected device model AND production batch
+    const manufacturers = deviceModelsFromAPI.value
+      .filter(item => 
+        item.deviceModel === selectedDeviceModel.value && 
+        item.productionBatch === selectedProductionBatch.value
+      )
+      .map(item => item.manufacturer)
+      .filter((value, index, self) => self.indexOf(value) === index && value); // Remove duplicates and empty values
+    
+    return manufacturers.map(manufacturer => ({
+      key: manufacturer,
+      value: manufacturer,
+      label: manufacturer,
+    }));
+  }
+  
+  return [];
+});
+
+// Computed property for production batch options in the import form
+const productionBatchOptionsForForm = computed(() => {
+  if (!selectedDeviceModel.value) {
+    return [];
+  }
+  
+  // Use API data if available for the selected device model
+  if (deviceModelsFromAPI.value.length > 0) {
+    // Filter production batches based on selected device model
+    const batches = deviceModelsFromAPI.value
+      .filter(item => item.deviceModel === selectedDeviceModel.value)
+      .map(item => item.productionBatch)
+      .filter((value, index, self) => self.indexOf(value) === index && value); // Remove duplicates and empty values
+    
+    return batches.map(batch => ({
+      key: batch,
+      value: batch,
+      label: batch,
+    }));
+  }
+  
+  return [];
+});
+
+// Function to fetch device models from DeviceProduction API
+const fetchDeviceModels = async () => {
+  try {
+    const response = await axios.get(constructApiUrl('device-production'));
+    if (response.data && response.data.data) {
+      // Store the full response data to access production batches
+      deviceModelsFromAPI.value = response.data.data;
+      console.log('Device production data fetched from API:', deviceModelsFromAPI.value);
+    }
+  } catch (error) {
+    console.error('Error fetching device models:', error);
+    deviceModelsFromAPI.value = [];
+  }
+};
+
+// Function to fetch manufacturers from DeviceProduction API
+const fetchManufacturers = async () => {
+  try {
+    const response = await axios.get(constructApiUrl('device-production'));
+    if (response.data && response.data.data) {
+      // Extract unique manufacturers from the response
+      const uniqueManufacturers = Array.from(new Set(response.data.data.map((item: any) => item.manufacturer)));
+      manufacturersFromAPI.value = uniqueManufacturers.map(manufacturer => ({
+        key: manufacturer,
+        value: manufacturer,
+        label: manufacturer,
+      }));
+      console.log('Manufacturers fetched from API:', manufacturersFromAPI.value);
+    }
+  } catch (error) {
+    console.error('Error fetching manufacturers:', error);
+    manufacturersFromAPI.value = [];
+  }
+};
+
 const canProceedToStep2 = computed(() => {
-  // In Step 1, we only need device model and manufacturer to be selected
-  // File upload happens in Step 2
-  const canProceed = selectedDeviceModel.value && selectedManufacturer.value;
+  // In Step 1, we need device model, production batch, and manufacturer to be selected
+  let canProceed = selectedDeviceModel.value && selectedProductionBatch.value && selectedManufacturer.value;
+  
   console.log('Can proceed to step 2:', canProceed, {
     deviceModel: selectedDeviceModel.value,
+    productionBatch: selectedProductionBatch.value,
     manufacturer: selectedManufacturer.value
   });
   return canProceed;
 });
+
+const selectFolder = () => {
+  // In a real application, this would open a folder picker
+  // For now, we'll simulate folder selection
+  const mockFolderPath = 'C:\\Users\\Documents\\DeviceData';
+  selectedFolderPath.value = mockFolderPath;
+  console.log('Selected folder:', mockFolderPath);
+};
 
 const closeDeviceImportModal = () => {
   showDeviceImportModal.value = false;
   // Reset all values
   importStep.value = '1';
   importMethod.value = 'excel';
-  selectedDeviceModel.value = '';
-  selectedManufacturer.value = '';
+  selectedDeviceModel.value = ''; // Reset to empty
+  selectedProductionBatch.value = ''; // Reset production batch
+  selectedManufacturer.value = ''; // Reset manufacturer
+  selectedFolderPath.value = '';
   selectedFile.value = null;
   progressPercent.value = 0;
   importedCount.value = 0;
@@ -957,17 +1212,53 @@ const triggerFileUpload = () => {
 
 const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
+  console.log('File selection event:', event);
+  console.log('Target files:', target.files);
+  
   if (target.files && target.files[0]) {
-    selectedFile.value = target.files[0];
-    uploadedFileName.value = target.files[0].name;
+    const file = target.files[0];
+    console.log('Selected file details:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: new Date(file.lastModified)
+    });
+    
+    selectedFile.value = file;
+    uploadedFileName.value = file.name;
+    
+    console.log('File selected successfully:', {
+      selectedFile: selectedFile.value,
+      uploadedFileName: uploadedFileName.value
+    });
+  } else {
+    console.log('No file selected');
   }
 };
 
 const handleFileDrop = (event: DragEvent) => {
   event.preventDefault();
+  console.log('File drop event:', event);
+  console.log('Data transfer files:', event.dataTransfer?.files);
+  
   if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
-    selectedFile.value = event.dataTransfer.files[0];
-    uploadedFileName.value = event.dataTransfer.files[0].name;
+    const file = event.dataTransfer.files[0];
+    console.log('Dropped file details:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: new Date(file.lastModified)
+    });
+    
+    selectedFile.value = file;
+    uploadedFileName.value = file.name;
+    
+    console.log('File dropped successfully:', {
+      selectedFile: selectedFile.value,
+      uploadedFileName: uploadedFileName.value
+    });
+  } else {
+    console.log('No file dropped');
   }
 };
 
@@ -977,39 +1268,210 @@ const deleteUploadedFile = () => {
 };
 
 const nextStep = async () => {
+  console.log('nextStep called, current step:', importStep.value);
+  console.log('Form values:', {
+    deviceModel: selectedDeviceModel.value,
+    productionBatch: selectedProductionBatch.value,
+    manufacturer: selectedManufacturer.value,
+    selectedFile: selectedFile.value
+  });
+  
   if (importStep.value === '1') {
+    console.log('Moving from step 1 to step 2');
     // Move to step 2 (file upload)
     importStep.value = '2';
   } else if (importStep.value === '2') {
+    console.log('Starting import process from step 2');
+    
+    // Validate that we have all required data
+    if (!selectedDeviceModel.value) {
+      console.error('Device model is required');
+      alert('请选择设备型号');
+      return;
+    }
+    if (!selectedProductionBatch.value) {
+      console.error('Production batch is required');
+      alert('请选择生产批次');
+      return;
+    }
+    if (!selectedManufacturer.value) {
+      console.error('Manufacturer is required');
+      alert('请选择生产厂家');
+      return;
+    }
+    if (!selectedFile.value) {
+      console.error('File is required');
+      alert('请选择要导入的文件');
+      return;
+    }
+    
+    console.log('All validations passed, starting processing...');
+    
     // Start processing
     importStep.value = 'processing';
     progressPercent.value = 0;
     
-    // Simulate processing
+    try {
+      console.log('Calling processSingleFile...');
+      await processSingleFile();
+    } catch (error: any) {
+      console.error('Import processing error:', error);
+      importStep.value = 'failure';
+      failureMessage.value = `文件处理失败: ${error.message}`;
+    }
+  }
+};
+
+const processSingleFile = async () => {
+  try {
+    console.log('Starting file processing...');
+    console.log('Selected file:', selectedFile.value);
+    console.log('File name:', selectedFile.value?.name);
+    console.log('File size:', selectedFile.value?.size);
+    console.log('File type:', selectedFile.value?.type);
+    
+    if (!selectedFile.value) {
+      throw new Error('No file selected');
+    }
+    
+    // Check file type
+    const fileName = selectedFile.value.name.toLowerCase();
+    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+      throw new Error('Invalid file format. Please upload an Excel file (.xlsx or .xls)');
+    }
+    
+    // Check file size (50MB limit)
+    if (selectedFile.value.size > 50 * 1024 * 1024) {
+      throw new Error('File size exceeds 50MB limit');
+    }
+    
+    // Simulate file reading and processing
+    console.log('File validation passed, starting processing...');
+    
     const interval = setInterval(() => {
       progressPercent.value += Math.random() * 20;
       if (progressPercent.value >= 100) {
         progressPercent.value = 100;
         clearInterval(interval);
         
-        // Simulate success or failure
-        setTimeout(() => {
-          const success = Math.random() > 0.3; // 70% success rate
-          if (success) {
-            importStep.value = 'success';
-            importedCount.value = Math.floor(Math.random() * 100) + 50; // 50-150 records
-          } else {
+        // Simulate file parsing and validation
+        setTimeout(async () => {
+          try {
+            // Simulate reading Excel file content
+            const mockRowCount = Math.floor(Math.random() * 100) + 50; // 50-150 records
+            console.log(`Simulated reading ${mockRowCount} rows from Excel file`);
+            
+            // Simulate data validation
+            const validationErrors = [];
+            
+            // Check if required fields are present in the form
+            if (!selectedDeviceModel.value) {
+              validationErrors.push('设备型号 is required');
+            }
+            if (!selectedProductionBatch.value) {
+              validationErrors.push('生产批次 is required');
+            }
+            if (!selectedManufacturer.value) {
+              validationErrors.push('生产厂家 is required');
+            }
+            
+            // Simulate Excel data validation
+            if (Math.random() < 0.2) { // 20% chance of validation error
+              validationErrors.push('Excel file contains invalid data format');
+            }
+            if (Math.random() < 0.15) { // 15% chance of duplicate ID error
+              validationErrors.push('Excel file contains duplicate device IDs');
+            }
+            
+            if (validationErrors.length > 0) {
+              // Validation failed
+              importStep.value = 'failure';
+              failureMessage.value = `数据验证失败:\n${validationErrors.join('\n')}`;
+              console.error('Validation errors:', validationErrors);
+              
+              // Auto-close after 2 seconds
+              setTimeout(() => {
+                closeDeviceImportModal();
+              }, 2000);
+            } else {
+              // Validation passed - import successful
+              importStep.value = 'success';
+              importedCount.value = mockRowCount;
+              
+              console.log('Import successful, adding new rows to table...');
+              
+              // Add new rows from file to the table
+              addNewRowsFromFile(mockRowCount);
+              
+              // Auto-close after 2 seconds and refresh list
+              setTimeout(() => {
+                closeDeviceImportModal();
+                // Refresh the device list
+                fetchDeviceManagement();
+              }, 2000);
+            }
+          } catch (error: any) {
+            console.error('Error during file processing:', error);
             importStep.value = 'failure';
-            const errorTypes = [
-              '发现 15 条重复数据，导入失败！',
-              '导入失败，请参照国际标准检查数据是否正确，请确保必填项不为空，以及数据格式；且导入数据中不得存在重复的设备ID。'
-            ];
-            failureMessage.value = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+            failureMessage.value = `文件处理过程中发生错误: ${error.message}`;
+            
+            // Auto-close after 2 seconds
+            setTimeout(() => {
+              closeDeviceImportModal();
+            }, 2000);
           }
         }, 1000);
       }
     }, 200);
+    
+  } catch (error: any) {
+    console.error('File processing error:', error);
+    importStep.value = 'failure';
+    failureMessage.value = error.message || '文件处理失败，请检查文件格式是否正确';
+    
+    // Auto-close after 2 seconds
+    setTimeout(() => {
+      closeDeviceImportModal();
+    }, 2000);
   }
+};
+
+const addNewRowsFromFile = (rowCount: number) => {
+  // Generate new device data based on file import
+  const newRows: DataItem[] = [];
+  const baseDeviceId = '0075A1B2SZTDS25061982X';
+  const baseTime = new Date();
+  
+  for (let i = 0; i < rowCount; i++) {
+    const newId = `${baseDeviceId}${String(i + 200).padStart(2, '0')}`;
+    const newRow: DataItem = {
+      key: rawData.value.length + i + 1,
+      deviceId: newId,
+      boundSubAccount: '-',
+      deviceModel: selectedDeviceModel.value,
+      productionBatch: selectedProductionBatch.value,
+      manufacturer: selectedManufacturer.value,
+      initialFirmware: `${selectedDeviceModel.value} V 1.0.1`,
+      latestFirmware: `${selectedDeviceModel.value} V 2.0.1`,
+      currentFirmwareVersion: `${selectedDeviceModel.value} V 1.3.0`,
+      serialNumberCode: `SZTDS25061982X${String(i + 200).padStart(2, '0')}`,
+      chipId: `ESP32-${newId}`,
+      wifiMacAddress: `DC:54:75:62:${String(i + 200).padStart(2, '0')}:70`,
+      bluetoothMacAddress: `DC:54:75:62:${String(i + 200).padStart(2, '0')}:70`,
+      bluetoothName: `ZBMU 001 250619X${String(i + 200).padStart(2, '0')}`,
+      cellularNetworkId: `353801003000${String(i + 200).padStart(3, '0')}`,
+      fourGCardNumber: `147762943${String(i + 200).padStart(3, '0')}36`,
+      cpuSerialNumber: `0xFFFFFF${String(200 - i).padStart(2, '0')}`,
+      creator: '33',
+      createTime: new Date(baseTime.getTime() + i * 60000).toLocaleString('zh-CN'),
+      updateTime: new Date(baseTime.getTime() + i * 60000).toLocaleString('zh-CN')
+    };
+    newRows.push(newRow);
+  }
+  
+  // Add new rows to the existing data
+  rawData.value = [...rawData.value, ...newRows];
+  console.log(`Added ${rowCount} new rows from file import`);
 };
 
 const prevStep = () => {
@@ -1031,8 +1493,11 @@ const originalEditData = ref({
   manufacturer: ''
 });
 
-const openEditModal = (record: DataItem) => {
+const openEditModal = async (record: DataItem) => {
   console.log('Opening edit modal with record:', record);
+  
+  // Fetch fresh device production data when modal opens
+  await fetchDeviceModels();
   
   // Pre-fill form with record data
   editForm.value = {
@@ -1047,6 +1512,7 @@ const openEditModal = (record: DataItem) => {
   };
   
   console.log('Form pre-filled with:', editForm.value);
+  console.log('Original data stored as:', originalEditData.value);
   showEditModal.value = true;
 };
 
@@ -1065,24 +1531,34 @@ const closeEditModal = () => {
 };
 
 const handleEditDeviceModelChange = () => {
-  // When device model changes, clear production batch and manufacturer
+  // When device model changes, clear production batch and manufacturer (same logic as import form)
   if (editForm.value.deviceModel !== originalEditData.value.deviceModel) {
     editForm.value.productionBatch = '';
     editForm.value.manufacturer = '';
+    console.log('Device model changed, cleared production batch and manufacturer');
   }
 };
 
 const handleEditProductionBatchChange = () => {
-  // When production batch changes, clear manufacturer
+  // When production batch changes, clear manufacturer (same logic as import form)
   if (editForm.value.productionBatch !== originalEditData.value.productionBatch) {
     editForm.value.manufacturer = '';
+    console.log('Production batch changed, cleared manufacturer');
   }
 };
 
 const handleEditConfirm = async () => {
   // Validate form
-  if (!editForm.value.deviceModel || !editForm.value.productionBatch || !editForm.value.manufacturer) {
-    alert('请填写所有必填字段');
+  if (!editForm.value.deviceModel) {
+    alert('请选择设备型号');
+    return;
+  }
+  if (!editForm.value.productionBatch) {
+    alert('请选择生产批次');
+    return;
+  }
+  if (!editForm.value.manufacturer) {
+    alert('请选择生产厂家');
     return;
   }
   
@@ -1191,8 +1667,98 @@ const handleCurrentFirmwareClick = (record: DataItem) => {
   }
 };
 
-onMounted(() => {
-  selectedColumnKeys.value = columnConfigs.map(config => config.key);
+const handleDeviceImportClick = async () => {
+  showDeviceImportModal.value = true;
+  // Fetch fresh device models and manufacturers when the modal opens
+  await Promise.all([
+    fetchDeviceModels(),
+    fetchManufacturers()
+  ]);
+};
+
+// Handler for device model change in import form
+const handleImportDeviceModelChange = () => {
+  // Clear production batch and manufacturer when device model changes
+  selectedProductionBatch.value = '';
+  selectedManufacturer.value = '';
+};
+
+// Handler for production batch change in import form
+const handleImportProductionBatchChange = () => {
+  // Clear manufacturer when production batch changes
+  selectedManufacturer.value = '';
+};
+
+// Computed properties for edit form options
+const deviceModelOptionsForEdit = computed(() => {
+  // Use API data if available, otherwise fall back to existing data
+  if (deviceModelsFromAPI.value.length > 0) {
+    // Extract unique device models from the API data
+    const uniqueDeviceModels = Array.from(new Set(deviceModelsFromAPI.value.map((item: any) => item.deviceModel)));
+    return uniqueDeviceModels.map(model => ({
+      key: model,
+      value: model,
+      label: model,
+    }));
+  }
+  
+  // Fallback to existing data
+  const uniqueDeviceModels = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
+  return uniqueDeviceModels.map(model => ({
+    key: model,
+    value: model,
+    label: model,
+  }));
+});
+
+const productionBatchOptionsForEdit = computed(() => {
+  if (!editForm.value.deviceModel) {
+    return [];
+  }
+  
+  // Use API data if available for the selected device model
+  if (deviceModelsFromAPI.value.length > 0) {
+    // Filter production batches based on selected device model
+    const batches = deviceModelsFromAPI.value
+      .filter(item => item.deviceModel === editForm.value.deviceModel)
+      .map(item => item.productionBatch)
+      .filter((value, index, self) => self.indexOf(value) === index && value); // Remove duplicates and empty values
+    
+    return batches.map(batch => ({
+      key: batch,
+      value: batch,
+      label: batch,
+    }));
+  }
+  
+  return [];
+});
+
+const manufacturerOptionsForEdit = computed(() => {
+  // Need both device model and production batch to be selected
+  if (!editForm.value.deviceModel || !editForm.value.productionBatch) {
+    return [];
+  }
+  
+  // Use API data if available for the selected device model and production batch
+  if (deviceModelsFromAPI.value.length > 0) {
+    // Filter manufacturers based on selected device model AND production batch
+    const manufacturers = deviceModelsFromAPI.value
+      .filter(item => 
+        item.deviceModel === editForm.value.deviceModel && 
+        item.productionBatch === editForm.value.productionBatch
+      )
+      .map(item => item.manufacturer)
+      .filter((value, index, self) => self.indexOf(value) === index && value); // Remove duplicates and empty values
+    
+    return manufacturers.map(manufacturer => ({
+      key: manufacturer,
+      value: manufacturer,
+      label: manufacturer,
+    }));
+  }
+  
+  return [];
 });
 </script>
 <style scoped>
@@ -1993,5 +2559,30 @@ html, body {
   color: rgba(0, 0, 0, 0.45);
   font-size: 14px;
   font-style: italic;
+}
+
+/* Folder selector styles */
+.folder-selector {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.folder-input {
+  flex: 1;
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.folder-btn {
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.folder-hint {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: 4px;
+  line-height: 1.4;
 }
 </style> 

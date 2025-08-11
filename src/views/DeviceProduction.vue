@@ -166,12 +166,24 @@
         </a-form-item>
 
         <a-form-item label="生产批次" name="productionBatch" required>
-          <a-date-picker 
+          <!-- Production Batch Select Dropdown -->
+          <a-select 
             v-model:value="createBatchForm.productionBatch" 
-            placeholder="请选择"
+            placeholder="请选择生产批次"
+            :disabled="!createBatchForm.deviceModel"
             style="width: 100%"
-            format="YYYY-MM-DD"
-          />
+            id="production-batch-select"
+            data-field-type="select"
+            allowClear
+          >
+            <a-select-option 
+              v-for="batch in productionBatchOptionsForForm" 
+              :key="batch.value" 
+              :value="batch.value"
+            >
+              {{ batch.label }}
+            </a-select-option>
+          </a-select>
         </a-form-item>
 
         <a-form-item label="生产厂家" name="manufacturer" required>
@@ -241,36 +253,41 @@
         <div class="modal-body">
           <div class="form-group">
             <label>设备型号</label>
-            <select v-model="editBatchForm.deviceModel" class="form-input">
-              <option value="HWSZ001">HWSZ001</option>
-              <option value="HWZ001">HWZ001</option>
-              <option value="HWZ002">HWZ002</option>
-              <option value="HWZ003">HWZ003</option>
-              <option value="HWZ004">HWZ004</option>
+            <select v-model="editBatchForm.deviceModel" class="form-input" @change="handleEditDeviceModelChange">
+              <option value="">请选择设备型号</option>
+              <option v-for="model in deviceModelOptionsForEdit" :key="model.value" :value="model.value">
+                {{ model.label }}
+              </option>
             </select>
           </div>
 
           <div class="form-group">
             <label>生产批次</label>
-            <input type="date" v-model="editBatchForm.productionBatch" class="form-input" />
+            <select v-model="editBatchForm.productionBatch" class="form-input" @change="handleEditProductionBatchChange">
+              <option value="">请选择生产批次</option>
+              <option v-for="batch in productionBatchOptionsForEdit" :key="batch.value" :value="batch.value">
+                {{ batch.label }}
+              </option>
+            </select>
           </div>
 
           <div class="form-group">
             <label>生产厂家</label>
-            <input type="text" v-model="editBatchForm.manufacturer" class="form-input" placeholder="请输入" />
+            <select v-model="editBatchForm.manufacturer" class="form-input" @change="handleEditManufacturerChange">
+              <option value="">请选择生产厂家</option>
+              <option v-for="manufacturer in manufacturerOptionsForEdit" :key="manufacturer.value" :value="manufacturer.value">
+                {{ manufacturer.label }}
+              </option>
+            </select>
           </div>
 
           <div class="form-group">
             <label>烧录固件</label>
             <select v-model="editBatchForm.burnFirmware" class="form-input">
-              <option value="Z001 V 1.0.0">Z001 V 1.0.0</option>
-              <option value="Z001 V 1.1.0">Z001 V 1.1.0</option>
-              <option value="Z001 V 1.2.0">Z001 V 1.2.0</option>
-              <option value="Z001 V 2.0.0">Z001 V 2.0.0</option>
-              <option value="2001 V 1.0.0">2001 V 1.0.0</option>
-              <option value="2001 V 1.1.0">2001 V 1.1.0</option>
-              <option value="2001 V 1.2.0">2001 V 1.2.0</option>
-              <option value="2001 V 2.0.0">2001 V 2.0.0</option>
+              <option value="">请选择烧录固件</option>
+              <option v-for="firmware in firmwareOptionsForEdit" :key="firmware.value" :value="firmware.value">
+                {{ firmware.label }}
+              </option>
             </select>
           </div>
 
@@ -359,7 +376,7 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, nextTick, h } from 'vue';
+import { ref, computed, onMounted, nextTick, h, watch } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
@@ -792,11 +809,11 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 const showCreateBatchModal = ref(false);
 const createBatchForm = ref({
   deviceModel: '',
-  productionBatch: null,
+  productionBatch: '' as string | null,
   manufacturer: '',
   burnFirmware: '',
-  unitPrice: null,
-  quantity: null
+  unitPrice: null as number | null,
+  quantity: null as number | null
 });
 
 // Reactive references for form options
@@ -819,6 +836,50 @@ const deviceModelOptionsForForm = computed(() => {
   }));
 });
 
+// Computed property for device model options in the edit form
+const deviceModelOptionsForEdit = computed(() => {
+  // Use API data if available, otherwise fall back to existing data
+  if (deviceModelsFromAPI.value.length > 0) {
+    return deviceModelsFromAPI.value;
+  }
+  
+  // Fallback to existing data
+  const uniqueDeviceModels = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
+  return uniqueDeviceModels.map(model => ({
+    key: model,
+    value: model,
+    label: model,
+  }));
+});
+
+// Computed property for firmware options in the edit form
+const firmwareOptionsForEdit = computed(() => {
+  if (!editBatchForm.value.deviceModel || !editBatchForm.value.manufacturer) {
+    return [];
+  }
+  
+  // Use API data if available for the selected device model
+  if (firmwareVersionsFromAPI.value.length > 0) {
+    return firmwareVersionsFromAPI.value;
+  }
+  
+  // Fallback to existing data - filter by device model and manufacturer
+  const firmwareVersions = rawData.value
+    .filter(item => 
+      item.deviceModel === editBatchForm.value.deviceModel && 
+      item.manufacturer === editBatchForm.value.manufacturer
+    )
+    .map(item => item.firmwareVersion)
+    .filter((value, index, self) => self.indexOf(value) === index && value); // Remove duplicates and empty values
+    
+  return firmwareVersions.map(version => ({
+    key: version,
+    value: version,
+    label: version,
+  }));
+});
+
+// Computed property for firmware options in the create form
 const firmwareOptionsForForm = computed(() => {
   if (!createBatchForm.value.deviceModel) {
     return [];
@@ -840,6 +901,61 @@ const firmwareOptionsForForm = computed(() => {
     value: version,
     label: version,
   }));
+});
+
+// Computed property for production batch options in the edit form
+const productionBatchOptionsForEdit = computed(() => {
+  if (!editBatchForm.value.deviceModel) {
+    return [];
+  }
+  
+  // Use API data if available for the selected device model
+  if (rawData.value.length > 0) {
+    const batches = rawData.value
+      .filter(item => item.deviceModel === editBatchForm.value.deviceModel)
+      .map(item => item.productionBatch)
+      .filter((value, index, self) => self.indexOf(value) === index && value); // Remove duplicates and empty values
+    
+    return batches.map(batch => ({
+      key: batch,
+      value: batch,
+      label: batch,
+    }));
+  }
+  
+  // Fallback to existing data
+  const uniqueBatches = Array.from(new Set(rawData.value.map(item => item.productionBatch)));
+  return uniqueBatches.map(batch => ({
+    key: batch,
+    value: batch,
+    label: batch,
+  }));
+});
+
+// Computed property for manufacturer options in the edit form
+const manufacturerOptionsForEdit = computed(() => {
+  if (!editBatchForm.value.deviceModel || !editBatchForm.value.productionBatch) {
+    return [];
+  }
+  
+  // Get manufacturers for the selected device model and production batch
+  if (rawData.value.length > 0) {
+    const manufacturers = rawData.value
+      .filter(item => 
+        item.deviceModel === editBatchForm.value.deviceModel && 
+        item.productionBatch === editBatchForm.value.productionBatch
+      )
+      .map(item => item.manufacturer)
+      .filter((value, index, self) => self.indexOf(value) === index && value); // Remove duplicates and empty values
+    
+    return manufacturers.map(manufacturer => ({
+      key: manufacturer,
+      value: manufacturer,
+      label: manufacturer,
+    }));
+  }
+  
+  return [];
 });
 
 // Function to fetch device models from API
@@ -897,6 +1013,47 @@ const handleDeviceModelChangeInForm = async (value: string) => {
   }
 };
 
+// Handler for device model change in edit form
+const handleEditDeviceModelChange = async (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  const value = target.value;
+  editBatchForm.value.deviceModel = value;
+  // Clear firmware selection and production batch when device model changes
+  editBatchForm.value.burnFirmware = '';
+  editBatchForm.value.productionBatch = '';
+  
+  // Fetch firmware versions for the selected device model
+  if (value) {
+    try {
+      const firmwareVersions = await fetchFirmwareVersions(value);
+      firmwareVersionsFromAPI.value = firmwareVersions;
+    } catch (error) {
+      console.error('Error fetching firmware versions for edit:', error);
+      firmwareVersionsFromAPI.value = [];
+    }
+  } else {
+    firmwareVersionsFromAPI.value = [];
+  }
+};
+
+// Handler for production batch change in edit form
+const handleEditProductionBatchChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  const value = target.value;
+  editBatchForm.value.productionBatch = value;
+  // Clear manufacturer when production batch changes
+  editBatchForm.value.manufacturer = '';
+};
+
+// Handler for manufacturer change in edit form
+const handleEditManufacturerChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  const value = target.value;
+  editBatchForm.value.manufacturer = value;
+  // Clear firmware when manufacturer changes
+  editBatchForm.value.burnFirmware = '';
+};
+
 const handleManufacturerBlur = () => {
   // This function can be used to save manufacturer as an option for future selection
   // For now, it's just a placeholder
@@ -912,8 +1069,11 @@ const handleCreateDevice = async () => {
   try {
     const deviceModels = await fetchDeviceModels();
     deviceModelsFromAPI.value = deviceModels;
+    
+    // Also ensure we have the latest table data for production batch options
+    await fetchDeviceProduction();
   } catch (error) {
-    console.error('Error fetching device models:', error);
+    console.error('Error fetching data for create modal:', error);
     deviceModelsFromAPI.value = [];
   }
 };
@@ -936,11 +1096,11 @@ const handleCreateBatchModalCancel = () => {
   // Reset form data
   createBatchForm.value = {
     deviceModel: '',
-    productionBatch: null,
+    productionBatch: '' as string | null,
     manufacturer: '',
     burnFirmware: '',
-    unitPrice: null,
-    quantity: null
+    unitPrice: null as number | null,
+    quantity: null as number | null
   };
 };
 
@@ -948,35 +1108,18 @@ const handleCreateBatchModalConfirm = async () => {
   try {
     await createBatchFormRef.value?.validate();
     
-    // Format the date properly
-    let formattedDate: string | null = null;
+    // Since productionBatch is now a select dropdown, it will always be a string
     const productionBatch = createBatchForm.value.productionBatch;
     
-    if (productionBatch) {
-      if (typeof productionBatch === 'object' && productionBatch !== null) {
-        // Handle dayjs object or Date object
-        if ('format' in productionBatch && typeof productionBatch.format === 'function') {
-          // Handle dayjs object
-          formattedDate = productionBatch.format('YYYY-MM-DD');
-        } else if ('toISOString' in productionBatch && typeof productionBatch.toISOString === 'function') {
-          // Handle Date object
-          formattedDate = productionBatch.toISOString().split('T')[0];
-        }
-      } else if (typeof productionBatch === 'string') {
-        // Handle string date
-        formattedDate = productionBatch;
-      }
-    }
-    
-    if (!formattedDate) {
-      message.error('请选择有效的生产批次日期');
+    if (!productionBatch) {
+      message.error('请选择生产批次');
       return;
     }
     
     // Check for unique constraint: device model + production batch + manufacturer
     const existingRecord = rawData.value.find(item => 
       item.deviceModel === createBatchForm.value.deviceModel &&
-      item.productionBatch === formattedDate &&
+      item.productionBatch === productionBatch &&
       item.manufacturer === createBatchForm.value.manufacturer
     );
     
@@ -991,7 +1134,7 @@ const handleCreateBatchModalConfirm = async () => {
     const formData = {
       productionDeviceId: 'hjhwrn632q2f', // Default value or generate dynamically
       deviceModel: createBatchForm.value.deviceModel,
-      productionBatch: formattedDate,
+      productionBatch: productionBatch,
       manufacturer: createBatchForm.value.manufacturer,
       firmwareVersion: createBatchForm.value.burnFirmware, // Map burnFirmware to firmwareVersion
       burnFirmware: createBatchForm.value.burnFirmware,
@@ -1010,11 +1153,11 @@ const handleCreateBatchModalConfirm = async () => {
     // Reset form data
     createBatchForm.value = {
       deviceModel: '',
-      productionBatch: null,
+      productionBatch: '' as string | null,
       manufacturer: '',
       burnFirmware: '',
-      unitPrice: null,
-      quantity: null
+      unitPrice: null as number | null,
+      quantity: null as number | null
     };
     
     // Refresh the data
@@ -1076,6 +1219,9 @@ const handleEditBatchModalCancel = () => {
     unitPrice: 0,
     quantity: 0
   };
+  // Reset API data
+  deviceModelsFromAPI.value = [];
+  firmwareVersionsFromAPI.value = [];
   console.log('Modal closed, form reset');
 };
 
@@ -1105,6 +1251,26 @@ const handleEditBatch = async (record: DataItem) => {
   };
   
   console.log('Form pre-filled:', editBatchForm.value);
+  
+  // Fetch fresh device models when the edit modal opens
+  try {
+    const deviceModels = await fetchDeviceModels();
+    deviceModelsFromAPI.value = deviceModels;
+    
+    // Also fetch firmware versions for the selected device model
+    if (editBatchForm.value.deviceModel) {
+      const firmwareVersions = await fetchFirmwareVersions(editBatchForm.value.deviceModel);
+      firmwareVersionsFromAPI.value = firmwareVersions;
+    }
+    
+    // Fetch production batches for the selected device model from the current table data
+    // This will populate the productionBatchOptionsForEdit computed property
+    await fetchDeviceProduction();
+  } catch (error) {
+    console.error('Error fetching data for edit:', error);
+    deviceModelsFromAPI.value = [];
+    firmwareVersionsFromAPI.value = [];
+  }
   
   // Open the modal
   showEditBatchModal.value = true;
@@ -1188,18 +1354,15 @@ const handleUploadBom = (record: DataItem) => {
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
   fetchDeviceProduction(); // Fetch data on component mount
+  
+  // Handle search parameter from URL
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+  }
 });
 
 defineExpose({
   handleTableChange, // Explicitly expose handleTableChange
-});
-
-// Handle search parameter from URL
-onMounted(() => {
-  if (route.query.search) {
-    searchInputValue.value = route.query.search as string;
-  }
-  fetchDeviceProduction(); // Fetch data on component mount
 });
 
 // Handle delete record
@@ -1212,6 +1375,65 @@ const handleDeleteRecord = async (record: DataItem) => {
     console.error('Error deleting record:', error);
   }
 };
+
+// Computed property for production batch options in the create form
+const productionBatchOptionsForForm = computed(() => {
+  console.log('=== Computing productionBatchOptionsForForm ===');
+  console.log('Device Model:', createBatchForm.value.deviceModel);
+  console.log('Raw Data Length:', rawData.value.length);
+  console.log('Raw Data:', rawData.value);
+  console.log('Device Models from API:', deviceModelsFromAPI.value);
+  
+  if (!createBatchForm.value.deviceModel) {
+    console.log('❌ No device model selected, returning empty array');
+    return [];
+  }
+  
+  // Get production batches for the selected device model
+  if (rawData.value.length > 0) {
+    const filteredData = rawData.value.filter(item => item.deviceModel === createBatchForm.value.deviceModel);
+    console.log('Filtered data for device model:', filteredData);
+    
+    const batches = filteredData
+      .map(item => item.productionBatch)
+      .filter((value, index, self) => self.indexOf(value) === index && value); // Remove duplicates and empty values
+    
+    console.log('✅ Found batches for device model:', batches);
+    
+    const options = batches.map(batch => ({
+      key: batch,
+      value: batch,
+      label: batch,
+    }));
+    
+    console.log('✅ Returning options:', options);
+    return options;
+  }
+  
+  console.log('❌ No raw data available, returning empty array');
+  return [];
+});
+
+// Watch for changes in production batch options
+watch(productionBatchOptionsForForm, (newOptions) => {
+  console.log('Production batch options changed:', newOptions);
+}, { immediate: true });
+
+// Watch for modal opening to ensure data is fetched
+watch(showCreateBatchModal, (isOpen) => {
+  if (isOpen) {
+    console.log('Create modal opened, current state:', {
+      deviceModelsFromAPI: deviceModelsFromAPI.value.length,
+      rawDataLength: rawData.value.length,
+      createBatchForm: createBatchForm.value
+    });
+  }
+});
+
+// Watch for changes in createBatchForm to debug
+watch(createBatchForm, (newForm) => {
+  console.log('CreateBatchForm changed:', newForm);
+}, { deep: true });
 </script>
 <style scoped>
 #components-table-demo-summary tfoot th,

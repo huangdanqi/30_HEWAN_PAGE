@@ -463,7 +463,7 @@ const fetchFilterOptions = async () => {
     
     // Update the computed options
     ipRoleOptions.value = [
-      { key: 'all', value: 'all', label: '全部' },
+    { key: 'all', value: 'all', label: '全部' },
       ...ipRoles.map((item: any) => ({ key: item.value, value: item.value, label: item.label }))
     ];
     
@@ -682,13 +682,31 @@ const handleSearchChange = () => {
     clearTimeout(searchTimeout.value);
   }
   searchTimeout.value = setTimeout(() => {
-    currentPage.value = 1;
+  currentPage.value = 1;
     fetchData();
   }, 500);
 };
 
+// Watch for route changes to update search input
+watch(() => router.currentRoute.value.query.search, (newSearchValue) => {
+  if (newSearchValue && newSearchValue !== searchInputValue.value) {
+    searchInputValue.value = newSearchValue as string;
+    currentPage.value = 1;
+    fetchData();
+  }
+});
+
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  
+  // Check for search query parameter from URL
+  if (router.currentRoute.value.query.search) {
+    searchInputValue.value = router.currentRoute.value.query.search as string;
+    // Trigger search with the URL parameter
+    currentPage.value = 1;
+    fetchData();
+  }
+  
   fetchFilterOptions();
   fetchData();
 });
