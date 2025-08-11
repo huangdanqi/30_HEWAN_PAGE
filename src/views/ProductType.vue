@@ -135,7 +135,8 @@
             <a class="link-text" @click="handleDeviceModelClick(record)">{{ record.deviceModel }}</a>
           </template>
           <template v-if="column.key === 'ipName'">
-            <span>{{ record.ipName }}</span>
+            <span>{{ record.ipName || 'No IP Name' }}</span>
+            <small style="color: #999; display: block;">Debug: {{ JSON.stringify(record) }}</small>
           </template>
           <template v-if="column.key === 'creator'">
             <div class="creator-cell">
