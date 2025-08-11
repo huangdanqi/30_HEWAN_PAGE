@@ -135,13 +135,7 @@
             <a class="link-text" @click="handleDeviceModelClick(record)">{{ record.deviceModel }}</a>
           </template>
           <template v-if="column.key === 'ipName'">
-            <div>
-              <span>{{ record.ipName }}</span>
-              <br>
-              <small style="color: #999; font-size: 10px;">
-                Raw: {{ record.ipName }} | Type: {{ typeof record.ipName }}
-              </small>
-            </div>
+            <span>{{ record.ipName }}</span>
           </template>
           <template v-if="column.key === 'creator'">
             <div class="creator-cell">
@@ -425,35 +419,23 @@ const fetchProductTypes = async () => {
     loading.value = true;
     const response = await axios.get(constructApiUrl('product-type'));
     
-    console.log('Raw API response:', response);
-    console.log('Raw data from API:', response.data);
-    
     // Transform the data to ensure all required fields are present
-    rawData.value = response.data.map((item: any, index: number) => {
-      const transformedItem = {
-        id: item.id || item.ID || index + 1,
-        key: index + 1, // Ensure key is always a number
-        productId: item.productId || item.product_id || item.productId || '',
-        productModel: item.productModel || item.product_model || item.productModel || '',
-        productName: item.productName || item.product_name || item.productName || '',
-        productType: item.productType || item.product_type || item.productType || '',
-        color: item.color || item.Color || '',
-        productDetails: item.productDetails || item.product_details || item.productDetails || '',
-        deviceModel: item.deviceModel || item.device_model || item.deviceModel || '',
-        ipName: item.ipName || item.ip_name || item.ipName || '',
-        creator: item.creator || item.Creator || item.creator || '未知',
-        createTime: item.createTime || item.create_time || item.CreateTime || '',
-        updateTime: item.updateTime || item.update_time || item.UpdateTime || ''
-      };
-      
-      console.log(`Item ${index}:`, item);
-      console.log(`Transformed item ${index}:`, transformedItem);
-      console.log(`IP Name for item ${index}:`, transformedItem.ipName);
-      
-      return transformedItem;
-    });
+    rawData.value = response.data.map((item: any, index: number) => ({
+      id: item.id || item.ID || index + 1,
+      key: index + 1, // Ensure key is always a number
+      productId: item.productId || item.product_id || item.productId || '',
+      productModel: item.productModel || item.product_model || item.productModel || '',
+      productName: item.productName || item.product_name || item.productName || '',
+      productType: item.productType || item.product_type || item.productType || '',
+      color: item.color || item.Color || '',
+      productDetails: item.productDetails || item.product_details || item.productDetails || '',
+      deviceModel: item.deviceModel || item.device_model || item.deviceModel || '',
+      ipName: item.ipName || item.ip_name || item.ipName || '',
+      creator: item.creator || item.Creator || item.creator || '未知',
+      createTime: item.createTime || item.create_time || item.CreateTime || '',
+      updateTime: item.updateTime || item.update_time || item.UpdateTime || ''
+    }));
     
-    console.log('Final transformed data:', rawData.value);
   } catch (error) {
     console.error('Error fetching product types:', error);
     // Show error message to user instead of falling back to static data
