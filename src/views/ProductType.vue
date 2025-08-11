@@ -702,7 +702,7 @@ const handleDelete = async (record: DataItem) => {
 const handleDeviceModelClick = (record: DataItem) => {
   console.log('Device model clicked:', record.deviceModel);
   router.push({
-    path: '/devicetype',
+    path: '/device-type',
     query: {
       search: record.deviceModel,
     },
