@@ -1,0 +1,5 @@
+[33me3d2cca[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Fix hyperlink bugs in DeviceManagement.vue: remove underlines, add proper notices, fix navigation
+[33m8eb8ccd[m Add hyperlinks to DeviceManagement.vue columns based on requirements
+[33m72b7192[m Add debugging for playback issues
+[33mfd3e01e[m Add debugging for audio playback issues
+[33m0d1ffb4[m Update all Vue files to use hardcoded API URLs for create and edit functions

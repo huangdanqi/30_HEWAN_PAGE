@@ -1,0 +1,155 @@
+[1mdiff --git a/src/views/ProductType.vue b/src/views/ProductType.vue[m
+[1mindex b03a64b..2d6ec08 100644[m
+[1m--- a/src/views/ProductType.vue[m
+[1m+++ b/src/views/ProductType.vue[m
+[36m@@ -135,7 +135,7 @@[m
+             <a class="link-text" @click="handleDeviceModelClick(record)">{{ record.deviceModel }}</a>[m
+           </template>[m
+           <template v-if="column.key === 'ipName'">[m
+[31m-            <a class="link-text" @click="handleIpNameClick(record)">查看</a>[m
+[32m+[m[32m            <span>{{ record.ipName }}</span>[m
+           </template>[m
+           <template v-if="column.key === 'creator'">[m
+             <div class="creator-cell">[m
+[36m@@ -304,7 +304,7 @@[m [mimport {[m
+ } from '../utils/tableConfig';[m
+ import { constructApiUrl } from '../utils/api';[m
+ import axios from 'axios';[m
+[31m-import { message } from 'ant-design-vue';[m
+[32m+[m[32mimport { message, Modal } from 'ant-design-vue';[m
+ [m
+ const router = useRouter();[m
+ [m
+[36m@@ -421,20 +421,22 @@[m [mconst fetchProductTypes = async () => {[m
+     [m
+     // Transform the data to ensure all required fields are present[m
+     rawData.value = response.data.map((item: any, index: number) => ({[m
+[31m-      id: item.id,[m
+[32m+[m[32m      id: item.id || item.ID || index + 1,[m
+       key: index + 1, // Ensure key is always a number[m
+[31m-      productId: item.productId || item.product_id || '',[m
+[31m-      productModel: item.productModel || item.product_model || '',[m
+[31m-      productName: item.productName || item.product_name || '',[m
+[31m-      productType: item.productType || item.product_type || '',[m
+[31m-      color: item.color || '',[m
+[31m-      productDetails: item.productDetails || item.product_details || '',[m
+[31m-      deviceModel: item.deviceModel || item.device_model || '',[m
+[31m-      ipName: item.ipName || item.ip_name || '',[m
+[31m-      creator: item.creator || '',[m
+[31m-      createTime: item.createTime || item.create_time || '',[m
+[31m-      updateTime: item.updateTime || item.update_time || ''[m
+[32m+[m[32m      productId: item.productId || item.product_id || item.productId || '',[m
+[32m+[m[32m      productModel: item.productModel || item.product_model || item.productModel || '',[m
+[32m+[m[32m      productName: item.productName || item.product_name || item.productName || '',[m
+[32m+[m[32m      productType: item.productType || item.product_type || item.productType || '',[m
+[32m+[m[32m      color: item.color || item.Color || '',[m
+[32m+[m[32m      productDetails: item.productDetails || item.product_details || item.productDetails || '',[m
+[32m+[m[32m      deviceModel: item.deviceModel || item.device_model || item.deviceModel || '',[m
+[32m+[m[32m      ipName: item.ipName || item.ip_name || item.ipName || '',[m
+[32m+[m[32m      creator: item.creator || item.Creator || item.creator || '未知',[m
+[32m+[m[32m      createTime: item.createTime || item.create_time || item.CreateTime || '',[m
+[32m+[m[32m      updateTime: item.updateTime || item.update_time || item.UpdateTime || ''[m
+     }));[m
+[32m+[m[41m    [m
+[32m+[m[32m    console.log('Fetched product types:', rawData.value);[m
+   } catch (error) {[m
+     console.error('Error fetching product types:', error);[m
+     // Show error message to user instead of falling back to static data[m
+[36m@@ -447,7 +449,7 @@[m [mconst fetchProductTypes = async () => {[m
+ [m
+ const createProductType = async (productTypeData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {[m
+   try {[m
+[31m-    const response = await axios.post('http://121.43.196.106:2829/api/product-type', productTypeData);[m
+[32m+[m[32m    const response = await axios.post(constructApiUrl('product-type'), productTypeData);[m
+     await fetchProductTypes(); // Refresh data[m
+     return response.data;[m
+   } catch (error) {[m
+[36m@@ -458,7 +460,7 @@[m [mconst createProductType = async (productTypeData: Omit<DataItem, 'key' | 'id' |[m
+ [m
+ const updateProductType = async (id: number, productTypeData: Partial<DataItem>) => {[m
+   try {[m
+[31m-    const response = await axios.put(`http://121.43.196.106:2829/api/product-type/${id}`, productTypeData);[m
+[32m+[m[32m    const response = await axios.put(constructApiUrl(`product-type/${id}`), productTypeData);[m
+     await fetchProductTypes(); // Refresh data[m
+     return response.data;[m
+   } catch (error) {[m
+[36m@@ -677,18 +679,31 @@[m [mconst handleEdit = (record: DataItem) => {[m
+   showEditModal.value = true;[m
+ };[m
+ [m
+[31m-const handleDelete = (record: DataItem) => {[m
+[31m-  console.log('Delete:', record);[m
+[32m+[m[32mconst handleDelete = async (record: DataItem) => {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    // Show confirmation dialog using Modal.confirm[m
+[32m+[m[32m    Modal.confirm({[m
+[32m+[m[32m      title: '确认删除',[m
+[32m+[m[32m      content: `确定要删除产品 "${record.productName}" 吗？此操作不可撤销。`,[m
+[32m+[m[32m      okText: '确定',[m
+[32m+[m[32m      cancelText: '取消',[m
+[32m+[m[32m      onOk: async () => {[m
+[32m+[m[32m        if (record.id) {[m
+[32m+[m[32m          await deleteProductType(record.id);[m
+[32m+[m[32m          message.success('产品删除成功');[m
+[32m+[m[32m        }[m
+[32m+[m[32m      },[m
+[32m+[m[32m    });[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    console.error('Error deleting product:', error);[m
+[32m+[m[32m    message.error('删除产品失败，请重试');[m
+[32m+[m[32m  }[m
+ };[m
+ [m
+ const handleDeviceModelClick = (record: DataItem) => {[m
+   console.log('Device model clicked:', record.deviceModel);[m
+ };[m
+ [m
+[31m-const handleIpNameClick = (record: DataItem) => {[m
+[31m-  console.log('IP name clicked:', record.ipName);[m
+[31m-};[m
+[31m-[m
+ // Handle delete record[m
+ const handleDeleteRecord = async (record: DataItem) => {[m
+   try {[m
+[36m@@ -726,10 +741,37 @@[m [mconst closeCreateModal = () => {[m
+   };[m
+ };[m
+ [m
+[31m-const handleCreateConfirm = () => {[m
+[31m-  console.log('Create product form submitted:', createForm.value);[m
+[31m-  // Here you would typically send the data to your API[m
+[31m-  closeCreateModal();[m
+[32m+[m[32mconst handleCreateConfirm = async () => {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    console.log('Create product form submitted:', createForm.value);[m
+[32m+[m[41m    [m
+[32m+[m[32m    // Validate required fields[m
+[32m+[m[32m    if (!createForm.value.deviceModel || !createForm.value.productModel ||[m[41m [m
+[32m+[m[32m        !createForm.value.productName || !createForm.value.productType ||[m[41m [m
+[32m+[m[32m        !createForm.value.color || !createForm.value.productDetails || !createForm.value.ipName) {[m
+[32m+[m[32m      message.error('请填写所有必填字段');[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    // Call API to create product[m
+[32m+[m[32m    await createProductType({[m
+[32m+[m[32m      productId: createForm.value.productModel, // Use productModel as productId[m
+[32m+[m[32m      productModel: createForm.value.productModel,[m
+[32m+[m[32m      productName: createForm.value.productName,[m
+[32m+[m[32m      productType: createForm.value.productType,[m
+[32m+[m[32m      color: createForm.value.color,[m
+[32m+[m[32m      productDetails: createForm.value.productDetails,[m
+[32m+[m[32m      deviceModel: createForm.value.deviceModel,[m
+[32m+[m[32m      ipName: createForm.value.ipName,[m
+[32m+[m[32m      creator: '当前用户', // You might want to get this from user context[m
+[32m+[m[32m    });[m
+[32m+[m[41m    [m
+[32m+[m[32m    message.success('产品创建成功');[m
+[32m+[m[32m    closeCreateModal();[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    console.error('Error creating product:', error);[m
+[32m+[m[32m    message.error('创建产品失败，请重试');[m
+[32m+[m[32m  }[m
+ };[m
+ [m
+ const showEditModal = ref(false);
