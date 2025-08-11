@@ -1,5 +1,10 @@
 <template>
   <a-config-provider :locale="customLocale" :theme="{ algorithm: theme.defaultAlgorithm }">
+    <!-- Test message to see if component is rendering -->
+    <div style="background: red; color: white; padding: 10px; margin: 10px;">
+      🚨 ProductType Component is Loading! If you see this, the component is working.
+    </div>
+    
     <!-- Title -->
     <div class="title-container">
       <h2>产品型号</h2>
