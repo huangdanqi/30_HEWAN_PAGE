@@ -23,19 +23,17 @@ router.get('/', async (req, res) => {
     const transformedRows = rows.map(row => ({
       id: row.id,
       key: row.id, // Add key for table
-      productId: row.product_id,
+      productionBatchId: row.production_batch_id,
+      productModel: row.product_model,
       productName: row.product_name,
-      productionBatch: row.production_batch,
+      productionBatchDate: row.production_batch_date,
       manufacturer: row.manufacturer,
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
-      totalPrice: parseFloat(row.total_price).toLocaleString('zh-CN'),
-      creator: row.creator,
+      totalPrice: parseFloat(row.total_price),
+      updaterId: row.updater_id,
       createTime: row.create_time,
-      updateTime: row.update_time,
-      deviceModel: row.device_model,
-      productType: row.product_type,
-      ipName: row.ip_name
+      updateTime: row.update_time
     }));
     
     res.json({
@@ -67,19 +65,17 @@ router.get('/:id', async (req, res) => {
     // Transform snake_case to camelCase for frontend
     const transformedRow = {
       id: row.id,
-      productId: row.product_id,
+      productionBatchId: row.production_batch_id,
+      productModel: row.product_model,
       productName: row.product_name,
-      productionBatch: row.production_batch,
+      productionBatchDate: row.production_batch_date,
       manufacturer: row.manufacturer,
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
-      totalPrice: parseFloat(row.total_price).toLocaleString('zh-CN'),
-      creator: row.creator,
+      totalPrice: parseFloat(row.total_price),
+      updaterId: row.updater_id,
       createTime: row.create_time,
-      updateTime: row.update_time,
-      deviceModel: row.device_model,
-      productType: row.product_type,
-      ipName: row.ip_name
+      updateTime: row.update_time
     };
     
     res.json(transformedRow);
@@ -93,26 +89,24 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const {
-      product_id,
+      production_batch_id,
+      product_model,
       product_name,
-      production_batch,
+      production_batch_date,
       manufacturer,
       unit_price,
       quantity,
-      creator,
-      device_model,
-      product_type,
-      ip_name
+      updater_id
     } = req.body;
 
     // Validate required fields
-    if (!product_id || !product_name || !production_batch || !manufacturer || !unit_price || !quantity) {
-      return res.status(400).json({ error: 'Product ID, product name, production batch, manufacturer, unit price, and quantity are required' });
+    if (!production_batch_id || !product_model || !product_name || !production_batch_date || !manufacturer || !unit_price || !quantity) {
+      return res.status(400).json({ error: 'Production batch ID, product model, product name, production batch date, manufacturer, unit price, and quantity are required' });
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO toy_production (product_id, product_name, production_batch, manufacturer, unit_price, quantity, creator, device_model, product_type, ip_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [product_id, product_name, production_batch, manufacturer, unit_price, quantity, creator, device_model, product_type, ip_name]
+      'INSERT INTO toy_production (production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id]
     );
 
     res.status(201).json({
@@ -129,26 +123,24 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const {
-      product_id,
+      production_batch_id,
+      product_model,
       product_name,
-      production_batch,
+      production_batch_date,
       manufacturer,
       unit_price,
       quantity,
-      creator,
-      device_model,
-      product_type,
-      ip_name
+      updater_id
     } = req.body;
 
     // Validate required fields
-    if (!product_id || !product_name || !production_batch || !manufacturer || !unit_price || !quantity) {
-      return res.status(400).json({ error: 'Product ID, product name, production batch, manufacturer, unit price, and quantity are required' });
+    if (!production_batch_id || !product_model || !product_name || !production_batch_date || !manufacturer || !unit_price || !quantity) {
+      return res.status(400).json({ error: 'Production batch ID, product model, product name, production batch date, manufacturer, unit price, and quantity are required' });
     }
 
     const [result] = await pool.execute(
-      'UPDATE toy_production SET product_id = ?, product_name = ?, production_batch = ?, manufacturer = ?, unit_price = ?, quantity = ?, creator = ?, device_model = ?, product_type = ?, ip_name = ? WHERE id = ?',
-      [product_id, product_name, production_batch, manufacturer, unit_price, quantity, creator, device_model, product_type, ip_name, req.params.id]
+      'UPDATE toy_production SET production_batch_id = ?, product_model = ?, product_name = ?, production_batch_date = ?, manufacturer = ?, unit_price = ?, quantity = ?, updater_id = ? WHERE id = ?',
+      [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id, req.params.id]
     );
 
     if (result.affectedRows === 0) {
@@ -184,28 +176,27 @@ router.delete('/:id', async (req, res) => {
 // Get toy production by product name
 router.get('/product/:productName', async (req, res) => {
   try {
+    const productName = req.params.productName;
     const [rows] = await pool.execute(
       'SELECT * FROM toy_production WHERE product_name LIKE ? ORDER BY create_time DESC',
-      [`%${req.params.productName}%`]
+      [`%${productName}%`]
     );
-    
+
     const transformedRows = rows.map(row => ({
       id: row.id,
-      productId: row.product_id,
+      productionBatchId: row.production_batch_id,
+      productModel: row.product_model,
       productName: row.product_name,
-      productionBatch: row.production_batch,
+      productionBatchDate: row.production_batch_date,
       manufacturer: row.manufacturer,
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
-      totalPrice: parseFloat(row.total_price).toLocaleString('zh-CN'),
-      creator: row.creator,
+      totalPrice: parseFloat(row.total_price),
+      updaterId: row.updater_id,
       createTime: row.create_time,
-      updateTime: row.update_time,
-      deviceModel: row.device_model,
-      productType: row.product_type,
-      ipName: row.ip_name
+      updateTime: row.update_time
     }));
-    
+
     res.json(transformedRows);
   } catch (error) {
     console.error('Error fetching toy production by product name:', error);
@@ -223,19 +214,17 @@ router.get('/manufacturer/:manufacturer', async (req, res) => {
     
     const transformedRows = rows.map(row => ({
       id: row.id,
-      productId: row.product_id,
+      productionBatchId: row.production_batch_id,
+      productModel: row.product_model,
       productName: row.product_name,
-      productionBatch: row.production_batch,
+      productionBatchDate: row.production_batch_date,
       manufacturer: row.manufacturer,
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
-      totalPrice: parseFloat(row.total_price).toLocaleString('zh-CN'),
-      creator: row.creator,
+      totalPrice: parseFloat(row.total_price),
+      updaterId: row.updater_id,
       createTime: row.create_time,
-      updateTime: row.update_time,
-      deviceModel: row.device_model,
-      productType: row.product_type,
-      ipName: row.ip_name
+      updateTime: row.update_time
     }));
     
     res.json(transformedRows);

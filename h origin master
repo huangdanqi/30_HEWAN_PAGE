@@ -3,3 +3,8 @@
 [33m72b7192[m Add debugging for playback issues
 [33mfd3e01e[m Add debugging for audio playback issues
 [33m0d1ffb4[m Update all Vue files to use hardcoded API URLs for create and edit functions
+[33m7bd5274[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m Update ProductType.vue and toy-production.js routes
+[33mcf12b8a[m Add basic table test to ProductType.vue - step 2 of debugging
+[33m9bf8276[m Simplify ProductType.vue to isolate compilation issue - minimal component for debugging
+[33m429780a[m Add test message to debug blank page issue
+[33m491fb03[m Update 新建产品 form to match requirements: auto-generated product model, validation, suggestions, and IP role name
