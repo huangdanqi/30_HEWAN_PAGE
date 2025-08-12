@@ -32,7 +32,6 @@ import deviceManagementRoutes from './routes/deviceManagement.js';
 import productTypeRoutes from './routes/productType.js';
 import productListRoutes from './routes/productList.js';
 import toyProductionRoutes from './routes/toyProduction.js';
-import toyProductionHyphenRoutes from './routes/toy_production_hyphen.js';
 
 dotenv.config();
 
@@ -73,7 +72,6 @@ app.use('/api/device-management', deviceManagementRoutes);
 app.use('/api/product-type', productTypeRoutes);
 app.use('/api/product-list', productListRoutes);
 app.use('/api/toy-production', toyProductionRoutes);
-app.use('/api/toy-production-hyphen', toyProductionHyphenRoutes);
 
 // Error handling middleware for multer errors
 app.use((error, req, res, next) => {
@@ -131,5 +129,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  - Product Type: http://localhost:${PORT}/api/product-type`);
   console.log(`  - Product List: http://localhost:${PORT}/api/product-list`);
   console.log(`  - Toy Production: http://localhost:${PORT}/api/toy-production`);
-  console.log(`  - Toy Production (Hyphen): http://localhost:${PORT}/api/toy-production-hyphen`);
 }); 

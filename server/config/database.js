@@ -40,10 +40,11 @@ if (password.startsWith("'") && password.endsWith("'")) {
 // Database connection pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 3306, // Add port configuration
   user: process.env.DB_USER || 'root',
   password: password,
   database: process.env.DB_NAME || 'page_test',
-  charset: process.env.DB_CHARSET || 'utf8mb4',
+  charset: 'utf8mb4',
   supportBigNumbers: true,
   bigNumberStrings: true,
   dateStrings: true,
