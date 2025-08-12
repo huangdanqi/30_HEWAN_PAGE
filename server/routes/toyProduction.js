@@ -19,22 +19,31 @@ router.get('/', async (req, res) => {
       `SELECT * FROM toy_production ORDER BY create_time DESC LIMIT ${pageSize} OFFSET ${offset}`
     );
     
-    // Transform snake_case to camelCase for frontend
-    const transformedRows = rows.map(row => ({
-      id: row.id,
-      key: row.id, // Add key for table
-      productionBatchId: row.production_batch_id,
-      productModel: row.product_model,
-      productName: row.product_name,
-      productionBatchDate: row.production_batch_date,
-      manufacturer: row.manufacturer,
-      unitPrice: parseFloat(row.unit_price),
-      quantity: row.quantity,
-      totalPrice: parseFloat(row.total_price),
-      updaterId: row.updater_id,
-      createTime: row.create_time,
-      updateTime: row.update_time
-    }));
+    console.log('Raw database rows:', rows);
+    console.log('First row keys:', rows.length > 0 ? Object.keys(rows[0]) : 'No rows');
+    
+    // Transform snake_case to camelCase for frontend with fallbacks
+    const transformedRows = rows.map(row => {
+      console.log('Processing row:', row);
+      
+      return {
+        id: row.id,
+        key: row.id, // Add key for table
+        productionBatchId: row.production_batch_id || '',
+        productModel: row.product_model || '',
+        productName: row.product_name || '',
+        productionBatchDate: row.production_batch_date || '',
+        manufacturer: row.manufacturer || '',
+        unitPrice: parseFloat(row.unit_price || 0),
+        quantity: parseInt(row.quantity || 0),
+        totalPrice: parseFloat(row.total_price || 0),
+        updaterId: parseInt(row.updater_id || 0),
+        createTime: row.create_time || '',
+        updateTime: row.update_time || ''
+      };
+    });
+    
+    console.log('Transformed rows:', transformedRows);
     
     res.json({
       data: transformedRows,
