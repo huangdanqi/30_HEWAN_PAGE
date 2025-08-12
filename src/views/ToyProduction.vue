@@ -365,19 +365,30 @@ const fetchToyProductionData = async () => {
         console.log(`Item ${index} keys:`, Object.keys(item));
         console.log(`Item ${index} values:`, Object.values(item));
         
+        // Debug specific fields
+        console.log(`=== DEBUG ITEM ${index} ===`);
+        console.log(`productionBatchId:`, item.productionBatchId, `(type: ${typeof item.productionBatchId})`);
+        console.log(`productModel:`, item.productModel, `(type: ${typeof item.productModel})`);
+        console.log(`productionBatchDate:`, item.productionBatchDate, `(type: ${typeof item.productionBatchDate})`);
+        console.log(`updaterId:`, item.updaterId, `(type: ${typeof item.updaterId})`);
+        console.log(`manufacturer:`, item.manufacturer, `(type: ${typeof item.manufacturer})`);
+        console.log(`unitPrice:`, item.unitPrice, `(type: ${typeof item.unitPrice})`);
+        console.log(`quantity:`, item.quantity, `(type: ${typeof item.quantity})`);
+        console.log(`totalPrice:`, item.totalPrice, `(type: ${typeof item.totalPrice})`);
+        
         return {
           ...item,
           key: item.id || index + 1,
           // Map to the expected field names for the table based on existing API response
-          productionBatchId: item.productId || '',
-          productModel: item.deviceModel || '',
+          productionBatchId: item.productionBatchId || '',
+          productModel: item.productModel || '',
           productName: item.productName || '',
-          productionBatchDate: item.productionBatch || '',
+          productionBatchDate: item.productionBatchDate || '',
           manufacturer: item.manufacturer || '',
           unitPrice: typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(item.unitPrice) || 0,
           quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 0,
           totalPrice: typeof item.totalPrice === 'number' ? item.totalPrice : parseFloat(String(item.totalPrice).replace(/,/g, '')) || 0,
-          updaterId: typeof item.creator === 'number' ? item.creator : parseInt(item.creator) || 0,
+          updaterId: typeof item.updaterId === 'number' ? item.updaterId : parseInt(item.updaterId) || 0,
           createTime: item.createTime || '',
           updateTime: item.updateTime || ''
         };
