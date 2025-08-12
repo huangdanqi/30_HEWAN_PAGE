@@ -3,7 +3,7 @@ import pool from '../config/database.js';
 
 const router = express.Router();
 
-// Get all toy-production records with pagination
+// Get all toy production records with pagination
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -11,12 +11,12 @@ router.get('/', async (req, res) => {
     const offset = (page - 1) * pageSize;
     
     // Get total count
-    const [countResult] = await pool.execute('SELECT COUNT(*) as total FROM `toy-production`');
+    const [countResult] = await pool.execute('SELECT COUNT(*) as total FROM `toy_production_new`');
     const total = countResult[0].total;
     
     // Get paginated data
     const [rows] = await pool.execute(
-      `SELECT * FROM \`toy-production\` ORDER BY create_time DESC LIMIT ${pageSize} OFFSET ${offset}`
+      `SELECT * FROM \`toy_production_new\` ORDER BY create_time DESC LIMIT ${pageSize} OFFSET ${offset}`
     );
     
     // Transform snake_case to camelCase for frontend
@@ -45,20 +45,20 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching toy-production records:', error);
+    console.error('Error fetching toy production records:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
-// Get toy-production by ID
+// Get toy production by ID
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT * FROM `toy-production` WHERE id = ?',
+      'SELECT * FROM `toy_production_new` WHERE id = ?',
       [req.params.id]
     );
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'Toy-production record not found' });
+      return res.status(404).json({ error: 'Toy production record not found' });
     }
     
     const row = rows[0];
@@ -80,12 +80,12 @@ router.get('/:id', async (req, res) => {
     
     res.json(transformedRow);
   } catch (error) {
-    console.error('Error fetching toy-production record:', error);
+    console.error('Error fetching toy production record:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Create new toy-production record
+// Create new toy production record
 router.post('/', async (req, res) => {
   try {
     const {
@@ -100,26 +100,26 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!production_batch_id || !product_model || !product_name || !production_batch_date || !manufacturer || !unit_price || !quantity) {
-      return res.status(400).json({ error: 'Production batch ID, product model, product name, production batch date, manufacturer, unit price, and quantity are required' });
+    if (!production_batch_id || !product_model || !product_name || !production_batch_date || !manufacturer || !unit_price || !quantity || !updater_id) {
+      return res.status(400).json({ error: 'All required fields must be provided' });
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO `toy-production` (production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO `toy_production_new` (production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id]
     );
 
     res.status(201).json({
-      id: result.insertId,
-      message: 'Toy-production record created successfully'
+      message: 'Toy production record created successfully',
+      id: result.insertId
     });
   } catch (error) {
-    console.error('Error creating toy-production record:', error);
+    console.error('Error creating toy production record:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Update toy-production record
+// Update toy production record
 router.put('/:id', async (req, res) => {
   try {
     const {
@@ -134,54 +134,55 @@ router.put('/:id', async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!production_batch_id || !product_model || !product_name || !production_batch_date || !manufacturer || !unit_price || !quantity) {
-      return res.status(400).json({ error: 'Production batch ID, product model, product name, production batch date, manufacturer, unit price, and quantity are required' });
+    if (!production_batch_id || !product_model || !product_name || !production_batch_date || !manufacturer || !unit_price || !quantity || !updater_id) {
+      return res.status(400).json({ error: 'All required fields must be provided' });
     }
 
     const [result] = await pool.execute(
-      'UPDATE `toy-production` SET production_batch_id = ?, product_model = ?, product_name = ?, production_batch_date = ?, manufacturer = ?, unit_price = ?, quantity = ?, updater_id = ? WHERE id = ?',
+      'UPDATE `toy_production_new` SET production_batch_id = ?, product_model = ?, product_name = ?, production_batch_date = ?, manufacturer = ?, unit_price = ?, quantity = ?, updater_id = ? WHERE id = ?',
       [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id, req.params.id]
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Toy-production record not found' });
+      return res.status(404).json({ error: 'Toy production record not found' });
     }
 
-    res.json({ message: 'Toy-production record updated successfully' });
+    res.json({ message: 'Toy production record updated successfully' });
   } catch (error) {
-    console.error('Error updating toy-production record:', error);
+    console.error('Error updating toy production record:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Delete toy-production record
+// Delete toy production record
 router.delete('/:id', async (req, res) => {
   try {
     const [result] = await pool.execute(
-      'DELETE FROM `toy-production` WHERE id = ?',
+      'DELETE FROM `toy_production_new` WHERE id = ?',
       [req.params.id]
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Toy-production record not found' });
+      return res.status(404).json({ error: 'Toy production record not found' });
     }
 
-    res.json({ message: 'Toy-production record deleted successfully' });
+    res.json({ message: 'Toy production record deleted successfully' });
   } catch (error) {
-    console.error('Error deleting toy-production record:', error);
+    console.error('Error deleting toy production record:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get toy-production by product name
+// Get toy production by product name
 router.get('/product/:productName', async (req, res) => {
   try {
     const productName = req.params.productName;
     const [rows] = await pool.execute(
-      'SELECT * FROM `toy-production` WHERE product_name LIKE ? ORDER BY create_time DESC',
+      'SELECT * FROM `toy_production_new` WHERE product_name LIKE ? ORDER BY create_time DESC',
       [`%${productName}%`]
     );
 
+    // Transform snake_case to camelCase for frontend
     const transformedRows = rows.map(row => ({
       id: row.id,
       productionBatchId: row.production_batch_id,
@@ -199,19 +200,21 @@ router.get('/product/:productName', async (req, res) => {
 
     res.json(transformedRows);
   } catch (error) {
-    console.error('Error fetching toy-production by product name:', error);
+    console.error('Error fetching toy production by product name:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get toy-production by manufacturer
+// Get toy production by manufacturer
 router.get('/manufacturer/:manufacturer', async (req, res) => {
   try {
+    const manufacturer = req.params.manufacturer;
     const [rows] = await pool.execute(
-      'SELECT * FROM `toy-production` WHERE manufacturer LIKE ? ORDER BY create_time DESC',
-      [`%${req.params.manufacturer}%`]
+      'SELECT * FROM `toy_production_new` WHERE manufacturer LIKE ? ORDER BY create_time DESC',
+      [`%${manufacturer}%`]
     );
-    
+
+    // Transform snake_case to camelCase for frontend
     const transformedRows = rows.map(row => ({
       id: row.id,
       productionBatchId: row.production_batch_id,
@@ -226,10 +229,10 @@ router.get('/manufacturer/:manufacturer', async (req, res) => {
       createTime: row.create_time,
       updateTime: row.update_time
     }));
-    
+
     res.json(transformedRows);
   } catch (error) {
-    console.error('Error fetching toy-production by manufacturer:', error);
+    console.error('Error fetching toy production by manufacturer:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

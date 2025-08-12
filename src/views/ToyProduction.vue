@@ -135,48 +135,61 @@
     </div>
 
     <FirmwareReleaseModal
-      :visible="showReleaseModal"
+      :open="showReleaseModal"
       :uniqueDeviceModels="uniqueDeviceModels"
-      @update:visible="handleReleaseModalClose"
+      @update:open="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
 
     <FirmwareEditModal
-      :visible="showEditModal"
+      :open="showEditModal"
       :record="editRecord"
-      @update:visible="handleEditModalClose"
+      @update:open="handleEditModalClose"
       @submit="handleEditModalSubmit"
     />
 
     <ProductCreateModal
-      v-model:visible="showProductCreateModal"
+      v-model:open="showProductCreateModal"
       :deviceModelOptions="deviceModelOptions"
       :ipNameOptions="[]"
       @submit="handleProductCreateSubmit"
     />
 
     <a-modal
-      v-model:visible="showBatchModal"
+      v-model:open="showBatchModal"
       title="新增批次"
       @ok="handleBatchOk"
       @cancel="showBatchModal = false"
-      width="400px"
+      width="500px"
     >
       <a-form layout="vertical">
+        <a-form-item required label="生产批次ID">
+          <a-input placeholder="请输入生产批次ID" />
+        </a-form-item>
+        <a-form-item required label="产品型号">
+          <a-select placeholder="请选择产品型号">
+            <a-select-option v-for="option in productNameOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
         <a-form-item required label="产品名称">
-          <a-select placeholder="请选择" />
+          <a-input placeholder="请输入产品名称" />
         </a-form-item>
         <a-form-item required label="生产批次">
-          <a-date-picker style="width: 100%;" placeholder="请选择" />
+          <a-date-picker style="width: 100%;" placeholder="请选择生产日期" />
         </a-form-item>
-        <a-form-item label="生产厂家">
-          <a-input placeholder="请输入" />
+        <a-form-item required label="生产厂家">
+          <a-input placeholder="请输入生产厂家" />
         </a-form-item>
         <a-form-item required label="单价">
-          <a-input suffix="元" placeholder="请输入" />
+          <a-input suffix="元" placeholder="请输入单价" />
         </a-form-item>
         <a-form-item required label="数量">
-          <a-input suffix="个" placeholder="请输入" />
+          <a-input suffix="个" placeholder="请输入数量" />
+        </a-form-item>
+        <a-form-item label="更新人">
+          <a-input placeholder="请输入更新人ID" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -212,19 +225,18 @@ const customLocale = computed(() => ({
 
 interface DataItem {
   key: number;
-  productId: string;
-  productName: string;
-  productionBatch: string;
-  manufacturer: string;
-  unitPrice: number;
-  quantity: number;
-  totalPrice: string;
-  creator: string;
-  createTime: string;
-  updateTime: string;
-  deviceModel: string;
-  productType: string;
-  ipName: string;
+  id?: number;
+  productionBatchId: string; // 生产批次ID
+  productModel: string; // 产品型号
+  productName: string; // 产品名称
+  productionBatchDate: string; // 生产批次 (date)
+  manufacturer: string; // 生产厂家
+  unitPrice: number; // 单价(元)
+  quantity: number; // 数量(个)
+  totalPrice: number; // 总价(元)
+  updaterId: number; // 更新人
+  createTime: string; // 创建时间
+  updateTime: string; // 更新时间
 }
 
 // Define column configuration separately from the table columns
@@ -237,22 +249,23 @@ interface ColumnConfig {
   sorter?: (a: any, b: any) => number;
   sortDirections?: ('ascend' | 'descend')[];
   defaultSortOrder?: 'ascend' | 'descend';
-  customRender?: (record: any) => string | number;
+  customCell?: (record: any, index: number) => { children: any; [key: string]: any };
 }
 
 const columnConfigs = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }: { index: number }) => index + 1 },
-  { key: 'productId', title: '产品ID', dataIndex: 'productId', width: 120 },
-  { key: 'productName', title: '产品名称', dataIndex: 'productName', width: 180 },
-  { key: 'productionBatch', title: '生产批次', dataIndex: 'productionBatch', width: 120, sorter: (a: any, b: any) => a.productionBatch.localeCompare(b.productionBatch), sortDirections: ['ascend', 'descend'] },
-  { key: 'manufacturer', title: '生产厂家', dataIndex: 'manufacturer', width: 200 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customCell: (record: any, index: number) => ({ children: index + 1 }) },
+  { key: 'productionBatchId', title: '生产批次ID', dataIndex: 'productionBatchId', width: 150 },
+  { key: 'productModel', title: '产品型号', dataIndex: 'productModel', width: 150, sorter: (a: any, b: any) => a.productModel.localeCompare(b.productModel), sortDirections: ['ascend', 'descend'] },
+  { key: 'productName', title: '产品名称', dataIndex: 'productName', width: 200, sorter: (a: any, b: any) => a.productName.localeCompare(b.productName), sortDirections: ['ascend', 'descend'] },
+  { key: 'productionBatchDate', title: '生产批次', dataIndex: 'productionBatchDate', width: 120, sorter: (a: any, b: any) => a.productionBatchDate.localeCompare(b.productionBatchDate), sortDirections: ['ascend', 'descend'] },
+  { key: 'manufacturer', title: '生产厂家', dataIndex: 'manufacturer', width: 250, sorter: (a: any, b: any) => a.manufacturer.localeCompare(b.manufacturer), sortDirections: ['ascend', 'descend'] },
   { key: 'unitPrice', title: '单价(元)', dataIndex: 'unitPrice', width: 100, sorter: (a: any, b: any) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'quantity', title: '数量(个)', dataIndex: 'quantity', width: 100 },
-  { key: 'totalPrice', title: '总价(元)', dataIndex: 'totalPrice', width: 120, sorter: (a: any, b: any) => parseFloat(a.totalPrice.replace(/,/g, '')) - parseFloat(b.totalPrice.replace(/,/g, '')), sortDirections: ['ascend', 'descend'] },
-  { key: 'creator', title: '创建人', dataIndex: 'creator', width: 80 },
+  { key: 'quantity', title: '数量(个)', dataIndex: 'quantity', width: 100, sorter: (a: any, b: any) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
+  { key: 'totalPrice', title: '总价(元)', dataIndex: 'totalPrice', width: 120, sorter: (a: any, b: any) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
+  { key: 'updaterId', title: '更新人', dataIndex: 'updaterId', width: 100 },
   { key: 'createTime', title: '创建时间', dataIndex: 'createTime', width: 160, sorter: (a: any, b: any) => a.createTime.localeCompare(b.createTime), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => a.updateTime.localeCompare(b.updateTime), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation', title: '操作', dataIndex: '', width: 100, fixed: 'right' },
+  { key: 'operation', title: '操作', dataIndex: '', width: 150, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -271,9 +284,17 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sortDirections: config.sortDirections,
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
     defaultSortOrder: config.defaultSortOrder,
-    customRender: config.customRender
-      ? config.customRender
-      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+    customCell: config.customCell
+      ? config.customCell
+      : (record: any) => {
+          const value = record[config.dataIndex];
+          // Handle undefined, null, or empty values properly
+          if (value === undefined || value === null || value === '') {
+            return { children: '' };
+          }
+          // Ensure the value is a valid string or number
+          return { children: String(value) };
+        },
   })) as ColumnsType;
 };
 
@@ -300,7 +321,7 @@ const columns = computed<ColumnsType>(() => {
 // Generate virtual data for the new columns
 const rawData = ref<DataItem[]>([]);
 const loading = ref(false);
-const total = ref(0); // New ref for total items
+const total = ref<number>(0); // Ensure it's typed as number
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -311,7 +332,7 @@ const fetchToyProductionData = async () => {
     loading.value = true;
     console.log('Fetching toy production data with page:', currentPage.value, 'pageSize:', pageSize.value);
     
-    const response = await axios.get(constructApiUrl('toy-production-hyphen'), {
+    const response = await axios.get(constructApiUrl('toy-production'), {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value
@@ -322,11 +343,43 @@ const fetchToyProductionData = async () => {
     
     if (response.data && response.data.data) {
       // Server-side pagination response
+      console.log('=== DEBUG: First item structure ===');
+      if (response.data.data.length > 0) {
+        const firstItem = response.data.data[0];
+        console.log('First item:', firstItem);
+        console.log('First item keys:', Object.keys(firstItem));
+        console.log('First item values:', Object.values(firstItem));
+        console.log('First item types:', Object.entries(firstItem).map(([key, value]) => `${key}: ${typeof value}`));
+        
+        // Check specific fields we need
+        console.log('=== FIELD CHECK ===');
+        console.log('productId:', firstItem.productId);
+        console.log('productName:', firstItem.productName);
+        console.log('productionBatch:', firstItem.productionBatch);
+        console.log('creator:', firstItem.creator);
+        console.log('totalPrice:', firstItem.totalPrice);
+      }
+      
       rawData.value = response.data.data.map((item: any, index: number) => {
         console.log(`Item ${index}:`, item);
+        console.log(`Item ${index} keys:`, Object.keys(item));
+        console.log(`Item ${index} values:`, Object.values(item));
+        
         return {
           ...item,
-          key: item.id || index + 1
+          key: item.id || index + 1,
+          // Map to the expected field names for the table based on existing API response
+          productionBatchId: item.productId || '',
+          productModel: item.deviceModel || '',
+          productName: item.productName || '',
+          productionBatchDate: item.productionBatch || '',
+          manufacturer: item.manufacturer || '',
+          unitPrice: typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(item.unitPrice) || 0,
+          quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 0,
+          totalPrice: typeof item.totalPrice === 'number' ? item.totalPrice : parseFloat(String(item.totalPrice).replace(/,/g, '')) || 0,
+          updaterId: typeof item.creator === 'number' ? item.creator : parseInt(item.creator) || 0,
+          createTime: item.createTime || '',
+          updateTime: item.updateTime || ''
         };
       });
       console.log('Processed rawData:', rawData.value);
@@ -335,20 +388,52 @@ const fetchToyProductionData = async () => {
       if (response.data.pagination) {
         currentPage.value = response.data.pagination.current;
         pageSize.value = response.data.pagination.pageSize;
-        total.value = response.data.pagination.total;
+        total.value = parseInt(response.data.pagination.total) || 0; // Convert to number
         
         console.log('Updated pagination - current:', currentPage.value, 'pageSize:', pageSize.value, 'total:', total.value);
       }
     } else if (response.data && Array.isArray(response.data)) {
       // Fallback for old API format
+      console.log('=== DEBUG: Fallback data structure ===');
+      if (response.data.length > 0) {
+        const firstItem = response.data[0];
+        console.log('First item:', firstItem);
+        console.log('First item keys:', Object.keys(firstItem));
+        console.log('First item values:', Object.values(firstItem));
+        console.log('First item types:', Object.entries(firstItem).map(([key, value]) => `${key}: ${typeof value}`));
+        
+        // Check specific fields we need
+        console.log('=== FALLBACK FIELD CHECK ===');
+        console.log('productId:', firstItem.productId);
+        console.log('productName:', firstItem.productName);
+        console.log('productionBatch:', firstItem.productionBatch);
+        console.log('creator:', firstItem.creator);
+        console.log('totalPrice:', firstItem.totalPrice);
+      }
+      
       rawData.value = response.data.map((item: any, index: number) => {
         console.log(`Item ${index}:`, item);
+        console.log(`Item ${index} keys:`, Object.keys(item));
+        console.log(`Item ${index} values:`, Object.values(item));
+        
         return {
           ...item,
-          key: item.id || index + 1
+          key: item.id || index + 1,
+          // Map to the expected field names for the table based on existing API response
+          productionBatchId: item.productId || '',
+          productModel: item.deviceModel || '',
+          productName: item.productName || '',
+          productionBatchDate: item.productionBatch || '',
+          manufacturer: item.manufacturer || '',
+          unitPrice: typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(item.unitPrice) || 0,
+          quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 0,
+          totalPrice: typeof item.totalPrice === 'number' ? item.totalPrice : parseFloat(String(item.totalPrice).replace(/,/g, '')) || 0,
+          updaterId: typeof item.creator === 'number' ? item.creator : parseInt(item.creator) || 0,
+          createTime: item.createTime || '',
+          updateTime: item.updateTime || ''
         };
       });
-      total.value = response.data.length;
+      total.value = response.data.length; // Already a number
       console.log('Processed rawData:', rawData.value);
     } else {
       message.error('获取数据失败：服务器返回无效数据');
@@ -389,7 +474,7 @@ const productNameValue = ref({ key: 'all', label: '全部', value: 'all' });
 const manufacturerValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const deviceModelOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
+  const unique = Array.from(new Set(rawData.value.map(item => item.productModel)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
 });
 
@@ -590,7 +675,7 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 };
 
 const showReleaseModal = ref(false);
-const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.value.map(item => item.deviceModel))));
+const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.value.map(item => item.productModel))));
 
 const handleReleaseModalClose = () => {
   showReleaseModal.value = false;
