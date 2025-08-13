@@ -34,6 +34,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new product list record
+// Create new product list record
 router.post('/', async (req, res) => {
   try {
     const {
@@ -57,23 +58,38 @@ router.post('/', async (req, res) => {
       creation_time
     } = req.body;
 
-    // Validate required fields based on actual table structure
+    // Validate required fields
     if (!product_id || !product_name || !product_type) {
       return res.status(400).json({ error: 'Product ID, product name, and product type are required' });
     }
 
+    // Use the exact columns that exist in your table
     const [result] = await pool.execute(
       `INSERT INTO product_list (
         product_id, product_name, product_type, product_model, ip_role, color, 
         production_batch, manufacturer, qr_code_file_directory, qr_code_exported, 
         barcode_file_directory, barcode_exported, device_id, sub_account_id, 
-        file_export_time, first_binding_time, creator_id, creation_time
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        file_export_time, first_binding_time, creator_id, creation_time, update_time
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        product_id, product_name, product_type, product_model || null, ip_role || null, color || null,
-        production_batch || null, manufacturer || null, qr_code_file_directory || null, qr_code_exported || '否',
-        barcode_file_directory || null, barcode_exported || '否', device_id || null, sub_account_id || null,
-        file_export_time || null, first_binding_time || null, creator_id || 1, creation_time || new Date().toISOString().slice(0, 19).replace('T', ' ')
+        product_id, 
+        product_name, 
+        product_type, 
+        product_model || null, 
+        ip_role || null, 
+        color || null,
+        production_batch || null, 
+        manufacturer || null, 
+        qr_code_file_directory || null, 
+        qr_code_exported || '否',
+        barcode_file_directory || null, 
+        barcode_exported || '否', 
+        device_id || null, 
+        sub_account_id || null,
+        file_export_time || null, 
+        first_binding_time || null, 
+        creator_id || 1, 
+        creation_time || new Date().toISOString().slice(0, 19).replace('T', ' ')
       ]
     );
 
@@ -83,6 +99,7 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating product list record:', error);
+    console.error('SQL Error details:', error.sqlMessage, error.sql);
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Product ID already exists' });
     }
