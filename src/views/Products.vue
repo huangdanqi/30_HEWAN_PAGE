@@ -38,9 +38,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, computed, onMounted, h } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue'
 import type { TablePaginationConfig, TableColumnType } from 'ant-design-vue'
+
 
 // Import the new components
 import ProductionHeader from '../components/ProductionHeader.vue'

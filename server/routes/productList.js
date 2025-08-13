@@ -39,24 +39,42 @@ router.post('/', async (req, res) => {
     const {
       product_id,
       product_name,
-      product_code,
-      product_name2,
       product_type,
+      product_model,
+      ip_role,
       color,
-      member_type,
+      production_batch,
+      manufacturer,
+      qr_code_file_directory,
+      qr_code_exported,
+      barcode_file_directory,
+      barcode_exported,
       device_id,
       sub_account_id,
-      activation_time
+      file_export_time,
+      first_binding_time,
+      creator_id,
+      creation_time
     } = req.body;
 
-    // Validate required fields
-    if (!product_id || !product_name || !product_code || !product_name2 || !product_type) {
-      return res.status(400).json({ error: 'Product ID, product name, product code, product name2, and product type are required' });
+    // Validate required fields based on actual table structure
+    if (!product_id || !product_name || !product_type) {
+      return res.status(400).json({ error: 'Product ID, product name, and product type are required' });
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO product_list (product_id, product_name, product_code, product_name2, product_type, color, member_type, device_id, sub_account_id, activation_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [product_id, product_name, product_code, product_name2, product_type, color, member_type, device_id, sub_account_id, activation_time]
+      `INSERT INTO product_list (
+        product_id, product_name, product_type, product_model, ip_role, color, 
+        production_batch, manufacturer, qr_code_file_directory, qr_code_exported, 
+        barcode_file_directory, barcode_exported, device_id, sub_account_id, 
+        file_export_time, first_binding_time, creator_id, creation_time
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        product_id, product_name, product_type, product_model || null, ip_role || null, color || null,
+        production_batch || null, manufacturer || null, qr_code_file_directory || null, qr_code_exported || '否',
+        barcode_file_directory || null, barcode_exported || '否', device_id || null, sub_account_id || null,
+        file_export_time || null, first_binding_time || null, creator_id || 1, creation_time || new Date().toISOString().slice(0, 19).replace('T', ' ')
+      ]
     );
 
     res.status(201).json({
@@ -78,24 +96,45 @@ router.put('/:id', async (req, res) => {
     const {
       product_id,
       product_name,
-      product_code,
-      product_name2,
       product_type,
+      product_model,
+      ip_role,
       color,
-      member_type,
+      production_batch,
+      manufacturer,
+      qr_code_file_directory,
+      qr_code_exported,
+      barcode_file_directory,
+      barcode_exported,
       device_id,
       sub_account_id,
-      activation_time
+      file_export_time,
+      first_binding_time,
+      creator_id,
+      creation_time
     } = req.body;
 
-    // Validate required fields
-    if (!product_id || !product_name || !product_code || !product_name2 || !product_type) {
-      return res.status(400).json({ error: 'Product ID, product name, product code, product name2, and product type are required' });
+    // Validate required fields based on actual table structure
+    if (!product_id || !product_name || !product_type) {
+      return res.status(400).json({ error: 'Product ID, product name, and product type are required' });
     }
 
     const [result] = await pool.execute(
-      'UPDATE product_list SET product_id = ?, product_name = ?, product_code = ?, product_name2 = ?, product_type = ?, color = ?, member_type = ?, device_id = ?, sub_account_id = ?, activation_time = ? WHERE id = ?',
-      [product_id, product_name, product_code, product_name2, product_type, color, member_type, device_id, sub_account_id, activation_time, req.params.id]
+      `UPDATE product_list SET 
+        product_id = ?, product_name = ?, product_type = ?, product_model = ?, ip_role = ?, 
+        color = ?, production_batch = ?, manufacturer = ?, qr_code_file_directory = ?, 
+        qr_code_exported = ?, barcode_file_directory = ?, barcode_exported = ?, 
+        device_id = ?, sub_account_id = ?, file_export_time = ?, first_binding_time = ?, 
+        creator_id = ?, creation_time = ?, update_time = NOW()
+      WHERE id = ?`,
+      [
+        product_id, product_name, product_type, product_model || null, ip_role || null,
+        color || null, production_batch || null, manufacturer || null, qr_code_file_directory || null,
+        qr_code_exported || '否', barcode_file_directory || null, barcode_exported || '否',
+        device_id || null, sub_account_id || null, file_export_time || null, first_binding_time || null,
+        creator_id || 1, creation_time || new Date().toISOString().slice(0, 19).replace('T', ' '),
+        req.params.id
+      ]
     );
 
     if (result.affectedRows === 0) {
@@ -204,4 +243,4 @@ router.get('/product-id/:productId', async (req, res) => {
   }
 });
 
-export default router; 
+export default router;

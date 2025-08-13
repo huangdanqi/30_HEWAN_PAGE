@@ -4,8 +4,7 @@
     <div class="title-container">
       <h2>商品列表</h2>
     </div>
-<!-- Temporary test button - add this somewhere in your template -->
-<a-button @click="testSimpleProductCreation" style="margin-left: 10px;">测试简单创建</a-button>
+
     <!-- select item area -->
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
@@ -48,9 +47,6 @@
               <SearchOutlined />
             </template>
           </a-input>
-          <!-- Add the two new buttons -->
-          <a-button type="primary" @click="handleBatchAdd">批量新增</a-button>
-          <a-button type="primary" @click="handleFileExport">文件导出</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -134,156 +130,16 @@
       </div>
     </div>
 
-    <!-- Batch Add Modal -->
-    <a-modal
-      v-model:open="batchAddModalVisible"
-      title="批量新增玩具商品"
-      :footer="null"
-      width="600px"
-      @cancel="handleBatchAddCancel"
-    >
-      <div class="modal-content">
-        <div class="section-header">批量新增</div>
-        
-        <a-form
-          :model="batchAddForm"
-          :rules="batchAddRules"
-          layout="vertical"
-          ref="batchAddFormRef"
-        >
-          <a-form-item label="产品名称" name="productName" required>
-            <a-select
-              v-model:value="batchAddForm.productName"
-              placeholder="请选择"
-              style="width: 100%"
-              @change="handleProductNameChange"
-              :options="batchProductNameOptions"
-            />
-          </a-form-item>
-          
-          <a-form-item label="生产批次" name="productionBatch" required>
-            <a-select
-              v-model:value="batchAddForm.productionBatch"
-              placeholder="请选择"
-              style="width: 100%"
-              @change="handleProductionBatchChange"
-              :options="batchProductionBatchOptions"
-              :disabled="!batchAddForm.productName"
-            />
-          </a-form-item>
-          
-          <a-form-item label="生产厂家" name="manufacturer" required>
-            <a-select
-              v-model:value="batchAddForm.manufacturer"
-              placeholder="请选择"
-              style="width: 100%"
-              :options="batchManufacturerOptions"
-              :disabled="!batchAddForm.productionBatch"
-            />
-          </a-form-item>
-          
-          <a-form-item label="数量" name="quantity" required>
-            <a-input-number
-              v-model:value="batchAddForm.quantity"
-              placeholder="请输入"
-              style="width: 100%"
-              :min="1"
-              :precision="0"
-              addon-after="个"
-            />
-          </a-form-item>
-        </a-form>
-        
-        <div class="modal-footer">
-          <a-button @click="handleBatchAddCancel">取消</a-button>
-          <a-button type="primary" @click="handleBatchAddConfirm" :loading="batchAddLoading">确定</a-button>
-        </div>
-      </div>
-    </a-modal>
-
-    <!-- Secondary Confirmation Modal -->
-    <a-modal
-      v-model:open="confirmationModalVisible"
-      title="新建商品-二次确认"
-      :footer="null"
-      width="500px"
-      @cancel="handleConfirmationCancel"
-    >
-      <div class="modal-content">
-        <div class="section-header">新建商品</div>
-        
-        <div class="confirmation-content">
-          <div class="warning-icon">
-            <ExclamationCircleOutlined />
-          </div>
-          <div class="warning-message">
-            该批次生产数量为{{ batchProductionQuantity }}个,已创建商品数量{{ existingProductQuantity }}个,本次新建后商品数量将超过批次生产数量,是否继续新建?
-          </div>
-        </div>
-        
-        <div class="modal-footer">
-          <a-button @click="handleConfirmationCancel">取消</a-button>
-          <a-button type="primary" @click="handleConfirmationConfirm" :loading="batchAddLoading">确定</a-button>
-        </div>
-      </div>
-    </a-modal>
-    <!-- Form Confirmation Modal -->
-    <a-modal
-      v-model:open="formConfirmationModalVisible"
-      title="确认新增"
-      :footer="null"
-      width="500px"
-      @cancel="handleFormConfirmationCancel"
-    >
-      <div class="modal-content">
-        <div class="section-header">确认新增</div>
-        
-        <div class="form-confirmation-content">
-          <div class="confirmation-icon">
-            <CheckCircleOutlined />
-          </div>
-          <div class="confirmation-message">
-            确认新增{{ batchAddForm.quantity }}条数据？
-          </div>
-          
-          <!-- Show form data for confirmation -->
-          <div class="form-data-summary">
-            <div class="summary-item">
-              <span class="label">产品名称:</span>
-              <span class="value">{{ batchAddForm.productName }}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">生产批次:</span>
-              <span class="value">{{ batchAddForm.productionBatch }}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">生产厂家:</span>
-              <span class="value">{{ batchAddForm.manufacturer }}</span>
-            </div>
-            <div class="summary-item">
-              <span class="label">数量:</span>
-              <span class="value">{{ batchAddForm.quantity }}个</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="modal-footer">
-          <a-button @click="handleFormConfirmationCancel">取消</a-button>
-          <a-button type="primary" @click="handleFormConfirmationConfirm" :loading="batchAddLoading">确定</a-button>
-        </div>
-      </div>
-    </a-modal>
   </a-config-provider>
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-const formConfirmationModalVisible = ref(false);
-import { ref, computed, onMounted, h } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
-import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExclamationCircleOutlined, CheckCircleOutlined} from '@ant-design/icons-vue';
+import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { Empty } from 'ant-design-vue';
 import { 
@@ -295,265 +151,16 @@ import {
 import { constructApiUrl } from '../utils/api';
 
 const route = useRoute();
-const router = useRouter();
 
 // API base URL
 const API_BASE_URL = '/api';
 
-// const handleEditClick = () => {
-//   message.info('开发中');
-// };
-
-// const handleExportClick = (record: DataItem) => {
-//   message.info(`导出 ${record.productName} 的二维码/事务码`);
-// };
-// const handleEditClick = () => {
-//   message.info('开发中');
-// };
-
-// const handleExportClick = (record: DataItem) => {
-//   message.info(`导出 ${record.productName} 的二维码/事务码`);
-// };
 const handleEditClick = () => {
   message.info('开发中');
 };
 
 const handleExportClick = (record: DataItem) => {
   message.info(`导出 ${record.productName} 的二维码/事务码`);
-};
-// Add the two new handler functions
-// Batch Add Modal related data
-const batchAddModalVisible = ref(false);
-const confirmationModalVisible = ref(false);
-const batchAddLoading = ref(false);
-const batchAddFormRef = ref();
-const batchProductionQuantity = ref(0);
-const existingProductQuantity = ref(0);
-
-const batchAddForm = ref({
-  productName: '',
-  productionBatch: '',
-  manufacturer: '',
-  quantity: 1
-});
-
-const batchAddRules = {
-  productName: [{ required: true, message: '请选择产品名称' }],
-  productionBatch: [{ required: true, message: '请选择生产批次' }],
-  manufacturer: [{ required: true, message: '请选择生产厂家' }],
-  quantity: [{ required: true, message: '请输入数量' }]
-};
-
-// Computed options for batch add form
-const batchProductNameOptions = computed(() => {
-  // This should come from your API - Product Production Batch Information Table
-  return Array.from(new Set(rawData.value.map(item => item.productName)))
-    .map(name => ({ value: name, label: name }));
-});
-
-const batchProductionBatchOptions = computed(() => {
-  if (!batchAddForm.value.productName) return [];
-  return Array.from(new Set(
-    rawData.value
-      .filter(item => item.productName === batchAddForm.value.productName)
-      .map(item => item.productionBatch)
-  )).map(batch => ({ value: batch, label: batch }));
-});
-
-const batchManufacturerOptions = computed(() => {
-  if (!batchAddForm.value.productName || !batchAddForm.value.productionBatch) return [];
-  return Array.from(new Set(
-    rawData.value
-      .filter(item => 
-        item.productName === batchAddForm.value.productName && 
-        item.productionBatch === batchAddForm.value.productionBatch
-      )
-      .map(item => item.manufacturer)
-  )).map(manufacturer => ({ value: manufacturer, label: manufacturer }));
-});
-
-// Batch Add handlers
-const handleBatchAdd = () => {
-  batchAddModalVisible.value = true;
-  resetBatchAddForm();
-};
-
-const handleBatchAddCancel = () => {
-  batchAddModalVisible.value = false;
-  resetBatchAddForm();
-};
-
-const handleProductNameChange = () => {
-  batchAddForm.value.productionBatch = '';
-  batchAddForm.value.manufacturer = '';
-};
-
-const handleProductionBatchChange = () => {
-  batchAddForm.value.manufacturer = '';
-};
-
-const resetBatchAddForm = () => {
-  batchAddForm.value = {
-    productName: '',
-    productionBatch: '',
-    manufacturer: '',
-    quantity: 1
-  };
-  if (batchAddFormRef.value) {
-    batchAddFormRef.value.resetFields();
-  }
-};
-
-const handleBatchAddConfirm = async () => {
-  try {
-    await batchAddFormRef.value.validate();
-    
-    // Show form confirmation modal first
-    formConfirmationModalVisible.value = true;
-    
-  } catch (error) {
-    console.error('Form validation failed:', error);
-  }
-};
-const handleFormConfirmationCancel = () => {
-  formConfirmationModalVisible.value = false;
-};
-
-const handleFormConfirmationConfirm = async () => {
-  try {
-    formConfirmationModalVisible.value = false;
-    
-    // Check quantity validation
-    const totalQuantity = await checkQuantityValidation();
-    
-    if (totalQuantity > batchProductionQuantity.value) {
-      // Show quantity warning confirmation modal
-      confirmationModalVisible.value = true;
-    } else {
-      // Proceed with creation
-      await createBatchProducts();
-    }
-  } catch (error) {
-    console.error('Error in form confirmation:', error);
-  }
-};
-const checkQuantityValidation = async () => {
-  // This should call your API to get production batch information
-  // For now, using mock data
-  batchProductionQuantity.value = 100; // Mock value
-  existingProductQuantity.value = 80; // Mock value
-  
-  return existingProductQuantity.value + batchAddForm.value.quantity;
-};
-
-// const createBatchProducts = async () => {
-//   try {
-//     batchAddLoading.value = true;
-    
-//     // Create products with QR code and barcode generation
-//     const products = [];
-//     for (let i = 0; i < batchAddForm.value.quantity; i++) {
-//       const productData = {
-//         productName: batchAddForm.value.productName,
-//         productionBatch: batchAddForm.value.productionBatch,
-//         manufacturer: batchAddForm.value.manufacturer,
-//         // Add other required fields
-//       };
-      
-//       // Generate QR code and barcode
-//       const qrCodePath = await generateQRCode(productData);
-//       const barcodePath = await generateBarcode(productData);
-      
-//       productData.qrCodeFileDirectory = qrCodePath;
-//       productData.barcodeFileDirectory = barcodePath;
-      
-//       products.push(productData);
-//     }
-    
-//     // Save to database
-//     await createProductList(products[0]); // For now, creating one by one
-    
-//     message.success(`成功创建 ${batchAddForm.value.quantity} 个商品`);
-//     batchAddModalVisible.value = false;
-//     resetBatchAddForm();
-//     fetchProductList(); // Refresh the list
-    
-//   } catch (error) {
-//     console.error('Error creating batch products:', error);
-//     message.error('创建商品失败');
-//   } finally {
-//     batchAddLoading.value = false;
-//   }
-// };
-const createBatchProducts = async () => {
-  try {
-    batchAddLoading.value = true;
-    
-    // Create a single product first to test
-    const productData = {
-      productId: `PROD_${Date.now()}`,
-      productName: batchAddForm.value.productName,
-      productType: '玩具', // This is required
-      productModel: batchAddForm.value.productName,
-      ipRole: '默认',
-      color: '默认',
-      productionBatch: batchAddForm.value.productionBatch,
-      manufacturer: batchAddForm.value.manufacturer,
-      qrCodeFileDirectory: `/uploads/qr_codes/PROD_${Date.now()}.png`,
-      qrCodeExported: '否',
-      barcodeFileDirectory: `/uploads/barcodes/PROD_${Date.now()}.png`,
-      barcodeExported: '否',
-      deviceId: '',
-      subAccountId: '',
-      fileExportTime: '',
-      firstBindingTime: '',
-      creatorId: 1,
-      creationTime: new Date().toISOString().slice(0, 19).replace('T', ' ')
-    };
-    
-    console.log('Attempting to create product:', productData);
-    
-    // Try to create the product
-    await createProductList(productData);
-    
-    message.success(`成功创建商品: ${productData.productName}`);
-    batchAddModalVisible.value = false;
-    confirmationModalVisible.value = false;
-    resetBatchAddForm();
-    await fetchProductList(); // Refresh the list
-    
-  } catch (error) {
-    console.error('Error creating batch products:', error);
-    message.error('创建商品失败: ' + (error.response?.data?.message || error.message || '未知错误'));
-  } finally {
-    batchAddLoading.value = false;
-  }
-};
-const generateQRCode = async (productData: any) => {
-  // Generate a realistic QR code file path
-  const timestamp = Date.now();
-  const productId = productData.productId;
-  return `/uploads/qr_codes/${productId}_${timestamp}.png`;
-};
-
-const generateBarcode = async (productData: any) => {
-  // Generate a realistic barcode file path
-  const timestamp = Date.now();
-  const productId = productData.productId;
-  return `/uploads/barcodes/${productId}_${timestamp}.png`;
-};
-
-const handleConfirmationCancel = () => {
-  confirmationModalVisible.value = false;
-};
-
-const handleConfirmationConfirm = async () => {
-  confirmationModalVisible.value = false;
-  await createBatchProducts();
-};
-
-const handleFileExport = () => {
-  message.info('文件导出功能开发中');
 };
 
 const customLocale = computed(() => ({
@@ -606,57 +213,27 @@ interface ColumnConfig {
 const columnConfigs = [
   { key: 'serialNumber', title: '序号', dataIndex: 'serialNumber', width: 60, fixed: 'left', customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1 },
   { key: 'productId', title: '商品ID', dataIndex: 'productId', width: 120 },
-  { key: 'ipRole', title: 'IP角色', dataIndex: 'ipRole', width: 100, customRender: ({ text, record }) => {
-    if (!text || text === '') return '-';
-    return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
-      onClick: () => router.push({ name: 'agent-configuration', query: { search: text } })
-    }, text);
-  }},
-  { key: 'productModel', title: '产品型号', dataIndex: 'productModel', width: 120, customRender: ({ text, record }) => {
-    if (!text || text === '') return '-';
-    return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
-      onClick: () => router.push({ name: 'product-type', query: { search: text } })
-    }, text);
-  }},
+  { key: 'ipRole', title: 'IP角色', dataIndex: 'ipRole', width: 100 },
+  { key: 'productModel', title: '产品型号', dataIndex: 'productModel', width: 120 },
   { key: 'productName', title: '产品名称', dataIndex: 'productName', width: 200 },
   { key: 'productType', title: '产品类型', dataIndex: 'productType', width: 200 },
   { key: 'color', title: '颜色', dataIndex: 'color', width: 100 },
-  { key: 'productionBatch', title: '生产批次', dataIndex: 'productionBatch', width: 120, customRender: ({ text, record }) => {
-    if (!text || text === '') return '-';
-    return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
-      onClick: () => router.push({ name: 'product-type', query: { search: text } })
-    }, text);
-  }},
+  { key: 'productionBatch', title: '生产批次', dataIndex: 'productionBatch', width: 120 },
   { key: 'manufacturer', title: '生产厂家', dataIndex: 'manufacturer', width: 200 },
   { key: 'qrCodeFileDirectory', title: '二维码文件目录', dataIndex: 'qrCodeFileDirectory', width: 200 },
   { key: 'qrCodeExported', title: '二维码是否导出', dataIndex: 'qrCodeExported', width: 120 },
   { key: 'barcodeFileDirectory', title: '条形码目录', dataIndex: 'barcodeFileDirectory', width: 200 },
   { key: 'barcodeExported', title: '条形码是否导出', dataIndex: 'barcodeExported', width: 120 },
-  { key: 'deviceId', title: '设备ID', dataIndex: 'deviceId', width: 220, customRender: ({ text, record }) => {
-    if (!text || text === '') return '-';
-    return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
-      onClick: () => router.push({ name: 'device-management', query: { search: text } })
-    }, text);
-  }},
-  { key: 'subAccountId', title: '子账户ID', dataIndex: 'subAccountId', width: 120, customRender: ({ text, record }) => {
-    if (!text || text === '') return '-';
-    return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
-      onClick: () => router.push({ name: 'account', query: { search: text } })
-    }, text);
-  }},
+  { key: 'deviceId', title: '设备ID', dataIndex: 'deviceId', width: 220 },
+  { key: 'subAccountId', title: '子账户ID', dataIndex: 'subAccountId', width: 120 },
   { key: 'fileExportTime', title: '文件导出时间', dataIndex: 'fileExportTime', width: 160, sorter: (a: any, b: any) => new Date(a.fileExportTime).getTime() - new Date(b.fileExportTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'firstBindingTime', title: '首次绑定时间', dataIndex: 'firstBindingTime', width: 160, sorter: (a: any, b: any) => new Date(a.firstBindingTime).getTime() - new Date(b.firstBindingTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'creatorId', title: '创建人', dataIndex: 'creatorId', width: 80 },
   { key: 'creationTime', title: '创建时间', dataIndex: 'creationTime', width: 160, sorter: (a: any, b: any) => new Date(a.creationTime).getTime() - new Date(b.creationTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'operation', title: '操作', dataIndex: 'operation', width: 200, fixed: 'right' },
-  // ... rest of your columns remain the same
 ];
+
 // Store column order and visibility separately
 const columnOrder = ref<string[]>(columnConfigs.map(config => config.key));
 const selectedColumnKeys = ref<string[]>(columnConfigs.map(config => config.key));
@@ -753,101 +330,17 @@ const fetchProductList = async () => {
   }
 };
 
-// const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 'updateTime'>) => {
-//   try {
-//     const response = await axios.post(constructApiUrl('product-list'), productListData);
-//     await fetchProductList(); // Refresh data
-//     return response.data;
-//   } catch (error) {
-//     console.error('Error creating product list:', error);
-//     throw error;
-//   }
-// };
 const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 'updateTime'>) => {
   try {
-    console.log('Creating product with data:', productListData);
-    
-    // Match the actual API structure based on existing data
-    const apiData: any = {
-      product_id: productListData.productId || '',
-      product_name: productListData.productName || '',
-      product_type: productListData.productType || '',
-      product_model: productListData.productModel || '',
-      ip_role: productListData.ipRole || '',
-      color: productListData.color || '',
-      production_batch: productListData.productionBatch || '',
-      manufacturer: productListData.manufacturer || '',
-      qr_code_file_directory: productListData.qrCodeFileDirectory || '',
-      qr_code_exported: productListData.qrCodeExported || '否',
-      barcode_file_directory: productListData.barcodeFileDirectory || '',
-      barcode_exported: productListData.barcodeExported || '否',
-      creator_id: productListData.creatorId || 1,
-      creation_time: productListData.creationTime || new Date().toISOString().slice(0, 19).replace('T', ' ')
-    };
-    
-    // Only include optional fields if they have values
-    if (productListData.deviceId) {
-      apiData.device_id = productListData.deviceId;
-    }
-    if (productListData.subAccountId) {
-      apiData.sub_account_id = productListData.subAccountId;
-    }
-    if (productListData.fileExportTime) {
-      apiData.file_export_time = productListData.fileExportTime;
-    }
-    if (productListData.firstBindingTime) {
-      apiData.first_binding_time = productListData.firstBindingTime;
-    }
-    
-    console.log('Sending API data:', apiData);
-    
-    const response = await axios.post(constructApiUrl('product-list'), apiData);
-    console.log('Product creation response:', response.data);
-    
+    const response = await axios.post(constructApiUrl('product-list'), productListData);
+    await fetchProductList(); // Refresh data
     return response.data;
   } catch (error) {
     console.error('Error creating product list:', error);
-    if (error.response) {
-      console.error('Response status:', error.response.status);
-      console.error('Response data:', error.response.data);
-    }
     throw error;
   }
 };
-const testSimpleProductCreation = async () => {
-  try {
-    const testData = {
-      product_id: 'TEST_001',
-      product_name: '测试产品',
-      product_code: 'TEST_001',
-      product_name2: '测试产品',
-      product_type: '玩具',
-      product_model: '测试型号',
-      ip_role: '默认',
-      color: '默认',
-      production_batch: '2025-01-27',
-      manufacturer: '测试厂家',
-      qr_code_file_directory: '/test/qr.png',
-      qr_code_exported: '否',
-      barcode_file_directory: '/test/barcode.png',
-      barcode_exported: '否',
-      creator_id: 1,
-      creation_time: new Date().toISOString().slice(0, 19).replace('T', ' ')
-    };
-    
-    console.log('Testing with simple data:', testData);
-    const response = await axios.post(constructApiUrl('product-list'), testData);
-    console.log('Simple test response:', response.data);
-    message.success('简单测试成功！');
-  } catch (error) {
-    console.error('Simple test failed:', error);
-    if (error.response) {
-      console.error('Test response status:', error.response.status);
-      console.error('Test response data:', error.response.data);
-    }
-    message.error('简单测试失败');
-  }
-};
+
 const updateProductList = async (id: number, productListData: Partial<DataItem>) => {
   try {
     const response = await axios.put(constructApiUrl(`product-list/${id}`), productListData);
@@ -1332,109 +825,5 @@ html, body {
 .no-data-message .ant-empty-description {
   color: #666;
   font-size: 14px;
-}
-/* Hyperlink styling */
-:deep(.ant-table-tbody .ant-table-cell a) {
-  color: #1890ff;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-:deep(.ant-table-tbody .ant-table-cell a:hover) {
-  color: #40a9ff;
-  text-decoration: underline;
-}
-
-:deep(.ant-table-tbody .ant-table-cell a:active) {
-  color: #096dd9;
-}
-/* Button spacing for the new buttons */
-.right-aligned-icons .ant-btn {
-  margin-left: 8px;
-}
-/* Modal styling */
-.modal-content {
-  padding: 20px 0;
-}
-
-.section-header {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: rgba(0, 0, 0, 0.85);
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.confirmation-content {
-  text-align: center;
-  padding: 20px 0;
-}
-
-.warning-icon {
-  font-size: 48px;
-  color: #faad14;
-  margin-bottom: 16px;
-}
-
-.warning-message {
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.65);
-  line-height: 1.6;
-}
-.form-confirmation-content {
-  text-align: center;
-  padding: 20px 0;
-}
-
-.confirmation-icon {
-  font-size: 48px;
-  color: #52c41a;
-  margin-bottom: 16px;
-}
-
-.confirmation-message {
-  font-size: 16px;
-  color: rgba(0, 0, 0, 0.85);
-  margin-bottom: 24px;
-  font-weight: 500;
-}
-
-.form-data-summary {
-  background: #fafafa;
-  border-radius: 6px;
-  padding: 16px;
-  margin: 16px 0;
-  text-align: left;
-}
-
-.summary-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.summary-item:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-.summary-item .label {
-  color: rgba(0, 0, 0, 0.65);
-  font-weight: 500;
-}
-
-.summary-item .value {
-  color: rgba(0, 0, 0, 0.85);
-  font-weight: 600;
 }
 </style>

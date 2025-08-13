@@ -104,9 +104,25 @@
       </div>
     </div>
       
+    <!-- Debug section -->
+    <!-- <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border: 1px solid #ccc;">
+      <h4>Debug Info:</h4>
+      <p>rawData length: {{ rawData.length }}</p>
+      <p>filteredData length: {{ filteredData.length }}</p>
+      <p>columns length: {{ columns.length }}</p>
+      <p>loading: {{ loading }}</p>
+      <p>First item data: {{ filteredData[0] ? JSON.stringify(filteredData[0], null, 2) : 'No data' }}</p>
+    </div> -->
+    
     <!-- table area -->
     <div class="table-container">
+      <!-- Show message when no data -->
+      <div v-if="!loading && filteredData.length === 0" class="no-data-message">
+        <a-empty description="暂无数据" />
+      </div>
+      
       <a-table
+        v-else
         :columns="columns"
         :data-source="filteredData"
         :pagination="filteredData.length === 0 ? false : pagination"
@@ -117,20 +133,38 @@
         :showSorterTooltip="false"
         @edit-record="handleEditRecord"
       >
-      <template #bodyCell="{ column, record }">
-      <template v-if="column.key === 'operation'">
-        <a-space class="action-cell" direction="horizontal">
-          <a class="edit-link" @click="handleEditRecord(record)">编辑</a>
-          <a-divider type="vertical" />
-          <a-popconfirm
-            title="确定要删除该信息吗?"
-            @confirm="$emit('delete-record', record)"
+      <template #bodyCell="{ column, record, index }">
+        <template v-if="column.key === 'operation'">
+          <div class="action-cell">
+            <a class="view-link" @click="handleViewRecord(record)">查看</a>
+            <a-divider type="vertical" />
+            <a class="edit-link" @click="handleEditRecord(record)">编辑</a>
+            <a-divider type="vertical" />
+            <a-popconfirm
+              title="确定要删除该信息吗?"
+              @confirm="$emit('delete-record', record)"
+            >
+              <a class="danger-link">删除</a>
+            </a-popconfirm>
+          </div>
+        </template>
+        <template v-else-if="column.key === 'rowIndex'">
+          <span>{{ (currentPage - 1) * pageSize + index + 1 }}</span>
+        </template>
+        <template v-else-if="column.key === 'productModel'">
+          <a 
+            v-if="record[column.dataIndex]" 
+            class="product-model-link" 
+            @click="router.push({ path: '/product-type', query: { search: record[column.dataIndex] }})"
           >
-            <a class="danger-link">删除</a>
-          </a-popconfirm>
-        </a-space>
+            {{ record[column.dataIndex] }}
+          </a>
+          <span v-else>-</span>
+        </template>
+        <template v-else>
+          <span>{{ record[column.dataIndex] || '' }}</span>
+        </template>
       </template>
-    </template>
       </a-table>
     </div>
 
@@ -159,37 +193,121 @@
       v-model:open="showBatchModal"
       title="新增批次"
       @ok="handleBatchOk"
-      @cancel="showBatchModal = false"
+      @cancel="handleBatchModalClose"
       width="500px"
     >
-      <a-form layout="vertical">
-        <a-form-item required label="生产批次ID">
-          <a-input placeholder="请输入生产批次ID" />
+      <a-form layout="vertical" :model="batchFormData" :rules="batchFormRules" ref="batchFormRef">
+        <a-form-item required label="产品名称" name="productName">
+          <a-select 
+            v-model:value="batchFormData.productName" 
+            placeholder="请选择"
+            show-search
+            :options="productNameOptions"
+            :filter-option="filterProductOptions"
+          />
         </a-form-item>
-        <a-form-item required label="产品型号">
-          <a-select placeholder="请选择产品型号">
-            <a-select-option v-for="option in productNameOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </a-select-option>
-          </a-select>
+        <a-form-item required label="生产批次" name="productionBatch">
+          <a-date-picker 
+            v-model:value="batchFormData.productionBatch" 
+            style="width: 100%;" 
+            placeholder="请选择"
+            format="YYYY-MM-DD"
+          />
         </a-form-item>
-        <a-form-item required label="产品名称">
-          <a-input placeholder="请输入产品名称" />
+        <a-form-item required label="生产厂家" name="manufacturer">
+          <a-auto-complete
+            v-model:value="batchFormData.manufacturer"
+            placeholder="请输入"
+            :maxlength="15"
+            :options="batchManufacturerOptions"
+            @input="handleManufacturerInput"
+            allow-clear
+          />
         </a-form-item>
-        <a-form-item required label="生产批次">
-          <a-date-picker style="width: 100%;" placeholder="请选择生产日期" />
+        <a-form-item required label="单价" name="unitPrice">
+          <a-input 
+            v-model:value="batchFormData.unitPrice" 
+            suffix="元" 
+            placeholder="请输入"
+            type="number"
+            step="0.01"
+            min="0"
+          />
         </a-form-item>
-        <a-form-item required label="生产厂家">
-          <a-input placeholder="请输入生产厂家" />
+        <a-form-item required label="数量" name="quantity">
+          <a-input 
+            v-model:value="batchFormData.quantity" 
+            suffix="个" 
+            placeholder="请输入"
+            type="number"
+            min="1"
+            step="1"
+          />
         </a-form-item>
-        <a-form-item required label="单价">
-          <a-input suffix="元" placeholder="请输入单价" />
+      </a-form>
+    </a-modal>
+
+    <!-- Edit Batch Modal -->
+    <a-modal
+      v-model:open="showEditBatchModal"
+      title="编辑批次"
+      @ok="handleEditBatchOk"
+      @cancel="handleEditBatchModalClose"
+      width="500px"
+    >
+      <a-form layout="vertical" :model="editBatchFormData" :rules="editBatchFormRules" ref="editBatchFormRef">
+        <a-form-item required label="产品名称" name="productName">
+          <a-select 
+            v-model:value="editBatchFormData.productName" 
+            placeholder="请选择"
+            show-search
+            :options="productNameOptions"
+            :filter-option="filterProductOptions"
+            :disabled="isEditFieldsDisabled"
+            class="disabled-field"
+          />
         </a-form-item>
-        <a-form-item required label="数量">
-          <a-input suffix="个" placeholder="请输入数量" />
+        <a-form-item required label="生产批次" name="productionBatch">
+          <a-date-picker 
+            v-model:value="editBatchFormData.productionBatch" 
+            style="width: 100%;" 
+            placeholder="请选择"
+            format="YYYY-MM-DD"
+            :disabled="isEditFieldsDisabled"
+            class="disabled-field"
+          />
         </a-form-item>
-        <a-form-item label="更新人">
-          <a-input placeholder="请输入更新人ID" />
+        <a-form-item required label="生产厂家" name="manufacturer">
+          <a-auto-complete
+            v-model:value="editBatchFormData.manufacturer"
+            placeholder="请输入"
+            :maxlength="15"
+            :options="batchManufacturerOptions"
+            @input="handleEditManufacturerInput"
+            allow-clear
+            :disabled="isEditFieldsDisabled"
+            class="disabled-field"
+          />
+        </a-form-item>
+        <a-form-item required label="单价" name="unitPrice">
+          <a-input 
+            v-model:value="editBatchFormData.unitPrice" 
+            suffix="元" 
+            placeholder="请输入"
+            type="number"
+            step="0.01"
+            min="0"
+          />
+        </a-form-item>
+        <a-form-item required label="数量" name="quantity">
+          <a-input-number
+            v-model:value="editBatchFormData.quantity"
+            suffix="个"
+            placeholder="请输入"
+            :min="1"
+            :step="1"
+            style="width: 100%"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -198,9 +316,10 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
+import { useRouter } from 'vue-router';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
-import { theme, message } from 'ant-design-vue';
+import { theme, message, Empty } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import axios from 'axios';
@@ -214,6 +333,9 @@ import {
   type ColumnDefinition 
 } from '../utils/tableConfig';
 import { constructApiUrl } from '../utils/api';
+import dayjs from 'dayjs';
+
+const router = useRouter();
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -226,6 +348,7 @@ const customLocale = computed(() => ({
 interface DataItem {
   key: number;
   id?: number;
+  rowIndex?: number; // Add rowIndex field
   productionBatchId: string; // 生产批次ID
   productModel: string; // 产品型号
   productName: string; // 产品名称
@@ -249,11 +372,11 @@ interface ColumnConfig {
   sorter?: (a: any, b: any) => number;
   sortDirections?: ('ascend' | 'descend')[];
   defaultSortOrder?: 'ascend' | 'descend';
-  customCell?: (record: any, index: number) => { children: any; [key: string]: any };
+  customRender?: (record: any, index?: number) => any;
 }
 
 const columnConfigs = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customCell: (record: any, index: number) => ({ children: index + 1 }) },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
   { key: 'productionBatchId', title: '生产批次ID', dataIndex: 'productionBatchId', width: 150 },
   { key: 'productModel', title: '产品型号', dataIndex: 'productModel', width: 150, sorter: (a: any, b: any) => a.productModel.localeCompare(b.productModel), sortDirections: ['ascend', 'descend'] },
   { key: 'productName', title: '产品名称', dataIndex: 'productName', width: 200, sorter: (a: any, b: any) => a.productName.localeCompare(b.productName), sortDirections: ['ascend', 'descend'] },
@@ -265,7 +388,7 @@ const columnConfigs = [
   { key: 'updaterId', title: '更新人', dataIndex: 'updaterId', width: 100 },
   { key: 'createTime', title: '创建时间', dataIndex: 'createTime', width: 160, sorter: (a: any, b: any) => a.createTime.localeCompare(b.createTime), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => a.updateTime.localeCompare(b.updateTime), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation', title: '操作', dataIndex: '', width: 150, fixed: 'right' },
+  { key: 'operation', title: '操作', dataIndex: 'operation', width: 200, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -274,28 +397,42 @@ const selectedColumnKeys = ref<string[]>(columnConfigs.map(config => config.key)
 
 // Create columns from configs
 const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
-  return configs.map(config => ({
-    title: config.title,
-    dataIndex: config.dataIndex,
-    key: config.key,
-    width: config.width,
-    fixed: config.fixed,
-    sorter: config.sorter,
-    sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    defaultSortOrder: config.defaultSortOrder,
-    customCell: config.customCell
-      ? config.customCell
-      : (record: any) => {
-          const value = record[config.dataIndex];
-          // Handle undefined, null, or empty values properly
-          if (value === undefined || value === null || value === '') {
-            return { children: '' };
-          }
-          // Ensure the value is a valid string or number
-          return { children: String(value) };
-        },
-  })) as ColumnsType;
+  console.log('=== CREATE COLUMNS FROM CONFIGS ===');
+  console.log('Input configs:', configs);
+  
+  const columns = configs.map(config => {
+    console.log(`Processing config for key: ${config.key}`);
+    
+    // Simplified column creation for debugging
+    const column = {
+      title: config.title,
+      dataIndex: config.dataIndex,
+      key: config.key,
+      width: config.width,
+      fixed: config.fixed,
+      sorter: config.sorter,
+      sortDirections: config.sorter ? config.sortDirections : undefined,
+      sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
+      defaultSortOrder: config.defaultSortOrder,
+      customRender: config.customRender || (({ text, record }) => {
+        // Handle hyperlink for productModel column
+        if (config.key === 'productModel') {
+          return text ? h('a', {
+            style: { color: '#1890ff', cursor: 'pointer' },
+            onClick: () => router.push({ path: '/product-type', query: { search: text } })
+          }, text) : '-';
+        }
+        // Default rendering for other columns
+        return text === undefined || text === null || text === '' ? '-' : text;
+      }),
+    };
+    
+    console.log(`Created column for ${config.key}:`, column);
+    return column;
+  }) as ColumnsType;
+  
+  console.log('Final columns:', columns);
+  return columns;
 };
 
 // Computed property for visible columns
@@ -306,16 +443,25 @@ const columns = computed<ColumnsType>(() => {
     .map(key => columnConfigs.find(config => config.key === key))
     .filter(Boolean) as ColumnConfig[];
 
+  console.log('=== COLUMNS COMPUTED ===');
+  console.log('columnOrder:', columnOrder.value);
+  console.log('selectedColumnKeys:', selectedColumnKeys.value);
+  console.log('visibleConfigs:', visibleConfigs);
+
   // Create columns from visible configs
   const visibleColumns = createColumnsFromConfigs(visibleConfigs);
+  console.log('visibleColumns:', visibleColumns);
 
   // Sort columns: fixed left, then unfixed, then fixed right
-  return visibleColumns.sort((a, b) => {
+  const sortedColumns = visibleColumns.sort((a, b) => {
     const fixedOrder = { 'left': 1, undefined: 2, 'right': 3 };
     const aFixed = fixedOrder[a.fixed as keyof typeof fixedOrder] || 2;
     const bFixed = fixedOrder[b.fixed as keyof typeof fixedOrder] || 2;
     return aFixed - bFixed;
   });
+  
+  console.log('Final sorted columns:', sortedColumns);
+  return sortedColumns;
 });
 
 // Generate virtual data for the new columns
@@ -330,7 +476,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const fetchToyProductionData = async () => {
   try {
     loading.value = true;
+    console.log('=== STARTING API CALL ===');
     console.log('Fetching toy production data with page:', currentPage.value, 'pageSize:', pageSize.value);
+    console.log('API URL:', constructApiUrl('toy-production'));
     
     const response = await axios.get(constructApiUrl('toy-production'), {
       params: {
@@ -339,44 +487,42 @@ const fetchToyProductionData = async () => {
       }
     });
     
-    console.log('API Response:', response.data);
+    console.log('=== API RESPONSE RECEIVED ===');
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+    console.log('Response data type:', typeof response.data);
+    console.log('Response data keys:', response.data ? Object.keys(response.data) : 'No data');
     
     if (response.data && response.data.data) {
       // Server-side pagination response
-      console.log('=== DEBUG: First item structure ===');
+      console.log('=== PROCESSING PAGINATED DATA ===');
+      console.log('Data array length:', response.data.data.length);
+      console.log('First item:', response.data.data[0]);
+      
       if (response.data.data.length > 0) {
         const firstItem = response.data.data[0];
-        console.log('First item:', firstItem);
         console.log('First item keys:', Object.keys(firstItem));
         console.log('First item values:', Object.values(firstItem));
-        console.log('First item types:', Object.entries(firstItem).map(([key, value]) => `${key}: ${typeof value}`));
         
         // Check specific fields we need
         console.log('=== FIELD CHECK ===');
-        console.log('productId:', firstItem.productId);
+        console.log('productionBatchId:', firstItem.productionBatchId);
+        console.log('productModel:', firstItem.productModel);
         console.log('productName:', firstItem.productName);
-        console.log('productionBatch:', firstItem.productionBatch);
-        console.log('creator:', firstItem.creator);
+        console.log('productionBatchDate:', firstItem.productionBatchDate);
+        console.log('manufacturer:', firstItem.manufacturer);
+        console.log('unitPrice:', firstItem.unitPrice);
+        console.log('quantity:', firstItem.quantity);
         console.log('totalPrice:', firstItem.totalPrice);
+        console.log('updaterId:', firstItem.updaterId);
+        console.log('createTime:', firstItem.createTime);
+        console.log('updateTime:', firstItem.updateTime);
       }
       
       rawData.value = response.data.data.map((item: any, index: number) => {
-        console.log(`Item ${index}:`, item);
-        console.log(`Item ${index} keys:`, Object.keys(item));
-        console.log(`Item ${index} values:`, Object.values(item));
+        console.log(`Processing item ${index}:`, item);
         
-        // Debug specific fields
-        console.log(`=== DEBUG ITEM ${index} ===`);
-        console.log(`productionBatchId:`, item.productionBatchId, `(type: ${typeof item.productionBatchId})`);
-        console.log(`productModel:`, item.productModel, `(type: ${typeof item.productModel})`);
-        console.log(`productionBatchDate:`, item.productionBatchDate, `(type: ${typeof item.productionBatchDate})`);
-        console.log(`updaterId:`, item.updaterId, `(type: ${typeof item.updaterId})`);
-        console.log(`manufacturer:`, item.manufacturer, `(type: ${typeof item.manufacturer})`);
-        console.log(`unitPrice:`, item.unitPrice, `(type: ${typeof item.unitPrice})`);
-        console.log(`quantity:`, item.quantity, `(type: ${typeof item.quantity})`);
-        console.log(`totalPrice:`, item.totalPrice, `(type: ${typeof item.totalPrice})`);
-        
-        return {
+        const processedItem = {
           ...item,
           key: item.id || index + 1,
           // Map to the expected field names for the table based on existing API response
@@ -392,71 +538,43 @@ const fetchToyProductionData = async () => {
           createTime: item.createTime || '',
           updateTime: item.updateTime || ''
         };
+        
+        console.log(`Processed item ${index}:`, processedItem);
+        return processedItem;
       });
-      console.log('Processed rawData:', rawData.value);
+      
+      console.log('=== FINAL PROCESSED DATA ===');
+      console.log('rawData length:', rawData.value.length);
+      console.log('rawData:', rawData.value);
       
       // Update pagination info from server
       if (response.data.pagination) {
         currentPage.value = response.data.pagination.current;
         pageSize.value = response.data.pagination.pageSize;
-        total.value = parseInt(response.data.pagination.total) || 0; // Convert to number
+        total.value = parseInt(response.data.pagination.total) || 0;
         
         console.log('Updated pagination - current:', currentPage.value, 'pageSize:', pageSize.value, 'total:', total.value);
       }
-    } else if (response.data && Array.isArray(response.data)) {
-      // Fallback for old API format
-      console.log('=== DEBUG: Fallback data structure ===');
-      if (response.data.length > 0) {
-        const firstItem = response.data[0];
-        console.log('First item:', firstItem);
-        console.log('First item keys:', Object.keys(firstItem));
-        console.log('First item values:', Object.values(firstItem));
-        console.log('First item types:', Object.entries(firstItem).map(([key, value]) => `${key}: ${typeof value}`));
-        
-        // Check specific fields we need
-        console.log('=== FALLBACK FIELD CHECK ===');
-        console.log('productId:', firstItem.productId);
-        console.log('productName:', firstItem.productName);
-        console.log('productionBatch:', firstItem.productionBatch);
-        console.log('creator:', firstItem.creator);
-        console.log('totalPrice:', firstItem.totalPrice);
-      }
-      
-      rawData.value = response.data.map((item: any, index: number) => {
-        console.log(`Item ${index}:`, item);
-        console.log(`Item ${index} keys:`, Object.keys(item));
-        console.log(`Item ${index} values:`, Object.values(item));
-        
-        return {
-          ...item,
-          key: item.id || index + 1,
-          // Map to the expected field names for the table based on existing API response
-          productionBatchId: item.productId || '',
-          productModel: item.deviceModel || '',
-          productName: item.productName || '',
-          productionBatchDate: item.productionBatch || '',
-          manufacturer: item.manufacturer || '',
-          unitPrice: typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(item.unitPrice) || 0,
-          quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 0,
-          totalPrice: typeof item.totalPrice === 'number' ? item.totalPrice : parseFloat(String(item.totalPrice).replace(/,/g, '')) || 0,
-          updaterId: typeof item.creator === 'number' ? item.creator : parseInt(item.creator) || 0,
-          createTime: item.createTime || '',
-          updateTime: item.updateTime || ''
-        };
-      });
-      total.value = response.data.length; // Already a number
-      console.log('Processed rawData:', rawData.value);
     } else {
+      console.log('=== NO DATA IN RESPONSE ===');
+      console.log('Response data is falsy or has no data property');
       message.error('获取数据失败：服务器返回无效数据');
       rawData.value = [];
       total.value = 0;
     }
   } catch (error: any) {
+    console.error('=== API ERROR ===');
     console.error('Error fetching toy production data:', error);
+    console.error('Error response:', error.response);
+    console.error('Error request:', error.request);
+    console.error('Error message:', error.message);
     
     // Handle different types of errors
     if (error.response) {
       // Server responded with error status
+      console.error('Server error status:', error.response.status);
+      console.error('Server error data:', error.response.data);
+      
       if (error.response.status === 404) {
         message.error('错误：玩具生产表不存在，请检查数据库');
       } else if (error.response.status === 500) {
@@ -466,9 +584,11 @@ const fetchToyProductionData = async () => {
       }
     } else if (error.request) {
       // Network error
+      console.error('Network error - no response received');
       message.error('错误：无法连接到服务器，请检查网络连接');
     } else {
       // Other errors
+      console.error('Other error:', error.message);
       message.error('错误：获取数据时发生未知错误');
     }
     
@@ -477,6 +597,10 @@ const fetchToyProductionData = async () => {
     total.value = 0;
   } finally {
     loading.value = false;
+    console.log('=== API CALL COMPLETED ===');
+    console.log('Final rawData length:', rawData.value.length);
+    console.log('Final total:', total.value);
+    console.log('Final loading state:', loading.value);
   }
 };
 
@@ -497,6 +621,11 @@ const productNameOptions = computed(() => {
 const manufacturerOptions = computed(() => {
   const unique = Array.from(new Set(rawData.value.map(item => item.manufacturer)));
   return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
+});
+
+const batchManufacturerOptions = computed(() => {
+  const unique = Array.from(new Set(rawData.value.map(item => item.manufacturer)));
+  return unique.map(v => ({ key: v, value: v, label: v }));
 });
 
 const handleProductNameChange = (val: any) => {
@@ -571,15 +700,26 @@ watch(searchInputValue, (val) => {
 });
 
 const filteredData = computed<DataItem[]>(() => {
+  console.log('=== FILTERED DATA COMPUTED ===');
+  console.log('rawData length:', rawData.value.length);
+  console.log('rawData:', rawData.value);
+  console.log('searchInputValue:', searchInputValue.value);
+  console.log('debouncedSearchValue:', debouncedSearchValue.value);
+  console.log('productNameValue:', productNameValue.value);
+  console.log('manufacturerValue:', manufacturerValue.value);
+  
   let dataToFilter: DataItem[] = [...rawData.value];
+  console.log('Initial dataToFilter length:', dataToFilter.length);
 
   if (debouncedSearchValue.value) {
     const searchTerm = debouncedSearchValue.value.toLowerCase();
+    console.log('Applying search filter with term:', searchTerm);
     dataToFilter = dataToFilter.filter((item: DataItem) => {
       return Object.values(item).some(value =>
         typeof value === 'string' && value.toLowerCase().includes(searchTerm)
       );
     });
+    console.log('After search filter, dataToFilter length:', dataToFilter.length);
   }
 
   // Filter by product name
@@ -588,7 +728,9 @@ const filteredData = computed<DataItem[]>(() => {
     productNameValue.value.value !== 'all' &&
     productNameValue.value.value !== ''
   ) {
+    console.log('Applying product name filter:', productNameValue.value.value);
     dataToFilter = dataToFilter.filter(item => item.productName === productNameValue.value.value);
+    console.log('After product name filter, dataToFilter length:', dataToFilter.length);
   }
 
   // Filter by manufacturer
@@ -597,11 +739,14 @@ const filteredData = computed<DataItem[]>(() => {
     manufacturerValue.value.value !== 'all' &&
     manufacturerValue.value.value !== ''
   ) {
+    console.log('Applying manufacturer filter:', manufacturerValue.value.value);
     dataToFilter = dataToFilter.filter(item => item.manufacturer === manufacturerValue.value.value);
+    console.log('After manufacturer filter, dataToFilter length:', dataToFilter.length);
   }
 
   // Sorting logic
   if (sorterInfo.value && sorterInfo.value.order) {
+    console.log('Applying sorting:', sorterInfo.value);
     const { columnKey, order } = sorterInfo.value;
     const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
     if (sorterFn) {
@@ -612,8 +757,19 @@ const filteredData = computed<DataItem[]>(() => {
     }
   }
 
+  console.log('Final filteredData length:', dataToFilter.length);
+  console.log('Final filteredData:', dataToFilter);
   return dataToFilter;
 });
+
+// Add watchers for debugging
+watch([filteredData, columns], ([newFilteredData, newColumns]) => {
+  console.log('=== WATCHER TRIGGERED ===');
+  console.log('filteredData changed:', newFilteredData);
+  console.log('columns changed:', newColumns);
+  console.log('filteredData length:', newFilteredData.length);
+  console.log('columns length:', newColumns.length);
+}, { immediate: true });
 
 const handleTableChange = (
   paginationData: any,
@@ -699,10 +855,26 @@ const handleReleaseModalSubmit = (_data: any) => {
 const showEditModal = ref(false);
 const editRecord = ref<any>(null);
 
-const handleEditRecord = (_record: any) => {
-  message.info('开发中');
-  // editRecord.value = { ..._record };
-  // showEditModal.value = true;
+const handleEditRecord = (record: any) => {
+  // Set the first three fields to be disabled (产品名称, 生产批次, 生产厂家)
+  isEditFieldsDisabled.value = true;
+  
+  // Pre-fill the form with existing data
+  editBatchFormData.value = {
+    productName: record.productName || '',
+    productionBatch: record.productionBatchDate ? dayjs(record.productionBatchDate) : null,
+    manufacturer: record.manufacturer || '',
+    unitPrice: record.unitPrice?.toString() || '',
+    quantity: record.quantity?.toString() || '',
+  };
+  
+  editRecord.value = record;
+  showEditBatchModal.value = true;
+};
+
+const handleViewRecord = (_record: any) => {
+  message.info('查看功能开发中');
+  // TODO: Implement view functionality
 };
 const handleEditModalClose = () => {
   showEditModal.value = false;
@@ -722,14 +894,217 @@ const handleProductCreateSubmit = (_data: any) => {
 };
 
 const showBatchModal = ref(false);
-const handleBatchOk = () => {
-  // TODO: Validate and submit form data
+const handleBatchOk = async () => {
+  try {
+    // Validate form
+    await batchFormRef.value.validate();
+    
+    // Check uniqueness: Product Name + Production Batch + Manufacturer combination must be unique
+    const isDuplicate = rawData.value.some(item => 
+      item.productName === batchFormData.value.productName &&
+      item.productionBatchDate === batchFormData.value.productionBatch &&
+      item.manufacturer === batchFormData.value.manufacturer
+    );
+    
+    if (isDuplicate) {
+      message.error('该产品名称、生产批次、生产厂家组合已存在，请检查后重新输入');
+      return;
+    }
+    
+    // Create new batch record
+    const newBatch = {
+      key: Date.now(), // Generate unique key
+      id: Date.now(),
+      productionBatchId: `BATCH_${Date.now()}`, // Auto-generate batch ID
+      productModel: '', // Will be populated from product name mapping
+      productName: batchFormData.value.productName,
+      productionBatchDate: batchFormData.value.productionBatch ? batchFormData.value.productionBatch.format('YYYY-MM-DD') : '',
+      manufacturer: batchFormData.value.manufacturer,
+      unitPrice: parseFloat(batchFormData.value.unitPrice) || 0,
+      quantity: parseInt(batchFormData.value.quantity) || 0,
+      totalPrice: (parseFloat(batchFormData.value.unitPrice) || 0) * (parseInt(batchFormData.value.quantity) || 0),
+      updaterId: 0, // Default value
+      createTime: new Date().toISOString(),
+      updateTime: new Date().toISOString()
+    };
+    
+    // Add to raw data
+    rawData.value.unshift(newBatch);
+    
+    // Reset form
+    resetBatchForm();
+    
+    // Close modal
+    showBatchModal.value = false;
+    
+    // Show success message
+    message.success('新增批次成功');
+    
+  } catch (error) {
+    console.error('Form validation failed:', error);
+  }
+};
+
+const resetBatchForm = () => {
+  batchFormData.value = {
+    productName: '',
+    productionBatch: null,
+    manufacturer: '',
+    unitPrice: '',
+    quantity: '',
+  };
+  // Clear form validation errors
+  if (batchFormRef.value) {
+    batchFormRef.value.clearValidate();
+  }
+};
+
+const handleBatchModalClose = () => {
+  resetBatchForm();
   showBatchModal.value = false;
 };
 
+const batchFormData = ref({
+  productName: '',
+  productionBatch: null as any,
+  manufacturer: '',
+  unitPrice: '',
+  quantity: '',
+});
+
+const batchFormRules = {
+  productName: [{ required: true, message: '请选择产品名称' }],
+  productionBatch: [{ required: true, message: '请选择生产批次' }],
+  manufacturer: [
+    { required: true, message: '请输入生产厂家' },
+    { max: 15, message: '生产厂家不能超过15个字符' }
+  ],
+  unitPrice: [
+    { required: true, message: '请输入单价' },
+    { pattern: /^[0-9]+(\.[0-9]{1,2})?$/, message: '请输入有效的价格，最多支持2位小数' }
+  ],
+  quantity: [
+    { required: true, message: '请输入数量' },
+    { pattern: /^[1-9][0-9]*$/, message: '请输入正整数' }
+  ],
+};
+
+const batchFormRef = ref<any>(null);
+const editBatchFormRef = ref<any>(null);
+
+const filterProductOptions = (input: string, option: any) => {
+  return option.label.toLowerCase().includes(input.toLowerCase());
+};
+
+const handleManufacturerInput = (e: Event) => {
+  const value = (e.target as HTMLInputElement).value;
+  batchFormData.value.manufacturer = value.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, ''); // 只允许中英文数字
+};
+
+const showEditBatchModal = ref(false);
+const editBatchFormData = ref({
+  productName: '',
+  productionBatch: null as any,
+  manufacturer: '',
+  unitPrice: '',
+  quantity: '',
+});
+
+const editBatchFormRules = {
+  productName: [{ required: true, message: '请选择产品名称' }],
+  productionBatch: [{ required: true, message: '请选择生产批次' }],
+  manufacturer: [
+    { required: true, message: '请输入生产厂家' },
+    { max: 15, message: '生产厂家不能超过15个字符' }
+  ],
+  unitPrice: [
+    { required: true, message: '请输入单价' },
+    { pattern: /^[0-9]+(\.[0-9]{1,2})?$/, message: '请输入有效的价格，最多支持2位小数' }
+  ],
+  quantity: [
+    { required: true, message: '请输入数量' },
+    { pattern: /^[1-9][0-9]*$/, message: '请输入正整数' }
+  ],
+};
+
+const isEditFieldsDisabled = ref(false);
+
+const handleEditBatchOk = async () => {
+  try {
+    await editBatchFormRef.value.validate();
+
+    const originalRecord = rawData.value.find(item => item.id === editRecord.value.id);
+    if (!originalRecord) {
+      message.error('未找到要编辑的记录');
+      return;
+    }
+
+    const isDuplicate = rawData.value.some(item => 
+      item.productName === editBatchFormData.value.productName &&
+      item.productionBatchDate === editBatchFormData.value.productionBatch &&
+      item.manufacturer === editBatchFormData.value.manufacturer &&
+      item.id !== originalRecord.id // Exclude the current record itself
+    );
+
+    if (isDuplicate) {
+      message.error('该产品名称、生产批次、生产厂家组合已存在，请检查后重新输入');
+      return;
+    }
+
+    const updatedRecord = {
+      ...originalRecord,
+      productName: editBatchFormData.value.productName,
+      productionBatchDate: editBatchFormData.value.productionBatch ? editBatchFormData.value.productionBatch.format('YYYY-MM-DD') : '',
+      manufacturer: editBatchFormData.value.manufacturer,
+      unitPrice: parseFloat(editBatchFormData.value.unitPrice) || 0,
+      quantity: parseInt(editBatchFormData.value.quantity) || 0,
+      totalPrice: (parseFloat(editBatchFormData.value.unitPrice) || 0) * (parseInt(editBatchFormData.value.quantity) || 0),
+      updateTime: new Date().toISOString(),
+    };
+
+    const index = rawData.value.findIndex(item => item.id === originalRecord.id);
+    if (index !== -1) {
+      rawData.value[index] = updatedRecord;
+    }
+
+    resetEditBatchForm();
+    showEditBatchModal.value = false;
+    message.success('编辑批次成功');
+  } catch (error) {
+    console.error('Form validation failed:', error);
+  }
+};
+
+const resetEditBatchForm = () => {
+  editBatchFormData.value = {
+    productName: '',
+    productionBatch: null,
+    manufacturer: '',
+    unitPrice: '',
+    quantity: '',
+  };
+  if (editBatchFormRef.value) {
+    editBatchFormRef.value.clearValidate();
+  }
+};
+
+const handleEditBatchModalClose = () => {
+  resetEditBatchForm();
+  showEditBatchModal.value = false;
+};
+
+const handleEditManufacturerInput = (e: Event) => {
+  const value = (e.target as HTMLInputElement).value;
+  editBatchFormData.value.manufacturer = value.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, ''); // 只允许中英文数字
+};
+
 onMounted(() => {
+  console.log('=== COMPONENT MOUNTED ===');
+  console.log('Setting selectedColumnKeys:', columnConfigs.map(config => config.key));
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  console.log('Calling fetchToyProductionData...');
   fetchToyProductionData(); // Fetch data on component mount
+  console.log('Component mount completed');
 });
 
 defineExpose({
@@ -910,20 +1285,43 @@ html, body {
   padding-right: 18px !important; /* keep space for arrow */
 }
 
-/* Make the action buttons horizontal and style '编辑' as blue and bold */
+/* Make the action buttons horizontal and style them properly */
 :deep(.ant-table-cell .action-cell) {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 90px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  min-width: 140px !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
 }
+
+:deep(.ant-table-cell .action-cell .ant-space) {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+:deep(.ant-table-cell .action-cell .view-link) {
+  color: #1890ff !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+}
+
 :deep(.ant-table-cell .action-cell .edit-link) {
-  color: #1890ff !important; /* Ant Design blue */
-  font-weight: bold;
+  color: #1890ff !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
 }
+
 :deep(.ant-table-cell .action-cell .danger-link) {
-  color: #ff4d4f !important; /* Ant Design red */
-  font-weight: bold;
+  color: #ff4d4f !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
 }
 
 :deep(.ant-table-column-sorter-up),
@@ -944,5 +1342,47 @@ html, body {
 }
 :deep(.manufacturer-select .ant-select-selector) {
   padding-left: 65px !important;
+}
+
+/* Hyperlink styling for product model */
+:deep(.ant-table-tbody .ant-table-cell .product-model-link) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  cursor: pointer;
+}
+
+:deep(.ant-table-tbody .ant-table-cell .product-model-link:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell .product-model-link:active) {
+  color: #096dd9;
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 40px 0;
+}
+
+/* Disabled field styling for edit form */
+:deep(.disabled-field .ant-select-selector),
+:deep(.disabled-field .ant-picker-input),
+:deep(.disabled-field .ant-input) {
+  background-color: #f5f5f5 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+  border-color: #d9d9d9 !important;
+}
+
+:deep(.disabled-field .ant-select-arrow),
+:deep(.disabled-field .ant-picker-suffix) {
+  color: #999 !important;
+}
+
+:deep(.disabled-field .ant-select-selection-item) {
+  color: #999 !important;
 }
 </style>
