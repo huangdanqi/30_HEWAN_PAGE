@@ -3,6 +3,12 @@ import pool from '../config/database.js';
 
 const router = express.Router();
 
+// Simple test route to verify the router is working
+router.get('/ping', (req, res) => {
+  console.log('=== PING ROUTE CALLED ===');
+  res.json({ message: 'ProductList router is working!', timestamp: new Date().toISOString() });
+});
+
 // Get all product list records
 router.get('/', async (req, res) => {
   try {
@@ -42,6 +48,9 @@ router.post('/', async (req, res) => {
     console.log('Request body keys:', Object.keys(req.body || {}));
     console.log('Request body length:', req.body ? Object.keys(req.body).length : 0);
     console.log('Content-Type:', req.get('Content-Type'));
+    console.log('Request method:', req.method);
+    console.log('Request URL:', req.url);
+    console.log('Request headers:', req.headers);
     
     // Check if this is a batch add request (empty or minimal body)
     const hasRequiredFields = req.body && 
@@ -62,56 +71,73 @@ router.post('/', async (req, res) => {
     console.log('product_id:', req.body?.product_id);
     console.log('product_name:', req.body?.product_name);
     console.log('product_type:', req.body?.product_type);
+    console.log('req.body is empty object:', req.body && Object.keys(req.body).length === 0);
+    console.log('req.body === null:', req.body === null);
+    console.log('req.body === undefined:', req.body === undefined);
     
     if (!hasRequiredFields || isEmptyOrMinimal) {
       
       console.log('=== BATCH ADD DETECTED ===');
       
-      // Generate a unique product ID for batch add
-      const timestamp = Date.now();
-      const randomSuffix = Math.floor(Math.random() * 1000);
-      const product_id = `PROD_${timestamp}_${randomSuffix}`;
-      
-      // Use default values for batch add
-      const sql = `INSERT INTO product_list (
-        product_id, product_name, product_type, product_model, ip_role, color, 
-        production_batch, manufacturer, qr_code_file_directory, qr_code_exported, 
-        barcode_file_directory, barcode_exported, device_id, sub_account_id, 
-        file_export_time, first_binding_time, creator_id, creation_time, update_time
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
-      
-      const values = [
-        product_id,                    // Auto-generated product ID
-        '新产品',                       // Default product name
-        '默认类型',                     // Default product type
-        null,                         // product_model
-        null,                         // ip_role
-        null,                         // color
-        null,                         // production_batch
-        null,                         // manufacturer
-        null,                         // qr_code_file_directory
-        '否',                         // qr_code_exported
-        null,                         // barcode_file_directory
-        '否',                         // barcode_exported
-        null,                         // device_id
-        null,                         // sub_account_id
-        null,                         // file_export_time
-        null,                         // first_binding_time
-        1,                            // creator_id (default)
-        new Date().toISOString().slice(0, 19).replace('T', ' '), // creation_time
-      ];
-      
-      console.log('Batch Add SQL Query:', sql);
-      console.log('Batch Add Values:', values);
-      console.log('========================');
+      try {
+        // Generate a unique product ID for batch add
+        const timestamp = Date.now();
+        const randomSuffix = Math.floor(Math.random() * 1000);
+        const product_id = `PROD_${timestamp}_${randomSuffix}`;
+        
+        // Use default values for batch add
+        const sql = `INSERT INTO product_list (
+          product_id, product_name, product_type, product_model, ip_role, color, 
+          production_batch, manufacturer, qr_code_file_directory, qr_code_exported, 
+          barcode_file_directory, barcode_exported, device_id, sub_account_id, 
+          file_export_time, first_binding_time, creator_id, creation_time, update_time
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
+        
+        const values = [
+          product_id,                    // Auto-generated product ID
+          '新产品',                       // Default product name
+          '默认类型',                     // Default product type
+          null,                         // product_model
+          null,                         // ip_role
+          null,                         // color
+          null,                         // production_batch
+          null,                         // manufacturer
+          null,                         // qr_code_file_directory
+          '否',                         // qr_code_exported
+          null,                         // barcode_file_directory
+          '否',                         // barcode_exported
+          null,                         // device_id
+          null,                         // sub_account_id
+          null,                         // file_export_time
+          null,                         // first_binding_time
+          1,                            // creator_id (default)
+          new Date().toISOString().slice(0, 19).replace('T', ' '), // creation_time
+        ];
+        
+        console.log('Batch Add SQL Query:', sql);
+        console.log('Batch Add Values:', values);
+        console.log('========================');
 
-      const [result] = await pool.execute(sql, values);
+        const [result] = await pool.execute(sql, values);
 
-      return res.status(201).json({
-        id: result.insertId,
-        product_id: product_id,
-        message: 'Product list record created successfully via batch add'
-      });
+        return res.status(201).json({
+          id: result.insertId,
+          product_id: product_id,
+          message: 'Product list record created successfully via batch add'
+        });
+      } catch (dbError) {
+        console.error('=== DATABASE ERROR IN BATCH ADD ===');
+        console.error('Database error:', dbError);
+        console.error('Error code:', dbError.code);
+        console.error('Error message:', dbError.message);
+        
+        // Return a more specific error message
+        return res.status(500).json({ 
+          error: 'Database error during batch add', 
+          details: dbError.message,
+          code: dbError.code 
+        });
+      }
     }
     
     console.log('=== REGULAR PRODUCT CREATION DETECTED ===');
