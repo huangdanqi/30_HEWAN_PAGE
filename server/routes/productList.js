@@ -1,8 +1,7 @@
 import express from 'express';
-import pool from '../config/database.js';
-const express = require('express');
+import pool from '../config/database.js'; // adjust if needed
+
 const router = express.Router();
-const pool = require('../db'); // adjust path if needed
 
 // ==================== CREATE SINGLE PRODUCT ====================
 router.post('/', async (req, res) => {
@@ -28,7 +27,6 @@ router.post('/', async (req, res) => {
       creator_id
     } = req.body;
 
-    // Basic validation for required fields
     const requiredFields = [
       serial_number, product_id, ip_role, product_model, product_name, product_type, color,
       production_batch, manufacturer, qr_code_file_directory, barcode_file_directory,
@@ -94,7 +92,7 @@ router.post('/batch-add', async (req, res) => {
       '新产品',
       '默认类型',
       '默认颜色',
-      new Date().toISOString().slice(0, 10), // YYYY-MM-DD
+      new Date().toISOString().slice(0, 10),
       '默认制造商',
       '/default/qr/path',
       '否',
@@ -194,5 +192,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
 export default router;
