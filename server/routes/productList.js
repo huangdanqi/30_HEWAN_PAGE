@@ -3,6 +3,45 @@ import pool from '../config/database.js'; // adjust if needed
 
 const router = express.Router();
 
+// ==================== GET ALL PRODUCTS ====================
+router.get('/', async (req, res) => {
+  try {
+    const sql = `
+      SELECT 
+        id,
+        serial_number,
+        product_id,
+        ip_role,
+        product_model,
+        product_name,
+        product_type,
+        color,
+        production_batch,
+        manufacturer,
+        qr_code_file_directory,
+        qr_code_exported,
+        barcode_file_directory,
+        barcode_exported,
+        device_id,
+        sub_account_id,
+        file_export_time,
+        first_binding_time,
+        creator_id,
+        creation_time,
+        update_time
+      FROM product_list
+      ORDER BY update_time DESC
+    `;
+
+    const [rows] = await pool.execute(sql);
+    
+    res.json(rows);
+  } catch (error) {
+    console.error('GET PRODUCTS ERROR:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ==================== CREATE SINGLE PRODUCT ====================
 router.post('/', async (req, res) => {
   try {
