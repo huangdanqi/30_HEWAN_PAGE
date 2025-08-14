@@ -1,3 +1,5 @@
+import express from 'express';
+import pool from '../config/database.js';
 const express = require('express');
 const router = express.Router();
 const pool = require('../db'); // adjust path if needed
