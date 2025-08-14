@@ -422,9 +422,14 @@ router.get('/test', async (req, res) => {
     const [tableInfo] = await pool.execute('DESCRIBE product_list');
     console.log('Table structure:', tableInfo);
     
+    // Show actual columns
+    const [columns] = await pool.execute('SHOW COLUMNS FROM product_list');
+    console.log('Actual columns:', columns.map(col => col.Field));
+    
     res.json({
       message: 'Database connection successful',
       tableStructure: tableInfo,
+      actualColumns: columns.map(col => col.Field),
       timestamp: new Date().toISOString()
     });
   } catch (error) {
