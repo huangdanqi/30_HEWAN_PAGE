@@ -9,6 +9,35 @@ router.get('/ping', (req, res) => {
   res.json({ message: 'ProductList router is working!', timestamp: new Date().toISOString() });
 });
 
+// Test endpoint to verify database connectivity
+router.get('/test', async (req, res) => {
+  try {
+    console.log('=== TEST ENDPOINT CALLED ===');
+    
+    // Test database connection
+    const [rows] = await pool.execute('SELECT 1 as test');
+    console.log('Database connection test result:', rows);
+    
+    // Test table structure
+    const [tableInfo] = await pool.execute('DESCRIBE product_list');
+    console.log('Table structure:', tableInfo);
+    
+    // Show actual columns
+    const [columns] = await pool.execute('SHOW COLUMNS FROM product_list');
+    console.log('Actual columns:', columns.map(col => col.Field));
+    
+    res.json({
+      message: 'Database connection successful',
+      tableStructure: tableInfo,
+      actualColumns: columns.map(col => col.Field),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Test endpoint error:', error);
+    res.status(500).json({ error: 'Database test failed', details: error.message });
+  }
+});
+
 // Get all product list records
 router.get('/', async (req, res) => {
   try {
@@ -406,35 +435,6 @@ router.get('/product-id/:productId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching product list by product ID:', error);
     res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Test endpoint to verify database connectivity
-router.get('/test', async (req, res) => {
-  try {
-    console.log('=== TEST ENDPOINT CALLED ===');
-    
-    // Test database connection
-    const [rows] = await pool.execute('SELECT 1 as test');
-    console.log('Database connection test result:', rows);
-    
-    // Test table structure
-    const [tableInfo] = await pool.execute('DESCRIBE product_list');
-    console.log('Table structure:', tableInfo);
-    
-    // Show actual columns
-    const [columns] = await pool.execute('SHOW COLUMNS FROM product_list');
-    console.log('Actual columns:', columns.map(col => col.Field));
-    
-    res.json({
-      message: 'Database connection successful',
-      tableStructure: tableInfo,
-      actualColumns: columns.map(col => col.Field),
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Test endpoint error:', error);
-    res.status(500).json({ error: 'Database test failed', details: error.message });
   }
 });
 
