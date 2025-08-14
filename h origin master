@@ -8,3 +8,4 @@
 [33m9bf8276[m Simplify ProductType.vue to isolate compilation issue - minimal component for debugging
 [33m429780a[m Add test message to debug blank page issue
 [33m491fb03[m Update 新建产品 form to match requirements: auto-generated product model, validation, suggestions, and IP role name
+[33m55a4559[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m Add batch add functionality for ProductList - Backend: Add batch add detection logic and test endpoint - Frontend: Add simple batch add function and test button - Fixes issue where clicking 确定 should add new row to MySQL table

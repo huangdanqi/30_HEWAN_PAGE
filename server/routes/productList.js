@@ -85,33 +85,15 @@ router.post('/', async (req, res) => {
         const randomSuffix = Math.floor(Math.random() * 1000);
         const product_id = `PROD_${timestamp}_${randomSuffix}`;
         
-        // Use default values for batch add
+        // Use default values for batch add - match the actual database schema
         const sql = `INSERT INTO product_list (
-          product_id, product_name, product_type, product_model, ip_role, color, 
-          production_batch, manufacturer, qr_code_file_directory, qr_code_exported, 
-          barcode_file_directory, barcode_exported, device_id, sub_account_id, 
-          file_export_time, first_binding_time, creator_id, creation_time, update_time
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
+          product_id, product_name, product_code, product_name2, product_type, 
+          color, member_type, device_id, sub_account_id, activation_time, update_time
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`;
         
         const values = [
-          product_id,                    // Auto-generated product ID
-          '新产品',                       // Default product name
-          '默认类型',                     // Default product type
-          null,                         // product_model
-          null,                         // ip_role
-          null,                         // color
-          null,                         // production_batch
-          null,                         // manufacturer
-          null,                         // qr_code_file_directory
-          '否',                         // qr_code_exported
-          null,                         // barcode_file_directory
-          '否',                         // barcode_exported
-          null,                         // device_id
-          null,                         // sub_account_id
-          null,                         // file_export_time
-          null,                         // first_binding_time
-          1,                            // creator_id (default)
-          new Date().toISOString().slice(0, 19).replace('T', ' '), // creation_time
+          product_id, '新产品', product_id, '新产品', '默认类型', 
+          '默认颜色', '普通会员', '默认设备', '默认账户'
         ];
         
         console.log('Batch Add SQL Query:', sql);
@@ -147,21 +129,13 @@ router.post('/', async (req, res) => {
       product_id,
       product_name,
       product_type,
-      product_model,
-      ip_role,
+      product_code,
+      product_name2,
       color,
-      production_batch,
-      manufacturer,
-      qr_code_file_directory,
-      qr_code_exported,
-      barcode_file_directory,
-      barcode_exported,
+      member_type,
       device_id,
       sub_account_id,
-      file_export_time,
-      first_binding_time,
-      creator_id,
-      creation_time
+      activation_time
     } = req.body;
 
     // Validate required fields
@@ -173,31 +147,21 @@ router.post('/', async (req, res) => {
 
     // Use the correct columns that exist in your table
     const sql = `INSERT INTO product_list (
-      product_id, product_name, product_type, product_model, ip_role, color, 
-      production_batch, manufacturer, qr_code_file_directory, qr_code_exported, 
-      barcode_file_directory, barcode_exported, device_id, sub_account_id, 
-      file_export_time, first_binding_time, creator_id, creation_time, update_time
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
+      product_id, product_name, product_code, product_name2, product_type, 
+      color, member_type, device_id, sub_account_id, activation_time, update_time
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
     
     const values = [
       product_id, 
-      product_name, 
-      product_type, 
-      product_model || null, 
-      ip_role || null, 
+      product_name,
+      product_code || product_id, // Use product_id as fallback for product_code
+      product_name2 || product_name, // Use product_name as fallback for product_name2
+      product_type,
       color || null,
-      production_batch || null, 
-      manufacturer || null, 
-      qr_code_file_directory || null, 
-      qr_code_exported || '否',
-      barcode_file_directory || null, 
-      barcode_exported || '否', 
-      device_id || null, 
+      member_type || null,
+      device_id || null,
       sub_account_id || null,
-      file_export_time || null, 
-      first_binding_time || null, 
-      creator_id || 1, 
-      creation_time || new Date().toISOString().slice(0, 19).replace('T', ' ')
+      activation_time || new Date().toISOString().slice(0, 19).replace('T', ' ')
     ];
     
     console.log('Regular Creation SQL Query:', sql);
