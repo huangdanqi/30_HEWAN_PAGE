@@ -6,6 +6,7 @@
     </div>
 <!-- Temporary test button - add this somewhere in your template -->
 <a-button @click="testSimpleProductCreation" style="margin-left: 10px;">测试简单创建</a-button>
+<a-button @click="testBatchAddEndpoint" style="margin-left: 10px;">测试批量新增端点</a-button>
     <!-- select item area -->
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
@@ -430,11 +431,16 @@ const handleFormConfirmationConfirm = async () => {
       // Show quantity warning confirmation modal
       confirmationModalVisible.value = true;
     } else {
-      // Proceed with creation
-      await createBatchProducts();
+      // Proceed with simple batch creation (just add one new row)
+      await createSimpleBatchProduct();
+      message.success('成功添加新产品');
+      batchAddModalVisible.value = false;
+      resetBatchAddForm();
+      await fetchProductList(); // Refresh the list
     }
   } catch (error) {
     console.error('Error in form confirmation:', error);
+    message.error('添加产品失败: ' + (error.message || '未知错误'));
   }
 };
 const checkQuantityValidation = async () => {
@@ -485,59 +491,113 @@ const checkQuantityValidation = async () => {
 //     batchAddLoading.value = false;
 //   }
 // };
+// Generate unique product ID with timestamp and random component
+const generateUniqueProductId = () => {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  return `PROD_${timestamp}_${random}`;
+};
+
+// Generate unique file paths for QR codes and barcodes
+const generateFilePaths = (productId: string) => {
+  const timestamp = Date.now();
+  return {
+    qrCodePath: `/uploads/qr_codes/${productId}_${timestamp}.png`,
+    barcodePath: `/uploads/barcodes/${productId}_${timestamp}.png`
+  };
+};
+
 const createBatchProducts = async () => {
   try {
     batchAddLoading.value = true;
     
-    // Create a single product first to test
-    const productData = {
-      productId: `PROD_${Date.now()}`,
-      productName: batchAddForm.value.productName,
-      productType: '玩具', // This is required
-      productModel: batchAddForm.value.productName,
-      ipRole: '默认',
-      color: '默认',
-      productionBatch: batchAddForm.value.productionBatch,
-      manufacturer: batchAddForm.value.manufacturer,
-      qrCodeFileDirectory: `/uploads/qr_codes/PROD_${Date.now()}.png`,
-      qrCodeExported: '否',
-      barcodeFileDirectory: `/uploads/barcodes/PROD_${Date.now()}.png`,
-      barcodeExported: '否',
-      deviceId: '',
-      subAccountId: '',
-      fileExportTime: '',
-      firstBindingTime: '',
-      creatorId: 1,
-      creationTime: new Date().toISOString().slice(0, 19).replace('T', ' ')
-    };
+    console.log(`Starting batch creation of ${batchAddForm.value.quantity} products`);
     
-    console.log('Attempting to create product:', productData);
+    const createdProducts = [];
+    const errors = [];
     
-    // Try to create the product
-    await createProductList(productData);
+    // Create products based on the specified quantity
+    for (let i = 0; i < batchAddForm.value.quantity; i++) {
+      try {
+        const productId = generateUniqueProductId();
+        const filePaths = generateFilePaths(productId);
+        
+        const productData = {
+          productId: productId,
+          productName: batchAddForm.value.productName,
+          productType: '玩具', // This is required
+          productModel: batchAddForm.value.productName,
+          ipRole: '默认',
+          color: '默认',
+          productionBatch: batchAddForm.value.productionBatch,
+          manufacturer: batchAddForm.value.manufacturer,
+          qrCodeFileDirectory: filePaths.qrCodePath,
+          qrCodeExported: '否',
+          barcodeFileDirectory: filePaths.barcodePath,
+          barcodeExported: '否',
+          deviceId: '',
+          subAccountId: '',
+          fileExportTime: '',
+          firstBindingTime: '',
+          creatorId: 1,
+          creationTime: new Date().toISOString().slice(0, 19).replace('T', ' ')
+        };
+        
+        console.log(`Creating product ${i + 1}/${batchAddForm.value.quantity}:`, productData);
+        
+        // Create the product
+        await createProductList(productData);
+        createdProducts.push(productData);
+        
+        // Small delay to prevent overwhelming the database
+        if (i < batchAddForm.value.quantity - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+      } catch (error) {
+        console.error(`Error creating product ${i + 1}:`, error);
+        errors.push({
+          index: i + 1,
+          error: error.response?.data?.message || error.message || '未知错误'
+        });
+      }
+    }
     
-    message.success(`成功创建商品: ${productData.productName}`);
-    batchAddModalVisible.value = false;
-    confirmationModalVisible.value = false;
-    resetBatchAddForm();
-    await fetchProductList(); // Refresh the list
+    // Show results to user
+    if (createdProducts.length === batchAddForm.value.quantity) {
+      message.success(`成功创建 ${createdProducts.length} 个商品`);
+    } else if (createdProducts.length > 0) {
+      message.warning(`成功创建 ${createdProducts.length} 个商品，${errors.length} 个失败`);
+      console.error('Failed products:', errors);
+    } else {
+      message.error('所有商品创建失败');
+      console.error('All products failed:', errors);
+    }
+    
+    // Close modals and refresh list if any products were created
+    if (createdProducts.length > 0) {
+      batchAddModalVisible.value = false;
+      confirmationModalVisible.value = false;
+      resetBatchAddForm();
+      await fetchProductList(); // Refresh the list
+    }
     
   } catch (error) {
-    console.error('Error creating batch products:', error);
-    message.error('创建商品失败: ' + (error.response?.data?.message || error.message || '未知错误'));
+    console.error('Error in batch creation process:', error);
+    message.error('批量创建过程中发生错误: ' + (error.message || '未知错误'));
   } finally {
     batchAddLoading.value = false;
   }
 };
 const generateQRCode = async (productData: any) => {
-  // Generate a realistic QR code file path
+  // Generate a realistic QR code file path using the product ID
   const timestamp = Date.now();
   const productId = productData.productId;
   return `/uploads/qr_codes/${productId}_${timestamp}.png`;
 };
 
 const generateBarcode = async (productData: any) => {
-  // Generate a realistic barcode file path
+  // Generate a realistic barcode file path using the product ID
   const timestamp = Date.now();
   const productId = productData.productId;
   return `/uploads/barcodes/${productId}_${timestamp}.png`;
@@ -548,8 +608,17 @@ const handleConfirmationCancel = () => {
 };
 
 const handleConfirmationConfirm = async () => {
-  confirmationModalVisible.value = false;
-  await createBatchProducts();
+  try {
+    confirmationModalVisible.value = false;
+    await createSimpleBatchProduct();
+    message.success('成功添加新产品');
+    batchAddModalVisible.value = false;
+    resetBatchAddForm();
+    await fetchProductList(); // Refresh the list
+  } catch (error) {
+    console.error('Error in confirmation confirm:', error);
+    message.error('添加产品失败: ' + (error.message || '未知错误'));
+  }
 };
 
 const handleFileExport = () => {
@@ -814,13 +883,33 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
     throw error;
   }
 };
+
+// Simple batch add function that sends empty request to trigger backend batch add logic
+const createSimpleBatchProduct = async () => {
+  try {
+    console.log('Creating simple batch product with empty request');
+    console.log('Request payload:', {});
+    console.log('Request URL:', constructApiUrl('product-list'));
+    
+    // Send empty request to trigger batch add logic in backend
+    const response = await axios.post(constructApiUrl('product-list'), {});
+    console.log('Simple batch product creation response:', response.data);
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error creating simple batch product:', error);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    throw error;
+  }
+};
 const testSimpleProductCreation = async () => {
   try {
     const testData = {
       product_id: 'TEST_001',
       product_name: '测试产品',
-      product_code: 'TEST_001',
-      product_name2: '测试产品',
       product_type: '玩具',
       product_model: '测试型号',
       ip_role: '默认',
@@ -835,17 +924,48 @@ const testSimpleProductCreation = async () => {
       creation_time: new Date().toISOString().slice(0, 19).replace('T', ' ')
     };
     
-    console.log('Testing with simple data:', testData);
+    console.log('Testing with corrected data:', testData);
     const response = await axios.post(constructApiUrl('product-list'), testData);
-    console.log('Simple test response:', response.data);
-    message.success('简单测试成功！');
+    console.log('Test response:', response.data);
+    message.success('测试成功！');
   } catch (error) {
-    console.error('Simple test failed:', error);
+    console.error('Test failed:', error);
     if (error.response) {
-      console.error('Test response status:', error.response.status);
-      console.error('Test response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
     }
-    message.error('简单测试失败');
+    message.error('测试失败');
+  }
+};
+
+// Test the new batch add endpoint
+const testBatchAddEndpoint = async () => {
+  try {
+    console.log('Testing batch add endpoint with empty request');
+    
+    // Test with empty request
+    const response = await axios.post(constructApiUrl('product-list/test-batch-add'), {});
+    console.log('Batch add test response:', response.data);
+    message.success('批量新增端点测试成功！');
+    
+    // Test with regular data
+    const testData = {
+      product_id: 'TEST_BATCH_001',
+      product_name: '测试批量产品',
+      product_type: '玩具'
+    };
+    
+    const response2 = await axios.post(constructApiUrl('product-list/test-batch-add'), testData);
+    console.log('Regular creation test response:', response2.data);
+    message.success('常规创建端点测试成功！');
+    
+  } catch (error) {
+    console.error('Batch add endpoint test failed:', error);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    message.error('批量新增端点测试失败');
   }
 };
 const updateProductList = async (id: number, productListData: Partial<DataItem>) => {
