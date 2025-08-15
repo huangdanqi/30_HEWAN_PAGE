@@ -254,7 +254,8 @@
         
         <!-- 个性化参数 section -->
         <div style="margin-bottom: 16px;">
-          <div style="font-weight: 500; margin-bottom: 8px; color: rgba(0, 0, 0, 0.85);">
+          <div style="font-weight: 500; margin-bottom: 8px; color: rgba(0, 0, 0, 0.85); display: flex; align-items: center; gap: 4px;">
+            <PlusOutlined style="font-size: 14px;" />
             个性化参数
           </div>
           <div v-for="(field, index) in createFormData.personalizedParams" :key="index" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
@@ -401,7 +402,8 @@
         
         <!-- 个性化参数 section -->
         <div style="margin-bottom: 16px;">
-          <div style="font-weight: 500; margin-bottom: 8px; color: rgba(0, 0, 0, 0.85);">
+          <div style="font-weight: 500; margin-bottom: 8px; color: rgba(0, 0, 0, 0.85); display: flex; align-items: center; gap: 4px;">
+            <PlusOutlined style="font-size: 14px;" />
             个性化参数
           </div>
           <div v-for="(field, index) in editFormData.personalizedParams" :key="index" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
