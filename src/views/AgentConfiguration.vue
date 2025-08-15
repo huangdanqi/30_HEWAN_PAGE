@@ -457,7 +457,7 @@ interface ColumnConfig {
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
   { key: 'agentId_1', title: 'Agent ID', dataIndex: 'agentId', width: 150 },
   { key: 'agentName_2', title: 'Agent名称', dataIndex: 'agentName', width: 180 },
   { key: 'ipName_3', title: 'IP名称', dataIndex: 'ipName', width: 100 },

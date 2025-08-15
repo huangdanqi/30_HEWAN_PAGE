@@ -987,22 +987,6 @@ html, body {
   padding-left: 70px !important;
 }
 
-/* Hyperlink styling */
-:deep(.ant-table-tbody .ant-table-cell a) {
-  color: #1890ff;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-:deep(.ant-table-tbody .ant-table-cell a:hover) {
-  color: #40a9ff;
-  text-decoration: underline;
-}
-
-:deep(.ant-table-tbody .ant-table-cell a:active) {
-  color: #096dd9;
-}
-
 /* Make all sort indicators grey instead of blue */
 :deep(.ant-table-column-sorter) {
   color: #bfbfbf !important;
