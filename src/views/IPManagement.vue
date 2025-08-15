@@ -270,17 +270,30 @@
             </a-form-item>
             <a-form-item style="flex: 1; margin-bottom: 0;">
               <template #label>
+                <span style="color: #ff4d4f;">*</span>类型
+              </template>
+              <a-select v-model:value="field.type" placeholder="请选择">
+                <a-select-option value="string">字符串</a-select-option>
+                <a-select-option value="number">数字</a-select-option>
+                <a-select-option value="boolean">布尔值</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item style="flex: 1; margin-bottom: 0;">
+              <template #label>
                 <span style="color: #ff4d4f;">*</span>值
               </template>
-              <a-input placeholder="请输入" v-model:value="field.value" />
+              <!-- Dynamic input based on type -->
+              <a-input v-if="field.type === 'string'" placeholder="请输入" v-model:value="field.value" />
+              <a-input-number v-else-if="field.type === 'number'" placeholder="请输入" v-model:value="field.value" style="width: 100%;" />
+              <a-switch v-else-if="field.type === 'boolean'" v-model:checked="field.value" />
             </a-form-item>
             <div style="display: flex; gap: 4px; margin-top: 24px;">
               <PlusOutlined 
+                v-if="index === createFormData.personalizedParams.length - 1"
                 style="cursor: pointer; font-weight: bold; font-size: 16px;" 
                 @click="addPersonalizedParam"
               />
               <MinusCircleOutlined 
-                v-if="createFormData.personalizedParams.length > 1"
                 style="color: #ff4d4f; cursor: pointer; font-weight: bold; font-size: 16px;" 
                 @click="removePersonalizedParam(index)"
               />
@@ -421,17 +434,30 @@
             </a-form-item>
             <a-form-item style="flex: 1; margin-bottom: 0;">
               <template #label>
+                <span style="color: #ff4d4f;">*</span>类型
+              </template>
+              <a-select v-model:value="field.type" placeholder="请选择">
+                <a-select-option value="string">字符串</a-select-option>
+                <a-select-option value="number">数字</a-select-option>
+                <a-select-option value="boolean">布尔值</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item style="flex: 1; margin-bottom: 0;">
+              <template #label>
                 <span style="color: #ff4d4f;">*</span>值
               </template>
-              <a-input placeholder="请输入" v-model:value="field.value" />
+              <!-- Dynamic input based on type -->
+              <a-input v-if="field.type === 'string'" placeholder="请输入" v-model:value="field.value" />
+              <a-input-number v-else-if="field.type === 'number'" placeholder="请输入" v-model:value="field.value" style="width: 100%;" />
+              <a-switch v-else-if="field.type === 'boolean'" v-model:checked="field.value" />
             </a-form-item>
             <div style="display: flex; gap: 4px; margin-top: 24px;">
               <PlusOutlined 
+                v-if="index === editFormData.personalizedParams.length - 1"
                 style="cursor: pointer; font-weight: bold; font-size: 16px;" 
                 @click="addEditPersonalizedParam"
               />
               <MinusCircleOutlined 
-                v-if="editFormData.personalizedParams.length > 1"
                 style="color: #ff4d4f; cursor: pointer; font-weight: bold; font-size: 16px;" 
                 @click="removeEditPersonalizedParam(index)"
               />
@@ -519,7 +545,10 @@
           <div class="form-value">
             <div v-if="viewFormData.personalizedParams && viewFormData.personalizedParams.length > 0">
               <div v-for="(param, index) in viewFormData.personalizedParams" :key="index" style="margin-bottom: 4px;">
-                <span style="font-weight: 500;">{{ param.fieldName }}:</span> {{ param.value }}
+                <span style="font-weight: 500;">{{ param.fieldName }}:</span> 
+                <span v-if="param.type === 'boolean'">{{ param.value ? '是' : '否' }}</span>
+                <span v-else>{{ param.value }}</span>
+                <span style="color: #666; margin-left: 8px;">({{ param.type === 'string' ? '字符串' : param.type === 'number' ? '数字' : '布尔值' }})</span>
               </div>
             </div>
             <span v-else>-</span>
@@ -591,7 +620,7 @@ interface DataItem {
   updater: string;
   createTime: string;
   updateTime: string;
-  personalizedParams?: { fieldName: string; value: string }[];
+  personalizedParams?: { fieldName: string; value: string | number | boolean; type: 'string' | 'number' | 'boolean' }[];
 }
 
 // Define column configuration separately from the table columns
@@ -907,7 +936,7 @@ const editFormData = ref({
   mbti: '',
   preference: '',
   agentLink: '',
-  personalizedParams: [] as { fieldName: string; value: string }[]
+  personalizedParams: [{ fieldName: '', value: '', type: 'string' }] as { fieldName: string; value: string | number | boolean; type: 'string' | 'number' | 'boolean' }[]
 });
 
 const editFormRules = {
@@ -935,8 +964,8 @@ const handleEditClick = (record: DataItem) => {
     preference: record.preference,
     agentLink: record.agentLink,
     personalizedParams: record.personalizedParams || [
-      { fieldName: 'key1', value: 'value1' },
-      { fieldName: 'key2', value: 'value2' },
+      { fieldName: 'key1', value: 'value1', type: 'string' },
+      { fieldName: 'key2', value: 'value2', type: 'string' },
     ]
   };
   showEditModal.value = true;
@@ -953,7 +982,7 @@ const handleEditModalClose = () => {
     mbti: '',
     preference: '',
     agentLink: '',
-    personalizedParams: []
+    personalizedParams: [{ fieldName: '', value: '', type: 'string' }]
   };
 };
 
@@ -968,7 +997,7 @@ const handleEditCancel = () => {
     mbti: '',
     preference: '',
     agentLink: '',
-    personalizedParams: []
+    personalizedParams: [{ fieldName: '', value: '', type: 'string' }]
   };
 };
 
@@ -1009,7 +1038,7 @@ const handleEditSubmit = () => {
         mbti: '',
         preference: '',
         agentLink: '',
-        personalizedParams: []
+        personalizedParams: [{ fieldName: '', value: '', type: 'string' }]
       };
       fetchData(); // Refresh table
     } catch (error: any) {
@@ -1035,7 +1064,7 @@ const viewFormData = ref({
   mbti: '',
   preference: '',
   agentLink: '',
-  personalizedParams: [] as { fieldName: string; value: string }[]
+  personalizedParams: [{ fieldName: '', value: '', type: 'string' }] as { fieldName: string; value: string | number | boolean; type: 'string' | 'number' | 'boolean' }[]
 });
 
 const handleViewClick = (record: DataItem) => {
@@ -1068,10 +1097,7 @@ const handleViewCancel = () => {
     mbti: '',
     preference: '',
     agentLink: '',
-    personalizedParams: [
-      { fieldName: 'key1', value: 'value1' },
-      { fieldName: 'key2', value: 'value2' },
-    ]
+    personalizedParams: [{ fieldName: '', value: '', type: 'string' }]
   };
 };
 
@@ -1086,10 +1112,7 @@ const handleViewConfirm = () => {
     mbti: '',
     preference: '',
     agentLink: '',
-    personalizedParams: [
-      { fieldName: 'key1', value: 'value1' },
-      { fieldName: 'key2', value: 'value2' },
-    ]
+    personalizedParams: [{ fieldName: '', value: '', type: 'string' }]
   };
 };
 
@@ -1101,7 +1124,7 @@ const createFormData = ref({
   mbti: '',
   preference: '',
   agentLink: '',
-  personalizedParams: [] as { fieldName: string; value: string }[]
+  personalizedParams: [{ fieldName: '', value: '', type: 'string' }] as { fieldName: string; value: string | number | boolean; type: 'string' | 'number' | 'boolean' }[]
 });
 
 const createFormRules = {
@@ -1153,7 +1176,7 @@ const handleCreateSubmit = () => {
         mbti: '',
         preference: '',
         agentLink: '',
-        personalizedParams: []
+        personalizedParams: [{ fieldName: '', value: '', type: 'string' }]
       };
       fetchData(); // Refresh table
     } catch (error: any) {
@@ -1180,20 +1203,21 @@ const handleCreateCancel = () => {
     mbti: '',
     preference: '',
     agentLink: '',
-    personalizedParams: []
+    personalizedParams: [{ fieldName: '', value: '', type: 'string' }]
   };
 };
 
 const addPersonalizedParam = () => {
-  createFormData.value.personalizedParams.push({ fieldName: '', value: '' });
+  createFormData.value.personalizedParams.push({ fieldName: '', value: '', type: 'string' });
 };
 
 const removePersonalizedParam = (index: number) => {
   createFormData.value.personalizedParams.splice(index, 1);
 };
 
+// Functions for managing personalized parameters in edit form
 const addEditPersonalizedParam = () => {
-  editFormData.value.personalizedParams.push({ fieldName: '', value: '' });
+  editFormData.value.personalizedParams.push({ fieldName: '', value: '', type: 'string' });
 };
 
 const removeEditPersonalizedParam = (index: number) => {
