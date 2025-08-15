@@ -997,7 +997,7 @@ const fetchData = async () => {
   try {
     console.log('Calling agent-configuration endpoint');
     // Request all data without pagination parameters
-    const response = await axios.get(constructApiUrl('agent-configuration?page=1&pageSize=1000'));
+    const response = await axios.get(`${API_BASE_URL}/agent-configuration?page=1&pageSize=1000`);
     console.log('Agent configuration response:', response.data);
 
     const items = response.data.data || [];
@@ -1026,6 +1026,8 @@ const fetchData = async () => {
       createTime: item.create_time || item.createTime || new Date().toLocaleString(),
       updateTime: item.update_time || item.updateTime || new Date().toLocaleString()
     }));
+    
+    console.log('Data mapped successfully:', rawData.value);
   } catch (error) {
     console.error('Error fetching data:', error);
     // Add some static data for testing if API fails
@@ -1061,6 +1063,18 @@ onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
   fetchData(); // Fetch from MySQL
 });
+
+// Add watcher to monitor data changes
+watch(rawData, (newData) => {
+  console.log('rawData changed:', newData);
+  console.log('rawData length:', newData.length);
+}, { deep: true });
+
+// Add watcher to monitor filteredData changes
+watch(filteredData, (newData) => {
+  console.log('filteredData changed:', newData);
+  console.log('filteredData length:', newData.length);
+}, { deep: true });
 
 const onRefresh = () => {
   loading.value = true;
@@ -1100,39 +1114,6 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
     selectedColumnKeys.value = selectedColumnKeys.value.filter(k => k !== key);
   }
 };
-
-// Add MySQL data fetching
-const fetchDataFromMySQL = async () => {
-  loading.value = true;
-  try {
-    const response = await axios.get(`${API_BASE_URL}/agent-configuration`, {
-      params: {
-        page: currentPage.value,
-        pageSize: pageSize.value,
-        search: searchInputValue.value || undefined
-      }
-    });
-    
-    if (response.data.success) {
-      // Replace static data with MySQL data
-      rawData.value.length = 0; // Clear existing data
-      rawData.value.push(...response.data.data);
-      console.log('MySQL data fetched successfully:', rawData.value);
-    } else {
-      console.error('Failed to fetch MySQL data:', response.data);
-    }
-  } catch (error) {
-    console.error('Error fetching MySQL data:', error);
-  } finally {
-    loading.value = false;
-  }
-};
-
-// Call MySQL data fetching on mount
-onMounted(() => {
-  selectedColumnKeys.value = columnConfigs.map(config => config.key);
-  fetchDataFromMySQL(); // Fetch from MySQL instead of using static data
-});
 
 defineExpose({ handleTableChange });
 </script>
