@@ -307,31 +307,31 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           // Handle hyperlinks for specific columns
           if (config.key === 'deviceModel_3') {
             return text ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { cursor: 'pointer' },
               onClick: () => router.push({ name: 'device-type', query: { search: text } })
             }, text) : '-';
           }
           if (config.key === 'deviceId_4') {
             return text ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { cursor: 'pointer' },
               onClick: () => router.push({ name: 'device-management', query: { search: text } })
             }, text) : '-';
           }
           if (config.key === 'ipRole_5') {
             return text ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { cursor: 'pointer' },
               onClick: () => router.push({ name: 'agent-configuration', query: { search: text } })
             }, text) : '-';
           }
           if (config.key === 'productId_6') {
             return text ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { cursor: 'pointer' },
               onClick: () => router.push({ name: 'product-type', query: { search: text } })
             }, text) : '-';
           }
           if (config.key === 'commodityId_7') {
             return text ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { cursor: 'pointer' },
               onClick: () => router.push({ name: 'product-list', query: { search: text } })
             }, text) : '-';
           }
