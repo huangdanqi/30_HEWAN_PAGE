@@ -252,6 +252,38 @@
           />
         </a-form-item>
         
+        <!-- 个性化参数 section -->
+        <div style="margin-bottom: 16px;">
+          <div style="font-weight: 500; margin-bottom: 8px; color: rgba(0, 0, 0, 0.85);">
+            个性化参数
+          </div>
+          <div v-for="(field, index) in createFormData.personalizedParams" :key="index" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+            <a-form-item style="flex: 1; margin-bottom: 0;">
+              <template #label>
+                <span style="color: #ff4d4f;">*</span>字段名
+              </template>
+              <a-input placeholder="请输入" v-model:value="field.fieldName" />
+            </a-form-item>
+            <a-form-item style="flex: 1; margin-bottom: 0;">
+              <template #label>
+                <span style="color: #ff4d4f;">*</span>值
+              </template>
+              <a-input placeholder="请输入" v-model:value="field.value" />
+            </a-form-item>
+            <div style="display: flex; gap: 4px; margin-top: 24px;">
+              <PlusOutlined 
+                style="cursor: pointer; font-weight: bold; font-size: 16px;" 
+                @click="addPersonalizedParam"
+              />
+              <MinusCircleOutlined 
+                v-if="createFormData.personalizedParams.length > 1"
+                style="color: #ff4d4f; cursor: pointer; font-weight: bold; font-size: 16px;" 
+                @click="removePersonalizedParam(index)"
+              />
+            </div>
+          </div>
+        </div>
+        
         <a-form-item label="Agent名称" name="agentLink">
           <a-select v-model:value="createFormData.agentLink" placeholder="请选择">
             <a-select-option value="啵啵多模态情感陪伴智能体">啵啵多模态情感陪伴智能体</a-select-option>
@@ -367,6 +399,38 @@
           />
         </a-form-item>
         
+        <!-- 个性化参数 section -->
+        <div style="margin-bottom: 16px;">
+          <div style="font-weight: 500; margin-bottom: 8px; color: rgba(0, 0, 0, 0.85);">
+            个性化参数
+          </div>
+          <div v-for="(field, index) in editFormData.personalizedParams" :key="index" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+            <a-form-item style="flex: 1; margin-bottom: 0;">
+              <template #label>
+                <span style="color: #ff4d4f;">*</span>字段名
+              </template>
+              <a-input placeholder="请输入" v-model:value="field.fieldName" />
+            </a-form-item>
+            <a-form-item style="flex: 1; margin-bottom: 0;">
+              <template #label>
+                <span style="color: #ff4d4f;">*</span>值
+              </template>
+              <a-input placeholder="请输入" v-model:value="field.value" />
+            </a-form-item>
+            <div style="display: flex; gap: 4px; margin-top: 24px;">
+              <PlusOutlined 
+                style="cursor: pointer; font-weight: bold; font-size: 16px;" 
+                @click="addEditPersonalizedParam"
+              />
+              <MinusCircleOutlined 
+                v-if="editFormData.personalizedParams.length > 1"
+                style="color: #ff4d4f; cursor: pointer; font-weight: bold; font-size: 16px;" 
+                @click="removeEditPersonalizedParam(index)"
+              />
+            </div>
+          </div>
+        </div>
+        
         <a-form-item label="Agent名称" name="agentLink">
           <a-select v-model:value="editFormData.agentLink" placeholder="请选择">
             <a-select-option value="啵啵多模态情感陪伴智能体">啵啵多模态情感陪伴智能体</a-select-option>
@@ -441,6 +505,19 @@
           <div class="form-value">{{ viewFormData.agentLink || '-' }}</div>
         </div>
         
+        <!-- 个性化参数 section -->
+        <div class="form-item">
+          <div class="form-label">个性化参数:</div>
+          <div class="form-value">
+            <div v-if="viewFormData.personalizedParams && viewFormData.personalizedParams.length > 0">
+              <div v-for="(param, index) in viewFormData.personalizedParams" :key="index" style="margin-bottom: 4px;">
+                <span style="font-weight: 500;">{{ param.fieldName }}:</span> {{ param.value }}
+              </div>
+            </div>
+            <span v-else>-</span>
+          </div>
+        </div>
+        
         <div style="display: flex; justify-content: flex-end; gap: 16px; margin-top: 24px;">
           <a-button @click="handleViewCancel">取消</a-button>
           <a-button type="primary" @click="handleViewConfirm">确定</a-button>
@@ -455,7 +532,7 @@ import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted, watch } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
-import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, PlusOutlined, MinusCircleOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import FirmwareReleaseModal from '@/components/FirmwareReleaseModal.vue';
 import axios from 'axios';
@@ -506,6 +583,7 @@ interface DataItem {
   updater: string;
   createTime: string;
   updateTime: string;
+  personalizedParams?: { fieldName: string; value: string }[];
 }
 
 // Define column configuration separately from the table columns
@@ -818,7 +896,11 @@ const editFormData = ref({
   portrait: '',
   mbti: '',
   preference: '',
-  agentLink: ''
+  agentLink: '',
+  personalizedParams: [
+    { fieldName: 'key1', value: 'value1' },
+    { fieldName: 'key2', value: 'value2' },
+  ] as { fieldName: string; value: string }[]
 });
 
 const editFormRules = {
@@ -844,7 +926,11 @@ const handleEditClick = (record: DataItem) => {
     portrait: record.portrait,
     mbti: record.mbti,
     preference: record.preference,
-    agentLink: record.agentLink
+    agentLink: record.agentLink,
+    personalizedParams: record.personalizedParams || [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
   };
   showEditModal.value = true;
 };
@@ -859,7 +945,11 @@ const handleEditModalClose = () => {
     portrait: '',
     mbti: '',
     preference: '',
-    agentLink: ''
+    agentLink: '',
+    personalizedParams: [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
   };
 };
 
@@ -875,6 +965,7 @@ const handleEditSubmit = () => {
         mbti: editFormData.value.mbti,
         preference: editFormData.value.preference,
         agentLink: editFormData.value.agentLink,
+        personalizedParams: editFormData.value.personalizedParams,
         updateTime: new Date().toLocaleString('zh-CN', {
           year: 'numeric',
           month: 'numeric',
@@ -898,7 +989,11 @@ const handleEditSubmit = () => {
         portrait: '',
         mbti: '',
         preference: '',
-        agentLink: ''
+        agentLink: '',
+        personalizedParams: [
+          { fieldName: 'key1', value: 'value1' },
+          { fieldName: 'key2', value: 'value2' },
+        ]
       };
       fetchData(); // Refresh table
     } catch (error: any) {
@@ -927,7 +1022,11 @@ const handleEditCancel = () => {
     portrait: '',
     mbti: '',
     preference: '',
-    agentLink: ''
+    agentLink: '',
+    personalizedParams: [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
   };
 };
 
@@ -940,7 +1039,11 @@ const createFormData = ref({
   portrait: '',
   mbti: '',
   preference: '',
-  agentLink: ''
+  agentLink: '',
+  personalizedParams: [
+    { fieldName: 'key1', value: 'value1' },
+    { fieldName: 'key2', value: 'value2' },
+  ] as { fieldName: string; value: string }[]
 });
 
 const createFormRules = {
@@ -968,6 +1071,7 @@ const handleCreateSubmit = () => {
         mbti: createFormData.value.mbti,
         preference: createFormData.value.preference,
         agentLink: createFormData.value.agentLink,
+        personalizedParams: createFormData.value.personalizedParams,
         createTime: new Date().toLocaleString('zh-CN', {
           year: 'numeric',
           month: 'numeric',
@@ -1031,7 +1135,11 @@ const handleCreateSubmit = () => {
         portrait: '',
         mbti: '',
         preference: '',
-        agentLink: ''
+        agentLink: '',
+        personalizedParams: [
+          { fieldName: 'key1', value: 'value1' },
+          { fieldName: 'key2', value: 'value2' },
+        ]
       };
       fetchData(); // Refresh table
     } catch (error: any) {
@@ -1067,7 +1175,11 @@ const handleCreateCancel = () => {
     portrait: '',
     mbti: '',
     preference: '',
-    agentLink: ''
+    agentLink: '',
+    personalizedParams: [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
   };
 };
 
@@ -1081,7 +1193,11 @@ const viewFormData = ref({
   portrait: '',
   mbti: '',
   preference: '',
-  agentLink: ''
+  agentLink: '',
+  personalizedParams: [
+    { fieldName: 'key1', value: 'value1' },
+    { fieldName: 'key2', value: 'value2' },
+  ] as { fieldName: string; value: string }[]
 });
 
 const handleViewClick = (record: DataItem) => {
@@ -1094,7 +1210,11 @@ const handleViewClick = (record: DataItem) => {
     portrait: record.portrait,
     mbti: record.mbti,
     preference: record.preference,
-    agentLink: record.agentLink
+    agentLink: record.agentLink,
+    personalizedParams: record.personalizedParams || [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
   };
   showViewModal.value = true;
 };
@@ -1109,7 +1229,11 @@ const handleViewCancel = () => {
     portrait: '',
     mbti: '',
     preference: '',
-    agentLink: ''
+    agentLink: '',
+    personalizedParams: [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
   };
 };
 
@@ -1123,8 +1247,34 @@ const handleViewConfirm = () => {
     portrait: '',
     mbti: '',
     preference: '',
-    agentLink: ''
+    agentLink: '',
+    personalizedParams: [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
   };
+};
+
+// Functions for managing personalized parameters in create form
+const addPersonalizedParam = () => {
+  createFormData.value.personalizedParams.push({ fieldName: '', value: '' });
+};
+
+const removePersonalizedParam = (index: number) => {
+  if (createFormData.value.personalizedParams.length > 1) {
+    createFormData.value.personalizedParams.splice(index, 1);
+  }
+};
+
+// Functions for managing personalized parameters in edit form
+const addEditPersonalizedParam = () => {
+  editFormData.value.personalizedParams.push({ fieldName: '', value: '' });
+};
+
+const removeEditPersonalizedParam = (index: number) => {
+  if (editFormData.value.personalizedParams.length > 1) {
+    editFormData.value.personalizedParams.splice(index, 1);
+  }
 };
 
 // Computed property to show no data message
