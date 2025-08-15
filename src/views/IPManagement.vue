@@ -7,83 +7,84 @@
 
     <!-- select item area -->
     <div class="top-controls-wrapper">
-      <!-- <div class="left-aligned-section">
-
-        <div class="select-container device-model-select" style="margin-left: 10px;">
-          <span class="select-always-placeholder">设备型号:</span>
-          <a-tooltip :title="deviceModelValue.label">
+      <div class="left-aligned-section">
+        <div class="select-container ip-name-select" style="margin-right: 16px;">
+          <span class="select-always-placeholder">IP名称:</span>
+          <a-tooltip :title="ipNameValue.label">
             <a-select
-              v-model:value="deviceModelValue"
-              style="width: 130px;"
-              :options="deviceModelOptions"
-              @change="handleDeviceModelChange"
-              :allowClear="true"
-              label-in-value
-              class="device-model-select"
-            >
-              <a-select-option value="all">全部</a-select-option>
-            </a-select>
-          </a-tooltip>
-        </div>
-        <div class="select-container release-version-select" style="margin-left: 10px;">
-          <span class="select-always-placeholder">发布版本:</span>
-          <a-tooltip :title="releaseVersionValue.label">
-            <a-select
-              v-model:value="releaseVersionValue"
-              style="width: 130px;"
-              :options="releaseVersionOptions"
-              @change="handleReleaseVersionChange"
-              :allowClear="true"
-              label-in-value
-              class="release-version-select"
-            >
-              <a-select-option value="all">全部</a-select-option>
-            </a-select>
-          </a-tooltip>
-        </div>
-        <div class="select-container version-number-select" style="margin-left: 10px;">
-          <span class="select-always-placeholder">版本号:</span>
-          <a-tooltip :title="versionNumberValue.label">
-            <a-select
-              v-model:value="versionNumberValue"
+              v-model:value="ipNameValue"
               style="width: 120px;"
-              :options="versionNumberOptions"
-              @change="handleVersionNumberChange"
+              :options="ipNameOptions"
+              @change="handleIpNameChange"
               :allowClear="true"
               label-in-value
-              class="version-number-select"
+              placeholder="请选择IP名称"
             >
               <a-select-option value="all">全部</a-select-option>
             </a-select>
           </a-tooltip>
         </div>
-      </div> -->
+        <div class="select-container ip-type-select" style="margin-right: 16px;">
+          <span class="select-always-placeholder">IP类型:</span>
+          <a-tooltip :title="ipTypeValue.label">
+            <a-select
+              v-model:value="ipTypeValue"
+              style="width: 130px;"
+              :options="ipTypeOptions"
+              @change="handleIpTypeChange"
+              :allowClear="true"
+              label-in-value
+              placeholder="请选择IP类型"
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+        <div class="select-container status-select" style="margin-right: 16px;">
+          <span class="select-always-placeholder">状态:</span>
+          <a-tooltip :title="statusValue.label">
+            <a-select
+              v-model:value="statusValue"
+              style="width: 100px;"
+              :options="statusOptions"
+              @change="handleStatusChange"
+              :allowClear="true"
+              label-in-value
+              placeholder="请选择状态"
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+      </div>
+      
       <!-- icon area -->
       <div class="right-aligned-icons">
-          <!-- search area  -->
-          <a-input
-            v-model:value="searchInputValue"
-            placeholder="输入关键字搜索"
-            style="width: 200px"
-            @input="handleSearchChange"
-          >
-            <template #prefix>
-              <SearchOutlined />
-            </template>
-          </a-input>
-    
-            <a-button type="primary" @click="showCreateIpModal = true">新建 IP</a-button>
-        
-          <ReloadOutlined @click="onRefresh" />
-          <a-dropdown>
-            <ColumnHeightOutlined @click.prevent />
+        <a-input
+          v-model:value="searchInputValue"
+          placeholder="输入关键字搜索"
+          style="width: 200px; margin-right: 16px;"
+          @input="handleSearchChange"
+        >
+          <template #prefix>
+            <SearchOutlined />
+          </template>
+        </a-input>
+        <a-button type="primary" @click="showCreateIpModal = true" style="margin-right: 16px;">
+          新建 IP
+        </a-button>
+        <ReloadOutlined @click="onRefresh" />
+        <a-dropdown>
+          <ColumnHeightOutlined @click.prevent />
+          <template #overlay>
             <a-menu @click="handleMenuClick">
               <a-menu-item key="large">宽松</a-menu-item>
               <a-menu-item key="middle">中等</a-menu-item>
               <a-menu-item key="small">紧凑</a-menu-item>
             </a-menu>
-          </a-dropdown>
-          <a-popover trigger="click" placement="bottomRight">
+          </template>
+        </a-dropdown>
+        <a-popover trigger="click" placement="bottomRight">
   <template #content>
     <div class="column-setting-panel" style="max-height: 300px; overflow-y: auto;">
       <div class="setting-section">
@@ -828,6 +829,55 @@ const filteredData = computed<DataItem[]>(() => {
 
 const searchInputValue = ref('');
 
+// Filter values for dropdowns
+const ipNameValue = ref({ key: 'all', label: '全部', value: 'all' });
+const ipTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
+const statusValue = ref({ key: 'all', label: '全部', value: 'all' });
+
+// Filter options for dropdowns
+const ipNameOptions = computed(() => {
+  const uniqueIpNames = Array.from(new Set(rawData.value.map(item => item.ipName)));
+  const options = uniqueIpNames.map(name => ({ key: name, value: name, label: name }));
+  return [{ key: 'all', value: 'all', label: '全部' }, ...options];
+});
+
+const ipTypeOptions = computed(() => {
+  const uniqueIpTypes = Array.from(new Set(rawData.value.map(item => item.running)));
+  const options = uniqueIpTypes.map(type => ({ key: type, value: type, label: type }));
+  return [{ key: 'all', value: 'all', label: '全部' }, ...options];
+});
+
+const statusOptions = computed(() => {
+  const uniqueStatuses = Array.from(new Set(rawData.value.map(item => item.mbti)));
+  const options = uniqueStatuses.map(status => ({ key: status, value: status, label: status }));
+  return [{ key: 'all', value: 'all', label: '全部' }, ...options];
+});
+
+// Filter change handlers
+const handleIpNameChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    ipNameValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    ipNameValue.value = val;
+  }
+};
+
+const handleIpTypeChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    ipTypeValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    ipTypeValue.value = val;
+  }
+};
+
+const handleStatusChange = (val: any) => {
+  if (!val || !val.value || val.value === 'all') {
+    statusValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    statusValue.value = val;
+  }
+};
+
 // Watch for search input changes
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
 const handleSearchChange = () => {
@@ -1079,8 +1129,8 @@ const handleViewClick = (record: DataItem) => {
     preference: record.preference,
     agentLink: record.agentLink,
     personalizedParams: record.personalizedParams || [
-      { fieldName: 'key1', value: 'value1' },
-      { fieldName: 'key2', value: 'value2' },
+      { fieldName: 'key1', value: 'value1', type: 'string' },
+      { fieldName: 'key2', value: 'value2', type: 'string' },
     ]
   };
   showViewModal.value = true;
@@ -1229,3 +1279,221 @@ onMounted(() => {
 });
 
 </script>
+
+<style scoped>
+/* Reuse the same styles from IPAudio.vue */
+.title-container {
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background-color: #fff;
+  border-radius: 4px;
+}
+
+.title-container h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: rgba(0, 0, 0, 0.85);
+  text-align: left;
+}
+
+.top-controls-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.left-aligned-section {
+  display: flex;
+  align-items: center;
+}
+
+.right-aligned-icons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 60px;
+}
+
+.right-aligned-icons > .anticon {
+  padding: 6px 8px;
+  border: 1px solid #d9d9d9;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  transition: all 0.3s;
+  cursor: pointer;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.right-aligned-icons > .anticon:hover {
+  border-color: #4096ff;
+  color: #4096ff;
+  background-color: #e6f7ff;
+}
+
+.table-container {
+  padding: 10px;
+  padding-right: 50px;
+}
+
+.select-container {
+  position: relative;
+  display: inline-block;
+}
+
+.select-always-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 7px;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 1;
+  font-size: 13px;
+}
+
+:deep(.ant-select-selector) {
+  padding-left: 60px !important;
+}
+
+:deep(.ip-name-select .ant-select-selector) {
+  padding-left: 50px !important;
+}
+
+:deep(.ip-type-select .ant-select-selector) {
+  padding-left: 65px !important;
+}
+
+:deep(.status-select .ant-select-selector) {
+  padding-left: 40px !important;
+}
+
+:deep(.ant-select-selector),
+:deep(.ant-select-dropdown),
+:deep(.ant-select-item),
+:deep(.ant-select-selection-item),
+:deep(.ant-select-item-option-content) {
+  font-size: 12px !important;
+}
+
+:deep(.ant-pagination) {
+  font-size: 12px !important;
+}
+
+:deep(.ant-input),
+:deep(.ant-btn-primary) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-input::placeholder) {
+  font-size: 13px !important;
+}
+
+:deep(.ant-pagination-options) .ant-select-selector {
+  min-width: unset !important;
+  width: auto !important;
+  padding-left: 4px !important;
+  padding-right: 18px !important;
+}
+
+:deep(.ant-table-cell .action-cell) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 180px;
+  flex-wrap: wrap;
+}
+
+:deep(.ant-table-cell .action-cell .view-link) {
+  color: #1890ff !important;
+  font-weight: bold;
+}
+
+:deep(.ant-table-cell .action-cell .edit-link) {
+  color: #1890ff !important;
+  font-weight: bold;
+}
+
+:deep(.ant-table-cell .action-cell .danger-link) {
+  color: #ff4d4f !important;
+  font-weight: bold;
+}
+
+:deep(.ant-table-column-sorter-up),
+:deep(.ant-table-column-sorter-down) {
+  color: #bfbfbf !important;
+}
+
+:deep(.ant-table-column-sorter-up.active),
+:deep(.ant-table-column-sorter-down.active) {
+  color: #1677ff !important;
+}
+
+:deep(th .ant-table-column-sorter-up:hover),
+:deep(th .ant-table-column-sorter-down:hover) {
+  color: #1677ff !important;
+}
+
+.view-form {
+  padding: 0;
+}
+
+.view-form .form-item {
+  margin-bottom: 16px;
+}
+
+.view-form .form-label {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.85);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.view-form .form-label.required::before {
+  content: '*';
+  color: #ff4d4f;
+  margin-right: 4px;
+}
+
+.view-form .form-value {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.65);
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:active) {
+  color: #096dd9;
+}
+
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.no-data-message .ant-empty {
+  margin: 0;
+}
+
+.no-data-message .ant-empty-description {
+  color: #666;
+  font-size: 14px;
+}
+</style>
