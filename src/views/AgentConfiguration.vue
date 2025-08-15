@@ -117,6 +117,9 @@
           <template v-if="column.key === 'intentRecognition_6'">
             <a @click="handleIntelligentAgentClick(record.intentRecognition)">{{ record.intentRecognition }}</a>
           </template>
+          <template v-if="column.key === 'knowledgeBase_7'">
+            <a @click="handleKnowledgeBaseClick(record.knowledgeBase)">{{ record.knowledgeBase }}</a>
+          </template>
           <template v-if="column.key === 'llm_8'">
             <a @click="handleLlmClick(record.llm)">{{ record.llm }}</a>
           </template>
@@ -529,6 +532,10 @@ const handleIntelligentAgentClick = (intelligentAgent: string) => {
   router.push({ path: '/model-configuration', query: { search: intelligentAgent } });
 };
 
+const handleKnowledgeBaseClick = (knowledgeBase: string) => {
+  router.push({ path: '/model-configuration', query: { search: knowledgeBase } });
+};
+
 const handleLlmClick = (llm: string) => {
   router.push({ path: '/model-configuration', query: { search: llm } });
 };
@@ -550,7 +557,6 @@ const handleIpVcmClick = (ipVcm: string, vcmVoiceName: string) => {
   const searchQuery = vcmVoiceName && vcmVoiceName !== '-' ? `${ipVcm} ${vcmVoiceName}` : ipVcm;
   router.push({ path: '/model-configuration', query: { search: searchQuery } });
 };
-
 
  
 
