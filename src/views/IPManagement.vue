@@ -897,6 +897,8 @@ const handleReleaseModalSubmit = (_data: any) => {
 const showEditModal = ref(false);
 const editRecord = ref<any>(null);
 
+const showCreateIpModal = ref(false);
+
 const editFormData = ref({
   ipName: '',
   ipIntro: '',
@@ -905,10 +907,7 @@ const editFormData = ref({
   mbti: '',
   preference: '',
   agentLink: '',
-  personalizedParams: [
-    { fieldName: 'key1', value: 'value1' },
-    { fieldName: 'key2', value: 'value2' },
-  ] as { fieldName: string; value: string }[]
+  personalizedParams: [] as { fieldName: string; value: string }[]
 });
 
 const editFormRules = {
@@ -954,10 +953,22 @@ const handleEditModalClose = () => {
     mbti: '',
     preference: '',
     agentLink: '',
-    personalizedParams: [
-      { fieldName: 'key1', value: 'value1' },
-      { fieldName: 'key2', value: 'value2' },
-    ]
+    personalizedParams: []
+  };
+};
+
+const handleEditCancel = () => {
+  showEditModal.value = false;
+  editRecord.value = null;
+  editFormData.value = {
+    ipName: '',
+    ipIntro: '',
+    running: '',
+    portrait: '',
+    mbti: '',
+    preference: '',
+    agentLink: '',
+    personalizedParams: []
   };
 };
 
@@ -998,14 +1009,199 @@ const handleEditSubmit = () => {
         mbti: '',
         preference: '',
         agentLink: '',
-        personalizedParams: [
-          { fieldName: 'key1', value: 'value1' },
-          { fieldName: 'key2', value: 'value2' },
-        ]
+        personalizedParams: []
       };
       fetchData(); // Refresh table
     } catch (error: any) {
       console.error('Error updating IP:', error);
       // Show specific error message from backend
       if (error.response && error.response.data && error.response.data.error) {
-        message.error(`
+        message.error(`更新失败: ${error.response.data.error}`);
+      } else {
+        message.error('IP更新失败，请检查网络连接');
+      }
+    }
+  });
+};
+
+const showViewModal = ref(false);
+const viewRecord = ref<any>(null);
+
+const viewFormData = ref({
+  ipName: '',
+  ipIntro: '',
+  running: '',
+  portrait: '',
+  mbti: '',
+  preference: '',
+  agentLink: '',
+  personalizedParams: [] as { fieldName: string; value: string }[]
+});
+
+const handleViewClick = (record: DataItem) => {
+  viewRecord.value = record;
+  // Pre-fill the form with record data
+  viewFormData.value = {
+    ipName: record.ipName,
+    ipIntro: record.ipIntro,
+    running: record.running,
+    portrait: record.portrait,
+    mbti: record.mbti,
+    preference: record.preference,
+    agentLink: record.agentLink,
+    personalizedParams: record.personalizedParams || [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
+  };
+  showViewModal.value = true;
+};
+
+const handleViewCancel = () => {
+  showViewModal.value = false;
+  viewRecord.value = null;
+  viewFormData.value = {
+    ipName: '',
+    ipIntro: '',
+    running: '',
+    portrait: '',
+    mbti: '',
+    preference: '',
+    agentLink: '',
+    personalizedParams: [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
+  };
+};
+
+const handleViewConfirm = () => {
+  showViewModal.value = false;
+  viewRecord.value = null;
+  viewFormData.value = {
+    ipName: '',
+    ipIntro: '',
+    running: '',
+    portrait: '',
+    mbti: '',
+    preference: '',
+    agentLink: '',
+    personalizedParams: [
+      { fieldName: 'key1', value: 'value1' },
+      { fieldName: 'key2', value: 'value2' },
+    ]
+  };
+};
+
+const createFormData = ref({
+  ipName: '',
+  ipIntro: '',
+  running: '',
+  portrait: '',
+  mbti: '',
+  preference: '',
+  agentLink: '',
+  personalizedParams: [] as { fieldName: string; value: string }[]
+});
+
+const createFormRules = {
+  ipName: [{ required: true, message: '请输入IP名称', trigger: 'blur' }],
+  ipIntro: [{ required: true, message: '请输入IP介绍', trigger: 'blur' }],
+  running: [{ required: true, message: '请选择五行', trigger: 'change' }],
+  portrait: [{ required: true, message: '请选择星座', trigger: 'change' }],
+  mbti: [{ required: true, message: '请选择MBTI', trigger: 'change' }],
+  preference: [{ required: true, message: '请输入喜好', trigger: 'blur' }]
+  // Agent名称 is not required
+};
+
+const createFormRef = ref<any>(null);
+const createLoading = ref(false);
+
+const handleCreateSubmit = () => {
+  createFormRef.value.validate().then(async () => {
+    createLoading.value = true;
+    try {
+      const newIp = {
+        ipName: createFormData.value.ipName,
+        ipIntro: createFormData.value.ipIntro,
+        running: createFormData.value.running,
+        portrait: createFormData.value.portrait,
+        mbti: createFormData.value.mbti,
+        preference: createFormData.value.preference,
+        agentLink: createFormData.value.agentLink,
+        personalizedParams: createFormData.value.personalizedParams,
+        createTime: new Date().toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }),
+        updater: currentUsername.value // Use the current username from auth store
+      };
+
+      const response = await axios.post(`http://121.43.196.106:2829/api/ip-management`, newIp);
+      console.log('IP created:', response.data);
+      message.success('创建成功');
+      showCreateIpModal.value = false;
+      createFormData.value = {
+        ipName: '',
+        ipIntro: '',
+        running: '',
+        portrait: '',
+        mbti: '',
+        preference: '',
+        agentLink: '',
+        personalizedParams: []
+      };
+      fetchData(); // Refresh table
+    } catch (error: any) {
+      console.error('Error creating IP:', error);
+      // Show specific error message from backend
+      if (error.response && error.response.data && error.response.data.error) {
+        message.error(`创建失败: ${error.response.data.error}`);
+      } else {
+        message.error('IP创建失败，请检查网络连接');
+      }
+    } finally {
+      createLoading.value = false;
+    }
+  });
+};
+
+const handleCreateCancel = () => {
+  showCreateIpModal.value = false;
+  createFormData.value = {
+    ipName: '',
+    ipIntro: '',
+    running: '',
+    portrait: '',
+    mbti: '',
+    preference: '',
+    agentLink: '',
+    personalizedParams: []
+  };
+};
+
+const addPersonalizedParam = () => {
+  createFormData.value.personalizedParams.push({ fieldName: '', value: '' });
+};
+
+const removePersonalizedParam = (index: number) => {
+  createFormData.value.personalizedParams.splice(index, 1);
+};
+
+const addEditPersonalizedParam = () => {
+  editFormData.value.personalizedParams.push({ fieldName: '', value: '' });
+};
+
+const removeEditPersonalizedParam = (index: number) => {
+  editFormData.value.personalizedParams.splice(index, 1);
+};
+
+onMounted(() => {
+  fetchData();
+});
+
+</script>
