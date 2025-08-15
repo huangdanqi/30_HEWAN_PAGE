@@ -271,7 +271,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
       column.customRender = ({ text }: { text: any }) => {
         if (text) {
           return h('a', {
-            style: { color: '#1890ff', cursor: 'pointer' },
+            style: { cursor: 'pointer' },
             onClick: () => router.push({ name: 'device-type', query: { search: text } })
           }, text);
         }

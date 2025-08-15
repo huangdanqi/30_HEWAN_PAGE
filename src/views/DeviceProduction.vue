@@ -468,7 +468,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           // Handle hyperlinks for specific columns
           if (config.key === 'deviceModel_2') {
             return text ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { cursor: 'pointer' },
               onClick: () => {
                 router.push({ name: 'device-type', query: { search: text } }).catch(() => {
                   message.warning(`未找到设备型号 "${text}" 的相关信息`);
@@ -478,7 +478,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           }
           if (config.key === 'firmwareVersion_5') {
             return text ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { cursor: 'pointer' },
               onClick: () => {
                 router.push({ name: 'firmware', query: { search: text } }).catch(() => {
                   message.warning(`未找到固件版本 "${text}" 的相关信息`);

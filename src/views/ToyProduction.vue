@@ -418,7 +418,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
         // Handle hyperlink for productModel column
         if (config.key === 'productModel') {
           return text ? h('a', {
-            style: { color: '#1890ff', cursor: 'pointer' },
+            style: { cursor: 'pointer' },
             onClick: () => router.push({ path: '/product-type', query: { search: text } })
           }, text) : '-';
         }

@@ -190,8 +190,8 @@
 
         <a-collapse v-model:activeKey="activeCollapseKeys" ghost>
           <template #expandIcon="{ isActive }">
-            <PlusOutlined v-if="!isActive" style="color: #1890ff; font-weight: bold; font-size: 16px;" />
-            <MinusOutlined v-else style="color: #1890ff; font-weight: bold; font-size: 16px;" />
+            <PlusOutlined v-if="!isActive" style="font-weight: bold; font-size: 16px;" />
+            <MinusOutlined v-else style="font-weight: bold; font-size: 16px;" />
           </template>
           <a-collapse-panel key="auth" header="认证信息">
             <div v-for="(field, index) in authFields" :key="index" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
@@ -209,7 +209,7 @@
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
-                  style="color: #1890ff; cursor: pointer; font-weight: bold; font-size: 16px;" 
+                  style="cursor: pointer; font-weight: bold; font-size: 16px;" 
                   @click="addAuthField"
                 />
                 <MinusCircleOutlined 
@@ -220,7 +220,7 @@
             </div>
             <div v-if="authFields.length === 0" style="display: flex; justify-content: center; margin-top: 16px;">
               <a-button type="dashed" @click="addAuthField">
-                <PlusOutlined style="color: #1890ff; font-weight: bold; font-size: 16px;" />
+                <PlusOutlined style="font-weight: bold; font-size: 16px;" />
                 添加字段
               </a-button>
             </div>
@@ -242,7 +242,7 @@
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
-                  style="color: #1890ff; cursor: pointer; font-weight: bold; font-size: 16px;" 
+                  style="cursor: pointer; font-weight: bold; font-size: 16px;" 
                   @click="addCustomField"
                 />
                 <MinusCircleOutlined 
@@ -253,7 +253,7 @@
             </div>
             <div v-if="customFields.length === 0" style="display: flex; justify-content: center; margin-top: 16px;">
               <a-button type="dashed" @click="addCustomField">
-                <PlusOutlined style="color: #1890ff; font-weight: bold; font-size: 16px;" />
+                <PlusOutlined style="font-weight: bold; font-size: 16px;" />
                 添加字段
               </a-button>
             </div>
@@ -330,8 +330,8 @@
 
         <a-collapse v-model:activeKey="editActiveCollapseKeys" ghost>
           <template #expandIcon="{ isActive }">
-            <PlusOutlined v-if="!isActive" style="color: #1890ff; font-weight: bold; font-size: 16px;" />
-            <MinusOutlined v-else style="color: #1890ff; font-weight: bold; font-size: 16px;" />
+            <PlusOutlined v-if="!isActive" style="font-weight: bold; font-size: 16px;" />
+            <MinusOutlined v-else style="font-weight: bold; font-size: 16px;" />
           </template>
           <a-collapse-panel key="auth" header="认证信息">
             <div v-for="(field, index) in editAuthFields" :key="index" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
@@ -349,7 +349,7 @@
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
-                  style="color: #1890ff; cursor: pointer; font-weight: bold; font-size: 16px;" 
+                  style="cursor: pointer; font-weight: bold; font-size: 16px;" 
                   @click="addEditAuthField"
                 />
                 <MinusCircleOutlined 
@@ -360,7 +360,7 @@
             </div>
             <div v-if="editAuthFields.length === 0" style="display: flex; justify-content: center; margin-top: 16px;">
               <a-button type="dashed" @click="addEditAuthField">
-                <PlusOutlined style="color: #1890ff; font-weight: bold; font-size: 16px;" />
+                <PlusOutlined style="font-weight: bold; font-size: 16px;" />
                 添加字段
               </a-button>
             </div>
@@ -382,7 +382,7 @@
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
-                  style="color: #1890ff; cursor: pointer; font-weight: bold; font-size: 16px;" 
+                  style="cursor: pointer; font-weight: bold; font-size: 16px;" 
                   @click="addEditCustomField"
                 />
                 <MinusCircleOutlined 
@@ -393,7 +393,7 @@
             </div>
             <div v-if="editCustomFields.length === 0" style="display: flex; justify-content: center; margin-top: 16px;">
               <a-button type="dashed" @click="addEditCustomField">
-                <PlusOutlined style="color: #1890ff; font-weight: bold; font-size: 16px;" />
+                <PlusOutlined style="font-weight: bold; font-size: 16px;" />
                 添加字段
               </a-button>
             </div>

@@ -681,14 +681,14 @@ const columnConfigs = [
   { key: 'ipRole', title: 'IP角色', dataIndex: 'ipRole', width: 100, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
+      style: { cursor: 'pointer' },
       onClick: () => router.push({ name: 'agent-configuration', query: { search: text } })
     }, text);
   }},
   { key: 'productModel', title: '产品型号', dataIndex: 'productModel', width: 120, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
+      style: { cursor: 'pointer' },
       onClick: () => router.push({ name: 'product-type', query: { search: text } })
     }, text);
   }},
@@ -698,7 +698,7 @@ const columnConfigs = [
   { key: 'productionBatch', title: '生产批次', dataIndex: 'productionBatch', width: 120, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
+      style: { cursor: 'pointer' },
       onClick: () => router.push({ name: 'product-type', query: { search: text } })
     }, text);
   }},
@@ -710,14 +710,14 @@ const columnConfigs = [
   { key: 'deviceId', title: '设备ID', dataIndex: 'deviceId', width: 220, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
+      style: { cursor: 'pointer' },
       onClick: () => router.push({ name: 'device-management', query: { search: text } })
     }, text);
   }},
   { key: 'subAccountId', title: '子账户ID', dataIndex: 'subAccountId', width: 120, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
-      style: { color: '#1890ff', cursor: 'pointer' },
+      style: { cursor: 'pointer' },
       onClick: () => router.push({ name: 'account', query: { search: text } })
     }, text);
   }},

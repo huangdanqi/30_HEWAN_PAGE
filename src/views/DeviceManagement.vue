@@ -505,7 +505,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           if (config.key === 'boundSubAccount_3') {
             // 绑定帐号 - Jump to Account Information Page filtered by sub-account ID
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              style: { cursor: 'pointer', textDecoration: 'none' },
               class: 'hyperlink',
               onClick: () => handleBoundAccountClick(text)
             }, text) : h('span', { class: 'no-data-notice' }, '-');
@@ -513,7 +513,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           if (config.key === 'deviceModel_4') {
             // 设备型号 - Jump to Device Model Page filtered by device model name
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              style: { cursor: 'pointer', textDecoration: 'none' },
               class: 'hyperlink',
               onClick: () => handleDeviceModelClick(text)
             }, text) : '-';
@@ -521,7 +521,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           if (config.key === 'productionBatch_5') {
             // 生产批次 - Jump to Production Information Page filtered by production batch
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              style: { cursor: 'pointer', textDecoration: 'none' },
               class: 'hyperlink',
               onClick: () => handleProductionBatchClick(text)
             }, text) : '-';
@@ -529,7 +529,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           if (config.key === 'initialFirmware_7') {
             // 初始烧录固件版本 - Jump to Firmware Management Page
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              style: { cursor: 'pointer', textDecoration: 'none' },
               class: 'hyperlink',
               onClick: () => handleInitialFirmwareClick(record)
             }, text) : '-';
@@ -537,7 +537,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           if (config.key === 'latestFirmware_8') {
             // 最新可更新的固件版本 - Jump to Firmware Management Page
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              style: { cursor: 'pointer', textDecoration: 'none' },
               class: 'hyperlink',
               onClick: () => handleLatestFirmwareClick(record)
             }, text) : '-';
@@ -545,7 +545,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           if (config.key === 'currentFirmwareVersion_9') {
             // 当前固件版本 - Jump to Firmware Management Page
             return text && text !== '-' ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer', textDecoration: 'none' },
+              style: { cursor: 'pointer', textDecoration: 'none' },
               class: 'hyperlink',
               onClick: () => handleCurrentFirmwareClick(record)
             }, text) : '-';

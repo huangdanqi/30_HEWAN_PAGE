@@ -558,7 +558,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           // Handle hyperlinks for specific columns
           if (config.key === 'agentLink') {
             return text ? h('a', {
-              style: { color: '#1890ff', cursor: 'pointer' },
+              style: { cursor: 'pointer' },
               onClick: () => router.push({ name: 'agent-configuration', query: { search: text } })
             }, text) : '-';
           }
