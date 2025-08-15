@@ -189,14 +189,6 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item label="智能体" name="emotionRecognition">
-          <a-select v-model:value="createForm.emotionRecognition" placeholder="请选择">
-            <a-select-option value="情感识别情绪陪伴">情感识别情绪陪伴</a-select-option>
-            <a-select-option value="基础情感识别">基础情感识别</a-select-option>
-            <a-select-option value="高级情感识别">高级情感识别</a-select-option>
-          </a-select>
-        </a-form-item>
-
         <a-form-item label="LLM" name="llmName">
           <a-select v-model:value="createForm.llmName" placeholder="请选择">
             <a-select-option value="Deep Seek R1">Deep Seek R1</a-select-option>
@@ -313,15 +305,6 @@
             <a-select-option value="8路意图识别">8路意图识别</a-select-option>
             <a-select-option value="4路意图识别">4路意图识别</a-select-option>
             <a-select-option value="单路意图识别">单路意图识别</a-select-option>
-          </a-select>
-        </a-form-item>
-
-        <a-form-item label="智能体" name="emotionRecognition">
-          <a-select v-model:value="editForm.emotionRecognition" placeholder="请选择">
-            <a-select-option value="智能体">智能体</a-select-option>
-            <a-select-option value="情感识别情绪陪伴">情感识别情绪陪伴</a-select-option>
-            <a-select-option value="基础情感识别">基础情感识别</a-select-option>
-            <a-select-option value="高级情感识别">高级情感识别</a-select-option>
           </a-select>
         </a-form-item>
 
@@ -474,7 +457,7 @@ interface ColumnConfig {
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customCell: ({ index }) => ({ children: (currentPage.value - 1) * pageSize.value + index + 1 }) },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
   { key: 'agentId_1', title: 'Agent ID', dataIndex: 'agentId', width: 150 },
   { key: 'agentName_2', title: 'Agent名称', dataIndex: 'agentName', width: 180 },
   { key: 'ipName_3', title: 'IP名称', dataIndex: 'ipName', width: 100 },
@@ -714,7 +697,6 @@ const createForm = ref({
   vadName: '',
   asrName: '',
   intelligentAgentName: '',
-  emotionRecognition: '',
   llmName: '',
   prompt: '',
   memoryName: '',
@@ -785,7 +767,6 @@ const handleCreateModalCancel = () => {
     vadName: '',
     asrName: '',
     intelligentAgentName: '',
-    emotionRecognition: '',
     llmName: '',
     prompt: '',
     memoryName: '',
@@ -893,7 +874,14 @@ const handleEditAgent = (record: DataItem) => {
     speechSynthesisType: record.tts ? 'TTS' : '自定义识别',
     tts: record.tts || '',
     ipVcm: record.ipVcm || '',
-    roleSelection: record.ttsCombinationName || record.vcmCombinationName || ''
+    roleSelection: record.ttsCombinationName || record.vcmCombinationName || '',
+    vadName: record.vad,
+    asrName: record.asr,
+    intelligentAgentName: record.intentRecognition,
+    llmName: record.llm,
+    memoryName: record.memory,
+    ttsName: record.tts || '',
+    ipVcmName: record.ipVcm || ''
   };
   showEditAgentModal.value = true;
 };
@@ -1018,25 +1006,25 @@ const fetchData = async () => {
     rawData.value = items.map((item: any) => ({
       ...item,
       key: item.id, // Use id as key for table rows
-      // Map MySQL fields to display fields - no need for additional mapping since field names match
+      // Map MySQL fields to display fields with proper fallback values
       id: item.id,
-      agentId: item.agent_id || item.agentId || '-',
-      agentName: item.agent_name || item.agentName || '-',
-      ipName: item.ip_name || item.ipName || '-',
-      vad: item.vad || '-',
-      asr: item.asr || '-',
-      intentRecognition: item.intent_recognition || item.intentRecognition || '-',
-      knowledgeBase: item.knowledge_base || item.knowledgeBase || '-',
-      llm: item.llm || '-',
-      memory: item.memory || '-',
-      tools: item.tools || '-',
-      tts: item.tts || '-',
-      ttsCombinationName: item.tts_combination_name || item.ttsCombinationName || '-',
-      ipVcm: item.ip_vcm || item.ipVcm || '-',
-      vcmCombinationName: item.vcm_combination_name || item.vcmCombinationName || '-',
-      updater: item.updater || '-',
-      createTime: item.create_time || item.createTime || '-',
-      updateTime: item.update_time || item.updateTime || '-'
+      agentId: item.agent_id || item.agentId || `AGENT${item.id}`,
+      agentName: item.agent_name || item.agentName || `智能助手${item.id}`,
+      ipName: item.ip_name || item.ipName || `IP${item.id}`,
+      vad: item.vad || 'VAD模型',
+      asr: item.asr || '蓝色语音ASR',
+      intentRecognition: item.intent_recognition || item.intentRecognition || '意图识别模型',
+      knowledgeBase: item.knowledge_base || item.knowledgeBase || '智能体模型',
+      llm: item.llm || 'Deep Seek R1',
+      memory: item.memory || 'Memory 0',
+      tools: item.tools || 'bing, RAG, 搜索',
+      tts: item.tts || '微软TTS',
+      ttsCombinationName: item.tts_combination_name || item.ttsCombinationName || '默认音色',
+      ipVcm: item.ip_vcm || item.ipVcm || 'IP VCM模型',
+      vcmCombinationName: item.vcm_combination_name || item.vcmCombinationName || '默认音色',
+      updater: item.updater || '管理员',
+      createTime: item.create_time || item.createTime || new Date().toLocaleString(),
+      updateTime: item.update_time || item.updateTime || new Date().toLocaleString()
     }));
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -1053,12 +1041,12 @@ const fetchData = async () => {
         knowledgeBase: '智能体模型',
         llm: 'Deep Seek R1',
         memory: 'Memory 0',
-        tools: 'bing, RAG, -',
-        tts: '-',
-        ttsCombinationName: '-',
-        ipVcm: 'IP名称',
-        vcmCombinationName: '名称',
-        updater: '33',
+        tools: 'bing, RAG, 搜索',
+        tts: '微软TTS',
+        ttsCombinationName: '默认音色',
+        ipVcm: 'IP VCM模型',
+        vcmCombinationName: '默认音色',
+        updater: '管理员',
         createTime: '2025-7-13 19:25:11',
         updateTime: '2025-7-13 19:25:11'
       }
