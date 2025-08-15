@@ -13,7 +13,7 @@
           <a-tooltip :title="deviceModelValue.label">
             <a-select
               v-model:value="deviceModelValue"
-              style="width: 120px;"
+              style="width: 130px;"
               :options="deviceModelOptions"
               @change="handleDeviceModelChange"
               :allowClear="true"
@@ -40,17 +40,17 @@
             </a-select>
           </a-tooltip>
         </div>
-        <div class="select-container pbm-select" style="margin-right: 16px;">
-          <span class="select-always-placeholder">PBM:</span>
-          <a-tooltip :title="pbmValue.label">
+        <div class="select-container ip-name-select" style="margin-right: 16px;">
+          <span class="select-always-placeholder">IP名称:</span>
+          <a-tooltip :title="ipNameValue.label">
             <a-select
-              v-model:value="pbmValue"
+              v-model:value="ipNameValue"
               style="width: 100px;"
-              :options="pbmOptions"
-              @change="handlePbmChange"
+              :options="ipNameOptions"
+              @change="handleIpNameChange"
               :allowClear="true"
               label-in-value
-              placeholder="请选择PBM"
+              placeholder="请选择IP名称"
             >
               <a-select-option value="all">全部</a-select-option>
             </a-select>
@@ -114,7 +114,7 @@
           </template>
           <SettingOutlined @click="onSettingClick" />
         </a-popover>
-        <ExportOutlined @click="handleExport" />
+        <!-- <ExportOutlined @click="handleExport" /> -->
       </div>
     </div>
       
@@ -138,10 +138,7 @@
             <a class="link-text" @click="handleIpNameClick(record)">{{ record.ipRoleName }}</a>
           </template>
           <template v-if="column.key === 'creator'">
-            <div class="creator-cell">
-              <a-avatar size="small" style="margin-right: 8px;">{{ record.creator.charAt(0) }}</a-avatar>
-              <span>{{ record.creator }}</span>
-            </div>
+            <span>{{ record.creator }}</span>
           </template>
           <template v-if="column.key === 'operation'">
             <a-space class="action-cell" direction="horizontal">
@@ -163,8 +160,8 @@
         >
           <div class="no-data-actions">
             <a-button type="primary" @click="clearSearch" v-if="searchInputValue">清除搜索</a-button>
-            <a-button @click="clearAllFilters" v-if="deviceModelValue.value !== 'all' || productTypeValue.value !== 'all' || pbmValue.value !== 'all'">清除筛选</a-button>
-            <a-button @click="onRefresh" v-if="!searchInputValue && deviceModelValue.value === 'all' && productTypeValue.value === 'all' && pbmValue.value === 'all'">刷新数据</a-button>
+            <a-button @click="clearAllFilters" v-if="deviceModelValue.value !== 'all' || productTypeValue.value !== 'all' || ipNameValue.value !== 'all'">清除筛选</a-button>
+            <a-button @click="onRefresh" v-if="!searchInputValue && deviceModelValue.value === 'all' && productTypeValue.value === 'all' && ipNameValue.value === 'all'">刷新数据</a-button>
           </div>
         </a-empty>
       </div>
@@ -404,16 +401,16 @@ interface DataItem {
 
 // Define column definitions - this is where you add/remove columns
 const columnDefinitions: ColumnDefinition[] = [
-  createColumn('rowIndex', '序号', 'rowIndex', 60, { fixed: 'left' }),
+  createColumn('rowIndex', '序号', 'rowIndex', 60, { fixed: 'left', sortable: true, sortType: 'number' }),
   createColumn('productId', '产品ID', 'productId', 150, { sortable: true, sortType: 'string' }),
   createColumn('productModel', '产品型号', 'productModel', 150, { sortable: true, sortType: 'string' }),
   createColumn('productName', '产品名称', 'productName', 200, { sortable: true, sortType: 'string' }),
   createColumn('productType', '产品类型', 'productType', 120, { sortable: true, sortType: 'string' }),
   createColumn('color', '颜色', 'color', 100, { sortable: true, sortType: 'string' }),
-  createColumn('productDetails', '产品详情', 'productDetails', 250),
-  createColumn('deviceModel', '设备型号', 'deviceModel', 120),
-  createColumn('ipRoleName', 'IP角色名称', 'ipRoleName', 100),
-  createColumn('creator', '创建人', 'creator', 120),
+  createColumn('productDetails', '产品详情', 'productDetails', 250, { sortable: true, sortType: 'string' }),
+  createColumn('deviceModel', '设备型号', 'deviceModel', 120, { sortable: true, sortType: 'string' }),
+  createColumn('ipRoleName', 'IP名称', 'ipRoleName', 100, { sortable: true, sortType: 'string' }),
+  createColumn('creator', '创建人', 'creator', 120, { sortable: true, sortType: 'string' }),
   createColumn('createTime', '创建时间', 'createTime', 180, { sortable: true, sortType: 'date' }),
   createColumn('updateTime', '更新时间', 'updateTime', 180, { sortable: true, sortType: 'date' }),
   createColumn('operation', '操作', 'operation', 200, { fixed: 'right' }),
@@ -507,8 +504,8 @@ const fetchProductTypes = async () => {
       color: item.color || '',
       productDetails: item.productDetails || item.product_details || '',
       deviceModel: item.deviceModel || item.device_model || '',
-      ipRoleName: item.ipRoleName || item.ip_role_name || '',
-      creator: item.creator || '',
+      // ipRoleName: item.ipRoleName || item.ip_role_name || item.ip_name||'',
+      ipRoleName:item.ipName,   creator: item.creator || '',
       createTime: item.createTime || item.create_time || '',
       updateTime: item.updateTime || item.update_time || ''
     }));
@@ -733,7 +730,7 @@ const noDataMessage = computed(() => {
   if (searchInputValue.value && filteredData.value.length === 0) {
     return `未找到包含 "${searchInputValue.value}" 的数据`;
   }
-  if (deviceModelValue.value.value !== 'all' || productTypeValue.value.value !== 'all' || pbmValue.value.value !== 'all') {
+  if (deviceModelValue.value.value !== 'all' || productTypeValue.value.value !== 'all' || ipNameValue.value.value !== 'all') {
     return '当前筛选条件下没有找到匹配的数据';
   }
   if (rawData.value.length === 0 && !loading.value) {
@@ -749,13 +746,13 @@ const clearSearch = () => {
 const clearAllFilters = () => {
   deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
   productTypeValue.value = { key: 'all', label: '全部', value: 'all' };
-  pbmValue.value = { key: 'all', label: '全部', value: 'all' };
+  ipNameValue.value = { key: 'all', label: '全部', value: 'all' };
   searchInputValue.value = ''; // Clear search input as well
 };
 
 const deviceModelValue = ref({ key: 'all', label: '全部', value: 'all' });
 const productTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
-const pbmValue = ref({ key: 'all', label: '全部', value: 'all' });
+const ipNameValue = ref({ key: 'all', label: '全部', value: 'all' });
 const tableSize = ref('middle');
 const currentPage = ref(1);
 const pageSize = ref(10);
@@ -786,13 +783,13 @@ const productTypeOptions = computed(() => {
   ];
 });
 
-const pbmOptions = computed(() => {
-  // Mock PBM options since not in the data
+const ipNameOptions = computed(() => {
+  // Mock IP role options since not in the data
   return [
     { key: 'all', value: 'all', label: '全部' },
-    { key: 'pbm1', value: 'PBM1', label: 'PBM1' },
-    { key: 'pbm2', value: 'PBM2', label: 'PBM2' },
-    { key: 'pbm3', value: 'PBM3', label: 'PBM3' },
+    { key: 'ip1', value: 'IP1', label: 'IP1' },
+    { key: 'ip2', value: 'IP2', label: 'IP2' },
+    { key: 'ip3', value: 'IP3', label: 'IP3' },
   ];
 });
 
@@ -812,11 +809,11 @@ const handleProductTypeChange = (val: any) => {
   }
 };
 
-const handlePbmChange = (val: any) => {
+const handleIpNameChange = (val: any) => {
   if (!val || !val.value || val.value === 'all') {
-    pbmValue.value = { key: 'all', label: '全部', value: 'all' };
+    ipNameValue.value = { key: 'all', label: '全部', value: 'all' };
   } else {
-    pbmValue.value = val;
+    ipNameValue.value = val;
   }
 };
 
@@ -843,10 +840,10 @@ const filteredData = computed(() => {
     dataToFilter = dataToFilter.filter(item => item.productType === productTypeValue.value.value);
   }
 
-  // PBM filter (mock implementation)
-  if (pbmValue.value && pbmValue.value.value !== 'all') {
-    // Since PBM is not in the data, we'll filter by some other criteria
-    dataToFilter = dataToFilter.filter(item => item.productId.includes(pbmValue.value.value));
+  // IP role filter (mock implementation)
+  if (ipNameValue.value && ipNameValue.value.value !== 'all') {
+    // Since IP role is not in the data, we'll filter by some other criteria
+    dataToFilter = dataToFilter.filter(item => item.productId.includes(ipNameValue.value.value));
   }
 
   // Sorting logic
@@ -1151,7 +1148,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-right: 30px;
+  padding-right: 60px;
 }
 
 .right-aligned-icons > .anticon {
@@ -1190,6 +1187,7 @@ defineExpose({
   pointer-events: none;
   z-index: 1;
   font-size: 13px;
+  padding-left: 10px;
 }
 
 :deep(.ant-select-selector) {
@@ -1204,7 +1202,7 @@ defineExpose({
   padding-left: 80px !important;
 }
 
-:deep(.pbm-select .ant-select-selector) {
+:deep(.ip-name-select .ant-select-selector) {
   padding-left: 50px !important;
 }
 

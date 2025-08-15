@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
       page = 1,
       pageSize = 10,
       search = '',
-      sortBy = 'updateTime',
+      sortBy = 'update_time',
       sortOrder = 'desc'
     } = req.query;
 
@@ -26,24 +26,25 @@ router.get('/', async (req, res) => {
     // Search filter
     if (search) {
       whereConditions.push(`(
-        agentId LIKE ? OR 
-        agentName LIKE ? OR 
-        ipName LIKE ? OR 
+        agent_id LIKE ? OR 
+        agent_name LIKE ? OR 
+        ip_name LIKE ? OR 
         vad LIKE ? OR 
         asr LIKE ? OR 
-        intelligentAgent LIKE ? OR 
+        intent_recognition LIKE ? OR 
+        knowledge_base LIKE ? OR 
         llm LIKE ? OR 
         memory LIKE ? OR 
         tools LIKE ?
       )`);
       const searchParam = `%${search}%`;
-      params.push(searchParam, searchParam, searchParam, searchParam, searchParam, searchParam, searchParam, searchParam, searchParam);
+      params.push(searchParam, searchParam, searchParam, searchParam, searchParam, searchParam, searchParam, searchParam, searchParam, searchParam);
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     // Count total records
-    const countQuery = `SELECT COUNT(*) as total FROM agentconfiguration ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) as total FROM agent_configuration ${whereClause}`;
     const [countResult] = await connection.execute(countQuery, params);
     const total = countResult[0].total;
 
@@ -54,26 +55,24 @@ router.get('/', async (req, res) => {
     const dataQuery = `
       SELECT 
         id,
-        agentId,
-        agentName,
-        botId,
-        apiUrl,
-        apiKey,
-        ipName,
+        agent_id,
+        agent_name,
+        ip_name,
         vad,
         asr,
-        intelligentAgent,
+        intent_recognition,
+        knowledge_base,
         llm,
         memory,
         tools,
         tts,
-        ttsVoiceName,
-        ipVcm,
-        vcmVoiceName,
+        tts_combination_name,
+        ip_vcm,
+        vcm_combination_name,
         updater,
-        DATE_FORMAT(createTime, '%Y-%m-%d %H:%i:%s') as createTime,
-        DATE_FORMAT(updateTime, '%Y-%m-%d %H:%i:%s') as updateTime
-      FROM agentconfiguration 
+        DATE_FORMAT(create_time, '%Y-%m-%d %H:%i:%s') as create_time,
+        DATE_FORMAT(update_time, '%Y-%m-%d %H:%i:%s') as update_time
+      FROM agent_configuration 
       ${whereClause}
       ORDER BY ${sortBy} ${sqlSortOrder}
       LIMIT ${limit} OFFSET ${offset}
@@ -111,20 +110,18 @@ router.post('/', async (req, res) => {
     
     const {
       agentName,
-      botId,
-      apiUrl,
-      apiKey,
       ipName,
       vad,
       asr,
-      intelligentAgent,
+      intentRecognition,
+      knowledgeBase,
       llm,
       memory,
       tools,
       tts,
-      ttsVoiceName,
+      ttsCombinationName,
       ipVcm,
-      vcmVoiceName,
+      vcmCombinationName,
       updater
     } = req.body;
 
@@ -133,13 +130,13 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Agent name is required' });
     }
 
-    if (agentName.length > 100) {
-      return res.status(400).json({ error: 'Agent name cannot exceed 100 characters' });
+    if (agentName.length > 200) {
+      return res.status(400).json({ error: 'Agent name cannot exceed 200 characters' });
     }
 
     // Check for duplicate agent name
     const [existingResult] = await connection.execute(
-      'SELECT COUNT(*) as count FROM agentconfiguration WHERE agentName = ?',
+      'SELECT COUNT(*) as count FROM agent_configuration WHERE agent_name = ?',
       [agentName]
     );
 
@@ -150,30 +147,28 @@ router.post('/', async (req, res) => {
     const agentId = `AGENT${Date.now()}`;
 
     const insertQuery = `
-      INSERT INTO agentconfiguration (
-        agentId, agentName, botId, apiUrl, apiKey, ipName, vad, asr, 
-        intelligentAgent, llm, memory, tools, tts, ttsVoiceName, 
-        ipVcm, vcmVoiceName, updater
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO agent_configuration (
+        agent_id, agent_name, ip_name, vad, asr, 
+        intent_recognition, knowledge_base, llm, memory, tools, 
+        tts, tts_combination_name, ip_vcm, vcm_combination_name, updater
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const insertParams = [
       agentId,
       agentName,
-      botId || null,
-      apiUrl || null,
-      apiKey || null,
       ipName || null,
       vad || null,
       asr || null,
-      intelligentAgent || null,
+      intentRecognition || null,
+      knowledgeBase || null,
       llm || null,
       memory || null,
       tools || null,
       tts || null,
-      ttsVoiceName || null,
+      ttsCombinationName || null,
       ipVcm || null,
-      vcmVoiceName || null,
+      vcmCombinationName || null,
       updater || '管理员'
     ];
 
@@ -213,20 +208,18 @@ router.put('/:id', async (req, res) => {
     
     const {
       agentName,
-      botId,
-      apiUrl,
-      apiKey,
       ipName,
       vad,
       asr,
-      intelligentAgent,
+      intentRecognition,
+      knowledgeBase,
       llm,
       memory,
       tools,
       tts,
-      ttsVoiceName,
+      ttsCombinationName,
       ipVcm,
-      vcmVoiceName,
+      vcmCombinationName,
       updater
     } = req.body;
 
@@ -235,13 +228,13 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Agent name is required' });
     }
 
-    if (agentName.length > 100) {
-      return res.status(400).json({ error: 'Agent name cannot exceed 100 characters' });
+    if (agentName.length > 200) {
+      return res.status(400).json({ error: 'Agent name cannot exceed 200 characters' });
     }
 
     // Check for duplicate agent name (excluding current record)
     const [existingResult] = await connection.execute(
-      'SELECT COUNT(*) as count FROM agentconfiguration WHERE agentName = ? AND id != ?',
+      'SELECT COUNT(*) as count FROM agent_configuration WHERE agent_name = ? AND id != ?',
       [agentName, id]
     );
 
@@ -250,30 +243,28 @@ router.put('/:id', async (req, res) => {
     }
 
     const updateQuery = `
-      UPDATE agentconfiguration SET
-        agentName = ?, botId = ?, apiUrl = ?, apiKey = ?, ipName = ?, 
-        vad = ?, asr = ?, intelligentAgent = ?, llm = ?, memory = ?, 
-        tools = ?, tts = ?, ttsVoiceName = ?, ipVcm = ?, vcmVoiceName = ?, 
-        updater = ?, updateTime = NOW()
+      UPDATE agent_configuration SET
+        agent_name = ?, ip_name = ?, vad = ?, asr = ?, 
+        intent_recognition = ?, knowledge_base = ?, llm = ?, memory = ?, 
+        tools = ?, tts = ?, tts_combination_name = ?, ip_vcm = ?, 
+        vcm_combination_name = ?, updater = ?, update_time = NOW()
       WHERE id = ?
     `;
 
     const updateParams = [
       agentName,
-      botId || null,
-      apiUrl || null,
-      apiKey || null,
       ipName || null,
       vad || null,
       asr || null,
-      intelligentAgent || null,
+      intentRecognition || null,
+      knowledgeBase || null,
       llm || null,
       memory || null,
       tools || null,
       tts || null,
-      ttsVoiceName || null,
+      ttsCombinationName || null,
       ipVcm || null,
-      vcmVoiceName || null,
+      vcmCombinationName || null,
       updater || '管理员',
       id
     ];
@@ -310,7 +301,7 @@ router.delete('/:id', async (req, res) => {
     const connection = await pool.getConnection();
     
     const [result] = await connection.execute(
-      'DELETE FROM agentconfiguration WHERE id = ?',
+      'DELETE FROM agent_configuration WHERE id = ?',
       [id]
     );
 

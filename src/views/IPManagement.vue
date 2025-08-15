@@ -153,14 +153,14 @@
       </a-table>
       
       <!-- No data message -->
-      <div v-if="showNoDataMessage" class="no-data-message">
+      <!-- <div v-if="showNoDataMessage" class="no-data-message">
         <a-empty 
           :description="noDataMessage"
           :image="Empty.PRESENTED_IMAGE_SIMPLE"
         >
           <a-button type="primary" @click="clearSearch">清除搜索</a-button>
         </a-empty>
-      </div>
+      </div> -->
     </div>
 
     <FirmwareReleaseModal

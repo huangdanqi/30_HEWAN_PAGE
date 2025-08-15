@@ -41,8 +41,47 @@
           新建音乐
         </a-button>
         <ReloadOutlined @click="onRefresh" />
-        <InfoCircleOutlined @click="onInfoClick" />
-        <SettingOutlined @click="onSettingClick" />
+        <a-dropdown>
+          <ColumnHeightOutlined @click.prevent />
+          <template #overlay>
+            <a-menu @click="handleMenuClick">
+              <a-menu-item key="large">宽松</a-menu-item>
+              <a-menu-item key="middle">中等</a-menu-item>
+              <a-menu-item key="small">紧凑</a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
+        <a-popover trigger="click" placement="bottomRight">
+          <template #content>
+            <div class="column-setting-panel" style="max-height: 300px; overflow-y: auto;">
+              <div class="setting-section">
+                <div class="section-header" style="display: flex; justify-content: space-between;">
+                  <span>列展示</span>
+                  <a-button type="link" @click="resetColumns">重置</a-button>
+                </div>
+
+                <draggable
+                  v-model="columnOrder"
+                  item-key="key"
+                  @end="onColumnOrderChange"
+                  class="column-checkbox-group"
+                >
+                  <template #item="{ element: colKey }">
+                    <div class="column-checkbox-item" style="padding: 4px 0;">
+                      <a-checkbox
+                        :checked="selectedColumnKeys.includes(colKey)"
+                        @change="(event: Event) => handleColumnVisibilityChange(colKey, (event.target as HTMLInputElement).checked)"
+                      >
+                        {{ columnConfigs.find(config => config.key === colKey)?.title }}
+                      </a-checkbox>
+                    </div>
+                  </template>
+                </draggable>
+              </div>
+            </div>
+          </template>
+          <SettingOutlined @click="onSettingClick" />
+        </a-popover>
       </div>
     </div>
       
@@ -399,12 +438,12 @@ const columnDefinitions: ColumnDefinition[] = [
   createColumn('musicName', '音乐名称', 'musicName', 150, { sortable: true, sortType: 'string' }),
   createColumn('musicType', '音乐类型', 'musicType', 120, { sortable: true, sortType: 'string' }),
   createColumn('singer', '演唱者', 'singer', 120, { sortable: true, sortType: 'string' }),
-  createColumn('tags', '标签', 'tags', 100),
-  createColumn('musicFileAddress', '音乐文件地址', 'musicFileAddress', 300),
+  createColumn('tags', '标签', 'tags', 100, { sortable: true, sortType: 'string' }),
+  createColumn('musicFileAddress', '音乐文件地址', 'musicFileAddress', 300, { sortable: true, sortType: 'string' }),
   createColumn('audition', '试听', 'audition', 80),
-  createColumn('updater', '更新人', 'updater', 120),
+  createColumn('updater', '更新人', 'updater', 120, { sortable: true, sortType: 'string' }),
   createColumn('createTime', '创建时间', 'createTime', 180, { sortable: true, sortType: 'date' }),
-  createColumn('updateTime', '更新时间', 'updateTime', 180),
+  createColumn('updateTime', '更新时间', 'updateTime', 180, { sortable: true, sortType: 'date' }),
   createColumn('operation', '操作', 'operation', 200, { fixed: 'right' }),
 ];
 
@@ -564,6 +603,10 @@ const onRefresh = () => {
 
 const onInfoClick = () => console.log('Info clicked');
 const onSettingClick = () => console.log('Setting clicked');
+
+const handleMenuClick = ({ key }: { key: string }) => {
+  tableSize.value = key;
+};
 
 // Action handlers
 const handleCreateMusic = () => {
@@ -1581,6 +1624,60 @@ defineExpose({
   text-align: left !important;
   justify-content: flex-start !important;
   padding-left: 8px !important;
+}
+
+/* Column management panel styling */
+.column-setting-panel {
+  min-width: 250px;
+}
+
+.setting-section {
+  margin-bottom: 16px;
+}
+
+.section-header {
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.column-checkbox-group {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.column-checkbox-item {
+  margin-bottom: 8px;
+}
+
+/* Sorting icon styling - ensure default state is grey */
+:deep(.ant-table-column-sorter-up),
+:deep(.ant-table-column-sorter-down) {
+  color: #bfbfbf !important; /* grey by default */
+}
+
+/* Only show blue for the active sorting direction */
+:deep(.ant-table-column-sorter-up.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* blue when ascending is active */
+}
+
+:deep(.ant-table-column-sorter-down.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* blue when descending is active */
+}
+
+/* Hover effects */
+:deep(th .ant-table-column-sorter-up:hover),
+:deep(th .ant-table-column-sorter-down:hover) {
+  color: #1677ff !important; /* blue on hover */
+}
+
+/* Ensure the default sort column shows the correct icon state */
+:deep(.ant-table-column-sorter) {
+  color: #bfbfbf !important; /* Default grey color */
+}
+
+:deep(.ant-table-column-sorter.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* Blue when column is actively sorted */
 }
 </style>
 

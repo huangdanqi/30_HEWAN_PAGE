@@ -92,9 +92,9 @@
     </div>
       
     <div class="table-container">
-      <a-table :columns="columns" :data-source="filteredData" :pagination="filteredData.length === 0 ? false : pagination" :loading="loading" :size="tableSize" :scroll="{ x: 1000 }" @change="handleTableChange" :showSorterTooltip="false">
+      <a-table :columns="columns" :data-source="filteredData" :pagination="filteredData.length === 0 ? false : pagination" :loading="loading" :size="tableSize" :scroll="{ x: 1800 }" @change="handleTableChange" :showSorterTooltip="false">
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'operation_19'">
+          <template v-if="column.key === 'operation_18'">
             <a-space class="action-cell" direction="horizontal">
               <a class="view-link" @click="$emit('view-record', record)">查看</a>
               <a-divider type="vertical" />
@@ -105,8 +105,8 @@
               </a-popconfirm>
             </a-space>
           </template>
-          <template v-if="column.key === 'ipAttribution_3'">
-            <a @click="handleIpNameClick(record.ipAttribution)">{{ record.ipAttribution }}</a>
+          <template v-if="column.key === 'ipName_3'">
+            <a @click="handleIpNameClick(record.ipName)">{{ record.ipName }}</a>
           </template>
           <template v-if="column.key === 'vad_4'">
             <a @click="handleVadClick(record.vad)">{{ record.vad }}</a>
@@ -114,11 +114,8 @@
           <template v-if="column.key === 'asr_5'">
             <a @click="handleAsrClick(record.asr)">{{ record.asr }}</a>
           </template>
-          <template v-if="column.key === 'speechRecognition_6'">
-            <a @click="handleIntelligentAgentClick(record.speechRecognition)">{{ record.speechRecognition }}</a>
-          </template>
-          <template v-if="column.key === 'emotionRecognition_7'">
-            <a @click="handleIntelligentAgentClick(record.emotionRecognition)">{{ record.emotionRecognition }}</a>
+          <template v-if="column.key === 'intentRecognition_6'">
+            <a @click="handleIntelligentAgentClick(record.intentRecognition)">{{ record.intentRecognition }}</a>
           </template>
           <template v-if="column.key === 'llm_8'">
             <a @click="handleLlmClick(record.llm)">{{ record.llm }}</a>
@@ -130,23 +127,23 @@
             <a @click="handleToolsClick(record.tools)">{{ record.tools }}</a>
           </template>
           <template v-if="column.key === 'tts_11'">
-            <a @click="handleTtsClick(record.tts, record.ttsRoleName)">{{ record.tts }} {{ record.ttsRoleName }}</a>
+            <a @click="handleTtsClick(record.tts, record.ttsCombinationName)">{{ record.tts }} {{ record.ttsCombinationName }}</a>
           </template>
           <template v-if="column.key === 'ipVcm_13'">
-            <a @click="handleIpVcmClick(record.ipVcm, record.vcmRoleName)">{{ record.ipVcm }} {{ record.vcmRoleName }}</a>
+            <a @click="handleIpVcmClick(record.ipVcm, record.vcmCombinationName)">{{ record.ipVcm }} {{ record.vcmCombinationName }}</a>
           </template>
         </template>
       </a-table>
       
       <!-- No data message -->
-      <div v-if="showNoDataMessage" class="no-data-message">
+      <!-- <div v-if="showNoDataMessage" class="no-data-message">
         <a-empty 
           :description="noDataMessage"
           :image="Empty.PRESENTED_IMAGE_SIMPLE"
         >
           <a-button type="primary" @click="clearSearch">清除搜索</a-button>
         </a-empty>
-      </div>
+      </div> -->
     </div>
 
     <!-- 新增Agent Modal -->
@@ -446,20 +443,18 @@ interface DataItem {
   id: number;
   agentId: string;
   agentName: string;
-  botId: string;
-  apiUrl: string;
-  apiKey: string;
   ipName: string;
   vad: string;
   asr: string;
-  intelligentAgent: string;
+  intentRecognition: string;
+  knowledgeBase: string;
   llm: string;
   memory: string;
   tools: string;
   tts: string;
-  ttsVoiceName: string;
+  ttsCombinationName: string;
   ipVcm: string;
-  vcmVoiceName: string;
+  vcmCombinationName: string;
   updater: string;
   createTime: string;
   updateTime: string;
@@ -482,23 +477,22 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customCell: ({ index }) => ({ children: (currentPage.value - 1) * pageSize.value + index + 1 }) },
   { key: 'agentId_1', title: 'Agent ID', dataIndex: 'agentId', width: 150 },
   { key: 'agentName_2', title: 'Agent名称', dataIndex: 'agentName', width: 180 },
-  { key: 'ipAttribution_3', title: 'IP名称', dataIndex: 'ipAttribution', width: 100 },
+  { key: 'ipName_3', title: 'IP名称', dataIndex: 'ipName', width: 100 },
   { key: 'vad_4', title: 'VAD', dataIndex: 'vad', width: 100 },
   { key: 'asr_5', title: 'ASR', dataIndex: 'asr', width: 120 },
   { key: 'intentRecognition_6', title: '意图识别', dataIndex: 'intentRecognition', width: 120 },
-  { key: 'emotionRecognition_7', title: '智能体', dataIndex: 'emotionRecognition', width: 120 },
+  { key: 'knowledgeBase_7', title: '智能体', dataIndex: 'knowledgeBase', width: 120 },
   { key: 'llm_8', title: 'LLM', dataIndex: 'llm', width: 120 },
   { key: 'memory_9', title: 'Memory', dataIndex: 'memory', width: 100 },
   { key: 'tools_10', title: '工具', dataIndex: 'tools', width: 150 },
   { key: 'tts_11', title: 'TTS', dataIndex: 'tts', width: 100 },
-  { key: 'ttsRoleName_12', title: 'TTS音色名称', dataIndex: 'ttsRoleName', width: 120 },
+  { key: 'ttsCombinationName_12', title: 'TTS音色名称', dataIndex: 'ttsCombinationName', width: 120 },
   { key: 'ipVcm_13', title: 'IP VCM', dataIndex: 'ipVcm', width: 120 },
-  { key: 'vcmRoleName_14', title: 'VCM音色名称', dataIndex: 'vcmRoleName', width: 120 },
-//   { key: 'voiceName_15', title: '语音名称', dataIndex: 'voiceName', width: 100 },
-  { key: 'updater_16', title: '更新人', dataIndex: 'updater', width: 100 },
-  { key: 'createdAt_17', title: '创建时间', dataIndex: 'createdAt', width: 150, sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updatedAt_18', title: '更新时间', dataIndex: 'updatedAt', width: 160, sorter: (a: any, b: any) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation_19', title: '操作', dataIndex: '', width: 200, fixed: 'right' },
+  { key: 'vcmCombinationName_14', title: 'VCM音色名称', dataIndex: 'vcmCombinationName', width: 120 },
+  { key: 'updater_15', title: '更新人', dataIndex: 'updater', width: 100 },
+  { key: 'createTime_16', title: '创建时间', dataIndex: 'createTime', width: 150, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'updateTime_17', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'operation_18', title: '操作', dataIndex: '', width: 200, fixed: 'right' },
 ];
 
 const columnOrder = ref<string[]>(columnConfigs.map(config => config.key));
@@ -584,7 +578,7 @@ const agentRegionValue = ref({ key: 'all', label: '全部', value: 'all' });
 const agentModeValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const agentTypeOptions = computed(() => {
-  const uniqueAgentTypes = Array.from(new Set(rawData.value.map(item => item.ipAttribution)));
+  const uniqueAgentTypes = Array.from(new Set(rawData.value.map(item => item.ipName)));
   const options = uniqueAgentTypes.map(type => ({ key: type, value: type, label: type }));
   return [{ key: 'all', value: 'all', label: '全部' }, ...options];
 });
@@ -602,13 +596,13 @@ const agentVersionOptions = computed(() => {
 });
 
 const agentRegionOptions = computed(() => {
-  const uniqueRegions = Array.from(new Set(rawData.value.map(item => item.vcmRoleName)));
+  const uniqueRegions = Array.from(new Set(rawData.value.map(item => item.vcmCombinationName)));
   const options = uniqueRegions.map(region => ({ key: region, value: region, label: region }));
   return [{ key: 'all', value: 'all', label: '全部' }, ...options];
 });
 
 const agentModeOptions = computed(() => {
-  const uniqueModes = Array.from(new Set(rawData.value.map(item => item.voiceName)));
+  const uniqueModes = Array.from(new Set(rawData.value.map(item => item.ttsCombinationName)));
   const options = uniqueModes.map(mode => ({ key: mode, value: mode, label: mode }));
   return [{ key: 'all', value: 'all', label: '全部' }, ...options];
 });
@@ -655,8 +649,9 @@ const handleAgentModeChange = (val: any) => {
 
 const currentPage = ref(1);
 const pageSize = ref(10);
-const sorterInfo = ref<any>({ columnKey: 'updatedAt', order: 'descend' });
+const sorterInfo = ref<any>({ columnKey: 'updateTime', order: 'descend' });
 const searchInputValue = ref('');
+const totalCount = ref(0);
 
 // Handle search parameter from URL
 onMounted(() => {
@@ -671,12 +666,12 @@ const showNoDataMessage = computed(() => {
 });
 
 // Computed property for no data message
-const noDataMessage = computed(() => {
-  if (searchInputValue.value && filteredData.value.length === 0) {
-    return `未找到包含 "${searchInputValue.value}" 的数据`;
-  }
-  return '';
-});
+// const noDataMessage = computed(() => {
+//   if (searchInputValue.value && filteredData.value.length === 0) {
+//     return `未找到包含 "${searchInputValue.value}" 的数据`;
+//   }
+//   return '';
+// });
 
 const clearSearch = () => {
   searchInputValue.value = '';
@@ -691,7 +686,6 @@ const editForm = ref({
   vad: '',
   asr: '',
   intentRecognition: '',
-  emotionRecognition: '',
   llm: '',
   prompt: '',
   memory: '',
@@ -699,7 +693,14 @@ const editForm = ref({
   speechSynthesisType: 'TTS',
   tts: '',
   ipVcm: '',
-  roleSelection: ''
+  roleSelection: '',
+  vadName: '',
+  asrName: '',
+  intelligentAgentName: '',
+  llmName: '',
+  memoryName: '',
+  ttsName: '',
+  ipVcmName: ''
 });
 
 const editFormRef = ref();
@@ -713,14 +714,17 @@ const createForm = ref({
   vadName: '',
   asrName: '',
   intelligentAgentName: '',
+  emotionRecognition: '',
   llmName: '',
   prompt: '',
   memoryName: '',
+  tools: '',
   speechSynthesisType: 'TTS',
   ttsName: '',
   ttsVoiceSelection: '',
   ipVcmName: '',
-  ipVcmVoiceSelection: ''
+  ipVcmVoiceSelection: '',
+  roleSelection: ''
 });
 
 // Form validation rules
@@ -758,7 +762,7 @@ const checkAgentNameUniqueness = async (agentName: string) => {
     });
     
     if (response.data.success) {
-      const existingAgents = response.data.data.filter(agent => agent.agentName === agentName);
+      const existingAgents = response.data.data.filter((agent: any) => agent.agentName === agentName);
       return existingAgents.length === 0;
     }
     return true;
@@ -781,14 +785,17 @@ const handleCreateModalCancel = () => {
     vadName: '',
     asrName: '',
     intelligentAgentName: '',
+    emotionRecognition: '',
     llmName: '',
     prompt: '',
     memoryName: '',
+    tools: '',
     speechSynthesisType: 'TTS',
     ttsName: '',
     ttsVoiceSelection: '',
     ipVcmName: '',
-    ipVcmVoiceSelection: ''
+    ipVcmVoiceSelection: '',
+    roleSelection: ''
   };
 };
 
@@ -878,8 +885,7 @@ const handleEditAgent = (record: DataItem) => {
     agentName: record.agentName,
     vad: record.vad,
     asr: record.asr,
-    intentRecognition: record.speechRecognition,
-    emotionRecognition: record.emotionRecognition,
+    intentRecognition: record.intentRecognition,
     llm: record.llm,
     prompt: '您好，我是智能多模态情感分析产品，我可以为您提供情感分析服务。', // Default prompt
     memory: record.memory,
@@ -887,7 +893,7 @@ const handleEditAgent = (record: DataItem) => {
     speechSynthesisType: record.tts ? 'TTS' : '自定义识别',
     tts: record.tts || '',
     ipVcm: record.ipVcm || '',
-    roleSelection: record.ttsRoleName || record.vcmRoleName || ''
+    roleSelection: record.ttsCombinationName || record.vcmCombinationName || ''
   };
   showEditAgentModal.value = true;
 };
@@ -939,7 +945,7 @@ const filteredData = computed(() => {
 
   if (agentTypeValue.value && agentTypeValue.value.value !== 'all' && agentTypeValue.value.value !== '') {
     const selectedAgentType = agentTypeValue.value.value;
-    dataToFilter = dataToFilter.filter(item => item.ipAttribution === selectedAgentType);
+    dataToFilter = dataToFilter.filter(item => item.ipName === selectedAgentType);
   }
 
   if (agentStatusValue.value && agentStatusValue.value.value !== 'all' && agentStatusValue.value.value !== '') {
@@ -954,12 +960,12 @@ const filteredData = computed(() => {
 
   if (agentRegionValue.value && agentRegionValue.value.value !== 'all' && agentRegionValue.value.value !== '') {
     const selectedRegion = agentRegionValue.value.value;
-    dataToFilter = dataToFilter.filter(item => item.vcmRoleName === selectedRegion);
+    dataToFilter = dataToFilter.filter(item => item.vcmCombinationName === selectedRegion);
   }
 
   if (agentModeValue.value && agentModeValue.value.value !== 'all' && agentModeValue.value.value !== '') {
     const selectedMode = agentModeValue.value.value;
-    dataToFilter = dataToFilter.filter(item => item.voiceName === selectedMode);
+    dataToFilter = dataToFilter.filter(item => item.ttsCombinationName === selectedMode);
   }
 
   if (sorterInfo.value && sorterInfo.value.order) {
@@ -988,7 +994,7 @@ const handleTableChange = (paginationData: any, _filters: any, sorter: any) => {
   if (currentSorter && currentSorter.order) {
     sorterInfo.value = { columnKey: currentSorter.columnKey, order: currentSorter.order };
   } else {
-    sorterInfo.value = { columnKey: 'updatedAt', order: 'descend' };
+    sorterInfo.value = { columnKey: 'updateTime', order: 'descend' };
   }
   // Remove this line that was causing the pagination issue
   // currentPage.value = 1;
@@ -1009,18 +1015,28 @@ const fetchData = async () => {
     const items = response.data.data || [];
     totalCount.value = response.data.total || items.length;
 
-    rawData.value = items.map(item => ({
+    rawData.value = items.map((item: any) => ({
       ...item,
       key: item.id, // Use id as key for table rows
-      // Map MySQL fields to display fields
-      ipAttribution: item.ipName || '-',
-      intentRecognition: item.intelligentAgent || '-',
-      emotionRecognition: item.intelligentAgent || '-',
-      ttsRoleName: item.ttsVoiceName || '-',
-      vcmRoleName: item.vcmVoiceName || '-',
-      voiceName: item.vcmVoiceName || '-',
-      createdAt: item.createTime || '-',
-      updatedAt: item.updateTime || '-'
+      // Map MySQL fields to display fields - no need for additional mapping since field names match
+      id: item.id,
+      agentId: item.agent_id || item.agentId || '-',
+      agentName: item.agent_name || item.agentName || '-',
+      ipName: item.ip_name || item.ipName || '-',
+      vad: item.vad || '-',
+      asr: item.asr || '-',
+      intentRecognition: item.intent_recognition || item.intentRecognition || '-',
+      knowledgeBase: item.knowledge_base || item.knowledgeBase || '-',
+      llm: item.llm || '-',
+      memory: item.memory || '-',
+      tools: item.tools || '-',
+      tts: item.tts || '-',
+      ttsCombinationName: item.tts_combination_name || item.ttsCombinationName || '-',
+      ipVcm: item.ip_vcm || item.ipVcm || '-',
+      vcmCombinationName: item.vcm_combination_name || item.vcmCombinationName || '-',
+      updater: item.updater || '-',
+      createTime: item.create_time || item.createTime || '-',
+      updateTime: item.update_time || item.updateTime || '-'
     }));
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -1028,34 +1044,23 @@ const fetchData = async () => {
     rawData.value = [
       {
         id: 1,
-        key: 1,
-        agentId: 'test-agent-1',
-        agentName: '测试Agent 1',
-        botId: 'bot-1',
-        apiUrl: 'http://test.com',
-        apiKey: 'test-key',
-        ipName: '测试IP',
-        vad: 'VAD类型',
-        asr: '蓝色语音ASR',
-        intelligentAgent: '智能意图识别',
+        agentId: 'tjhwx8322jv',
+        agentName: '智能家居多模态语音助手',
+        ipName: 'IP1',
+        vad: 'VAD模型',
+        asr: 'ASR模型',
+        intentRecognition: '意图识别模型',
+        knowledgeBase: '智能体模型',
         llm: 'Deep Seek R1',
         memory: 'Memory 0',
-        tools: 'bing, RAG, ...',
-        tts: '微软TTS',
-        ttsVoiceName: '小智',
-        ipVcm: '蓝色意图识别',
-        vcmVoiceName: '嘿嘿',
-        updater: 'admin',
-        createTime: '2025-01-01 10:00:00',
-        updateTime: '2025-01-01 10:00:00',
-        ipAttribution: '测试IP',
-        intentRecognition: '智能意图识别',
-        emotionRecognition: '智能意图识别',
-        ttsRoleName: '小智',
-        vcmRoleName: '嘿嘿',
-        voiceName: '嘿嘿',
-        createdAt: '2025-01-01 10:00:00',
-        updatedAt: '2025-01-01 10:00:00'
+        tools: 'bing, RAG, -',
+        tts: '-',
+        ttsCombinationName: '-',
+        ipVcm: 'IP名称',
+        vcmCombinationName: '名称',
+        updater: '33',
+        createTime: '2025-7-13 19:25:11',
+        updateTime: '2025-7-13 19:25:11'
       }
     ];
   } finally {

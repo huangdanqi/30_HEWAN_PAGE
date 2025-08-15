@@ -503,16 +503,16 @@ interface DataItem {
 const columnDefinitions: ColumnDefinition[] = [
   createColumn('rowIndex', '序号', 'rowIndex', 60, { fixed: 'left' }),
   createColumn('imageId', '图片 ID', 'imageId', 150, { sortable: true, sortType: 'string' }),
-  createColumn('ipName', 'IP名称', 'ipName', 120),
+  createColumn('ipName', 'IP名称', 'ipName', 120, { sortable: true, sortType: 'string' }),
   createColumn('imageName', '图片名称', 'imageName', 150, { sortable: true, sortType: 'string' }),
   createColumn('scene', '场景', 'scene', 120, { sortable: true, sortType: 'string' }),
   createColumn('weather', '天气', 'weather', 100, { sortable: true, sortType: 'string' }),
   createColumn('emotion', '情绪', 'emotion', 120, { sortable: true, sortType: 'string' }),
   createColumn('time', '时间', 'time', 100, { sortable: true, sortType: 'string' }),
   createColumn('tags', '标签', 'tags', 150, { sortable: true, sortType: 'string' }),
-  createColumn('imageFileAddress', '图片地址', 'imageFileAddress', 200),
+  createColumn('imageFileAddress', '图片地址', 'imageFileAddress', 200, { sortable: true, sortType: 'string' }),
   createColumn('preview', '预览', 'preview', 80),
-  createColumn('updater', '更新人', 'updater', 120),
+  createColumn('updater', '更新人', 'updater', 120, { sortable: true, sortType: 'string' }),
   createColumn('createTime', '创建时间', 'createTime', 180, { sortable: true, sortType: 'date' }),
   createColumn('updateTime', '更新时间', 'updateTime', 180, { sortable: true, sortType: 'date' }),
   createColumn('operation', '操作', 'operation', 200, { fixed: 'right' }),
@@ -1321,6 +1321,39 @@ defineExpose({
 
 :deep(.nowrap-header) {
   white-space: nowrap !important;
+}
+
+/* Hyperlink styling */
+:deep(.ant-table-tbody .ant-table-cell a) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:active) {
+  color: #096dd9;
+}
+
+/* Link text styling for IP Name column */
+:deep(.ant-table-tbody .ant-table-cell .link-text) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  cursor: pointer;
+}
+
+:deep(.ant-table-tbody .ant-table-cell .link-text:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell .link-text:active) {
+  color: #096dd9;
 }
 
 /* Modal Styles */

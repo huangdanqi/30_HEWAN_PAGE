@@ -513,7 +513,7 @@ const columnDefinitions: ColumnDefinition[] = [
   createColumn('audition', '试听', 'audition', 80),
   createColumn('updater', '更新人', 'updater', 120),
   createColumn('createTime', '创建时间', 'createTime', 180, { sortable: true, sortType: 'date' }),
-  createColumn('updateTime', '更新时间', 'updateTime', 180),
+  createColumn('updateTime', '更新时间', 'updateTime', 180, { sortable: true, sortType: 'date' }),
   createColumn('operation', '操作', 'operation', 200, { fixed: 'right' }),
 ];
 
@@ -1871,6 +1871,39 @@ defineExpose({
   justify-content: flex-start !important;
   padding-left: 8px !important;
 }
+
+/* Hyperlink styling */
+:deep(.ant-table-tbody .ant-table-cell a) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:active) {
+  color: #096dd9;
+}
+
+/* Link text styling for IP Name column */
+:deep(.ant-table-tbody .ant-table-cell .link-text) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  cursor: pointer;
+}
+
+:deep(.ant-table-tbody .ant-table-cell .link-text:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell .link-text:active) {
+  color: #096dd9;
+}
 </style>
 
 <style>
@@ -1880,4 +1913,5 @@ defineExpose({
   justify-content: flex-start !important;
   padding-left: 8px !important;
 }
+
 </style>

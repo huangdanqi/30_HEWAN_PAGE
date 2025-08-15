@@ -376,8 +376,8 @@ interface ColumnConfig {
 }
 
 const columnConfigs = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
-  { key: 'productionBatchId', title: '生产批次ID', dataIndex: 'productionBatchId', width: 150 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', sorter: (a: any, b: any) => a.rowIndex - b.rowIndex, sortDirections: ['ascend', 'descend'] },
+  { key: 'productionBatchId', title: '生产批次ID', dataIndex: 'productionBatchId', width: 150, sorter: (a: any, b: any) => (a.productionBatchId || '').localeCompare(b.productionBatchId || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'productModel', title: '产品型号', dataIndex: 'productModel', width: 150, sorter: (a: any, b: any) => a.productModel.localeCompare(b.productModel), sortDirections: ['ascend', 'descend'] },
   { key: 'productName', title: '产品名称', dataIndex: 'productName', width: 200, sorter: (a: any, b: any) => a.productName.localeCompare(b.productName), sortDirections: ['ascend', 'descend'] },
   { key: 'productionBatchDate', title: '生产批次', dataIndex: 'productionBatchDate', width: 120, sorter: (a: any, b: any) => a.productionBatchDate.localeCompare(b.productionBatchDate), sortDirections: ['ascend', 'descend'] },
@@ -385,9 +385,9 @@ const columnConfigs = [
   { key: 'unitPrice', title: '单价(元)', dataIndex: 'unitPrice', width: 100, sorter: (a: any, b: any) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
   { key: 'quantity', title: '数量(个)', dataIndex: 'quantity', width: 100, sorter: (a: any, b: any) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
   { key: 'totalPrice', title: '总价(元)', dataIndex: 'totalPrice', width: 120, sorter: (a: any, b: any) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'updaterId', title: '更新人', dataIndex: 'updaterId', width: 100 },
+  { key: 'updaterId', title: '更新人', dataIndex: 'updaterId', width: 100, sorter: (a: any, b: any) => (a.updaterId || '').localeCompare(b.updaterId || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'createTime', title: '创建时间', dataIndex: 'createTime', width: 160, sorter: (a: any, b: any) => a.createTime.localeCompare(b.createTime), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => a.updateTime.localeCompare(b.updateTime), sortDirections: ['ascend', 'descend'] },
+  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => a.updateTime.localeCompare(b.updateTime), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
   { key: 'operation', title: '操作', dataIndex: 'operation', width: 200, fixed: 'right' },
 ];
 
@@ -755,6 +755,12 @@ const filteredData = computed<DataItem[]>(() => {
         return order === 'ascend' ? result : -result;
       });
     }
+  } else {
+    // Apply default sorting by updateTime in descending order
+    console.log('Applying default sorting by updateTime descending');
+    dataToFilter.sort((a, b) => {
+      return b.updateTime.localeCompare(a.updateTime); // Descending order
+    });
   }
 
   console.log('Final filteredData length:', dataToFilter.length);
@@ -1324,17 +1330,34 @@ html, body {
   text-decoration: none !important;
 }
 
+/* Sorting icon styling - ensure default state is grey */
 :deep(.ant-table-column-sorter-up),
 :deep(.ant-table-column-sorter-down) {
   color: #bfbfbf !important; /* grey by default */
 }
-:deep(.ant-table-column-sorter-up.active),
-:deep(.ant-table-column-sorter-down.active) {
-  color: #1677ff !important; /* blue when active */
+
+/* Only show blue for the active sorting direction */
+:deep(.ant-table-column-sorter-up.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* blue when ascending is active */
 }
+
+:deep(.ant-table-column-sorter-down.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* blue when descending is active */
+}
+
+/* Hover effects */
 :deep(th .ant-table-column-sorter-up:hover),
 :deep(th .ant-table-column-sorter-down:hover) {
-  color: #1677ff !important;
+  color: #1677ff !important; /* blue on hover */
+}
+
+/* Ensure the default sort column shows the correct icon state */
+:deep(.ant-table-column-sorter) {
+  color: #bfbfbf !important; /* Default grey color */
+}
+
+:deep(.ant-table-column-sorter.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* Blue when column is actively sorted */
 }
 
 :deep(.product-name-select .ant-select-selector) {

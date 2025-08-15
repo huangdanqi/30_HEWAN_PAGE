@@ -258,31 +258,31 @@ interface ColumnConfig {
 
 const columnConfigs: ColumnConfig[] = [
   { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1, apiEndpoint: 'basic' },
-  { key: 'memberId_1', title: '主账户ID', dataIndex: 'memberId', width: 150, apiEndpoint: 'basic' },
-  { key: 'phoneNumber_2', title: '手机号', dataIndex: 'phoneNumber', width: 120, apiEndpoint: 'basic' },
-  { key: 'deviceModel_3', title: '设备型号', dataIndex: 'deviceModel', width: 100, apiEndpoint: 'basic' },
-  { key: 'deviceId_4', title: '设备ID', dataIndex: 'deviceId', width: 210, apiEndpoint: 'basic' },
-  { key: 'ipRole_5', title: 'IP角色', dataIndex: 'ipRole', width: 100, apiEndpoint: 'basic' },
-  { key: 'productId_6', title: '产品ID', dataIndex: 'productId', width: 120, apiEndpoint: 'basic' },
-  { key: 'commodityId_7', title: '商品ID', dataIndex: 'commodityId', width: 150, apiEndpoint: 'basic' },
-  { key: 'voiceCloningModelId_8', title: '音色复刻模型ID', dataIndex: 'voiceCloningModelId', width: 180, apiEndpoint: 'basic' },
-  { key: 'initialActivationTime_9', title: '首次激活时间', dataIndex: 'initialActivationTime', width: 150, sorter: (a, b) => new Date(a.initialActivationTime).getTime() - new Date(b.initialActivationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'basic' },
-  { key: 'currentMemberType_10', title: '当前会员类型', dataIndex: 'currentMemberType', width: 120, apiEndpoint: 'membership' },
-  { key: 'memberPayment_11', title: '会员付费', dataIndex: 'memberPayment', width: 120, apiEndpoint: 'membership' },
-  { key: 'memberActivationTime_12', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150, sorter: (a, b) => new Date(a.memberActivationTime).getTime() - new Date(b.memberActivationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'membership' },
-  { key: 'memberExpirationTime_13', title: '会员到期时间', dataIndex: 'memberExpirationTime', width: 150, sorter: (a, b) => new Date(a.memberExpirationTime).getTime() - new Date(b.memberExpirationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'membership' },
-  { key: 'fourGCardNumber_14', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120, apiEndpoint: 'fourgService' },
-  { key: 'fourGPlan_15', title: '4G套餐', dataIndex: 'fourGPlan', width: 100, apiEndpoint: 'fourgService' },
-  { key: 'remainingDataCurrentMonth_16', title: '当月剩余流量', dataIndex: 'remainingDataCurrentMonth', width: 120, apiEndpoint: 'fourgService' },
-  { key: 'fourGPayment_17', title: '4G付费', dataIndex: 'fourGPayment', width: 100, apiEndpoint: 'fourgService' },
-  { key: 'fourGActivationTime_18', title: '4G激活时间', dataIndex: 'fourGActivationTime', width: 150, sorter: (a, b) => new Date(a.fourGActivationTime).getTime() - new Date(b.fourGActivationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'fourgService' },
-  { key: 'fourGExpirationTime_19', title: '4G到期时间', dataIndex: 'fourGExpirationTime', width: 150, sorter: (a, b) => new Date(a.fourGExpirationTime).getTime() - new Date(b.fourGExpirationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'fourgService' },
-  { key: 'annualServiceFeeBalance_20', title: '服务年费用盈余', dataIndex: 'annualServiceFeeBalance', width: 150, sorter: (a, b) => a.annualServiceFeeBalance - b.annualServiceFeeBalance, sortDirections: ['ascend', 'descend'], apiEndpoint: 'membership' },
-  { key: 'asrUsage_21', title: 'ASR用量', dataIndex: 'asrUsage', width: 120, apiEndpoint: 'usage' },
-  { key: 'llmUsage_22', title: 'LLM用量', dataIndex: 'llmUsage', width: 120, apiEndpoint: 'usage' },
-  { key: 'ttsUsage_23', title: 'TTS用量', dataIndex: 'ttsUsage', width: 120, apiEndpoint: 'usage' },
-  { key: 'voiceCloneUsage_24', title: '音色克隆用量', dataIndex: 'voiceCloneUsage', width: 150, apiEndpoint: 'usage' },
-  { key: 'registrationTime_25', title: '注册时间', dataIndex: 'registrationTime', width: 150, sorter: (a, b) => new Date(a.registrationTime).getTime() - new Date(b.registrationTime).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'basic' },
+  { key: 'memberId_1', title: '主账户ID', dataIndex: 'memberId', width: 150, apiEndpoint: 'basic', sorter: (a, b) => (a.memberId || '').localeCompare(b.memberId || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'phoneNumber_2', title: '手机号', dataIndex: 'phoneNumber', width: 120, apiEndpoint: 'basic', sorter: (a, b) => (a.phoneNumber || '').localeCompare(b.phoneNumber || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'deviceModel_3', title: '设备型号', dataIndex: 'deviceModel', width: 100, apiEndpoint: 'basic', sorter: (a, b) => (a.deviceModel || '').localeCompare(b.deviceModel || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'deviceId_4', title: '设备ID', dataIndex: 'deviceId', width: 210, apiEndpoint: 'basic', sorter: (a, b) => (a.deviceId || '').localeCompare(b.deviceId || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'ipRole_5', title: 'IP角色', dataIndex: 'ipRole', width: 100, apiEndpoint: 'basic', sorter: (a, b) => (a.ipRole || '').localeCompare(b.ipRole || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'productId_6', title: '产品ID', dataIndex: 'productId', width: 120, apiEndpoint: 'basic', sorter: (a, b) => (a.productId || '').localeCompare(b.productId || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'commodityId_7', title: '商品ID', dataIndex: 'commodityId', width: 150, apiEndpoint: 'basic', sorter: (a, b) => (a.commodityId || '').localeCompare(b.commodityId || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'voiceCloningModelId_8', title: '音色复刻模型ID', dataIndex: 'voiceCloningModelId', width: 180, apiEndpoint: 'basic', sorter: (a, b) => (a.voiceCloningModelId || '').localeCompare(b.voiceCloningModelId || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'initialActivationTime_9', title: '首次激活时间', dataIndex: 'initialActivationTime', width: 150, sorter: (a, b) => new Date(a.initialActivationTime || 0).getTime() - new Date(b.initialActivationTime || 0).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'basic' },
+  { key: 'currentMemberType_10', title: '当前会员类型', dataIndex: 'currentMemberType', width: 120, apiEndpoint: 'membership', sorter: (a, b) => (a.currentMemberType || '').localeCompare(b.currentMemberType || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'memberPayment_11', title: '会员付费', dataIndex: 'memberPayment', width: 120, apiEndpoint: 'membership', sorter: (a, b) => (a.memberPayment || '').localeCompare(b.memberPayment || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'memberActivationTime_12', title: '会员激活时间', dataIndex: 'memberActivationTime', width: 150, sorter: (a, b) => new Date(a.memberActivationTime || 0).getTime() - new Date(b.memberActivationTime || 0).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'membership' },
+  { key: 'memberExpirationTime_13', title: '会员到期时间', dataIndex: 'memberExpirationTime', width: 150, sorter: (a, b) => new Date(a.memberExpirationTime || 0).getTime() - new Date(b.memberExpirationTime || 0).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'membership' },
+  { key: 'fourGCardNumber_14', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120, apiEndpoint: 'fourgService', sorter: (a, b) => (a.fourGCardNumber || '').localeCompare(b.fourGCardNumber || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'fourGPlan_15', title: '4G套餐', dataIndex: 'fourGPlan', width: 100, apiEndpoint: 'fourgService', sorter: (a, b) => (a.fourGPlan || '').localeCompare(b.fourGPlan || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'remainingDataCurrentMonth_16', title: '当月剩余流量', dataIndex: 'remainingDataCurrentMonth', width: 120, apiEndpoint: 'fourgService', sorter: (a, b) => (a.remainingDataCurrentMonth || '').localeCompare(b.remainingDataCurrentMonth || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'fourGPayment_17', title: '4G付费', dataIndex: 'fourGPayment', width: 100, apiEndpoint: 'fourgService', sorter: (a, b) => (a.fourGPayment || '').localeCompare(b.fourGPayment || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'fourGActivationTime_18', title: '4G激活时间', dataIndex: 'fourGActivationTime', width: 150, sorter: (a, b) => new Date(a.fourGActivationTime || 0).getTime() - new Date(b.fourGActivationTime || 0).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'fourgService' },
+  { key: 'fourGExpirationTime_19', title: '4G到期时间', dataIndex: 'fourGExpirationTime', width: 150, sorter: (a, b) => new Date(a.fourGExpirationTime || 0).getTime() - new Date(b.fourGExpirationTime || 0).getTime(), sortDirections: ['ascend', 'descend'], apiEndpoint: 'fourgService' },
+  { key: 'annualServiceFeeBalance_20', title: '服务年费用盈余(元)', dataIndex: 'annualServiceFeeBalance', width: 180, sorter: (a, b) => (a.annualServiceFeeBalance || 0) - (b.annualServiceFeeBalance || 0), sortDirections: ['ascend', 'descend'], apiEndpoint: 'membership' },
+  { key: 'asrUsage_21', title: 'ASR用量', dataIndex: 'asrUsage', width: 120, apiEndpoint: 'usage', sorter: (a, b) => (a.asrUsage || '').localeCompare(b.asrUsage || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'llmUsage_22', title: 'LLM用量', dataIndex: 'llmUsage', width: 120, apiEndpoint: 'usage', sorter: (a, b) => (a.llmUsage || '').localeCompare(b.llmUsage || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'ttsUsage_23', title: 'TTS用量', dataIndex: 'ttsUsage', width: 120, apiEndpoint: 'usage', sorter: (a, b) => (a.ttsUsage || '').localeCompare(b.ttsUsage || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'voiceCloneUsage_24', title: '音色克隆用量', dataIndex: 'voiceCloneUsage', width: 150, apiEndpoint: 'usage', sorter: (a, b) => (a.voiceCloneUsage || '').localeCompare(b.voiceCloneUsage || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'registrationTime_25', title: '注册时间', dataIndex: 'registrationTime', width: 150, apiEndpoint: 'basic', sorter: (a, b) => new Date(a.registrationTime || 0).getTime() - new Date(b.registrationTime || 0).getTime(), sortDirections: ['ascend', 'descend'], customRender: ({ text }) => text === undefined || text === null || text === '' ? '-' : text },
 ];
 
 // Store column order and visibility separately
@@ -299,8 +299,8 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     fixed: config.fixed,
     sorter: config.sorter,
     sortDirections: config.sortDirections,
-    // Only show sort order when user actively sorts, not by default
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey && sorterInfo.value.order !== 'descend' ? sorterInfo.value.order : undefined,
+    // Show sort order when user actively sorts
+    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
     customRender: config.customRender
       ? config.customRender
       : ({ text, record }) => {
@@ -393,8 +393,7 @@ const fetchData = async () => {
   try {
     const params = new URLSearchParams({
       page: currentPage.value.toString(),
-      pageSize: pageSize.value.toString(),
-      sortOrder: sorterInfo.value?.order || 'desc'
+      pageSize: pageSize.value.toString()
     });
 
     // Add search filter
@@ -407,9 +406,12 @@ const fetchData = async () => {
       params.append('ipRole', ipRoleValue.value.value);
     }
 
-    // Add sorting
+    // Add sorting for all columns including registration time
     if (sorterInfo.value?.columnKey) {
-      params.append('sortBy', getSortByField(sorterInfo.value.columnKey));
+      const sortByField = getSortByField(sorterInfo.value.columnKey);
+      params.append('sortBy', sortByField);
+      params.append('sortOrder', sorterInfo.value.order);
+      console.log('Sorting by:', sortByField, 'Order:', sorterInfo.value.order);
     }
 
     console.log('Calling basic endpoint with params:', params.toString());
@@ -432,17 +434,31 @@ const fetchData = async () => {
 // Helper function to map frontend column keys to database field names
 const getSortByField = (columnKey?: string) => {
   const fieldMap: { [key: string]: string } = {
+    'memberId_1': 'member_id',
+    'phoneNumber_2': 'phone_number',
+    'deviceModel_3': 'device_model',
+    'deviceId_4': 'device_id',
+    'ipRole_5': 'ip_role',
+    'productId_6': 'product_id',
+    'commodityId_7': 'commodity_id',
+    'voiceCloningModelId_8': 'voice_cloning_model_id',
     'initialActivationTime_9': 'initial_activation_time',
+    'currentMemberType_10': 'current_member_type',
+    'memberPayment_11': 'member_payment',
     'memberActivationTime_12': 'member_activation_time',
     'memberExpirationTime_13': 'member_expiration_time',
+    'fourGCardNumber_14': 'fourg_card_number',
+    'fourGPlan_15': 'fourg_plan',
+    'remainingDataCurrentMonth_16': 'remaining_data_current_month',
+    'fourGPayment_17': 'fourg_payment',
     'fourGActivationTime_18': 'fourg_activation_time',
     'fourGExpirationTime_19': 'fourg_expiration_time',
     'annualServiceFeeBalance_20': 'annual_service_fee_balance',
-    'registrationTime_25': 'registration_time',
     'asrUsage_21': 'asr_usage',
     'llmUsage_22': 'llm_usage',
     'ttsUsage_23': 'tts_usage',
-    'voiceCloneUsage_24': 'voice_clone_usage'
+    'voiceCloneUsage_24': 'voice_clone_usage',
+    'registrationTime_25': 'registration_time'
   };
   return fieldMap[columnKey || ''] || 'registration_time';
 };
@@ -507,8 +523,8 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sorterInfo = ref<any>({
-  columnKey: 'registrationTime_25',
-  order: 'descend', // API will sort by this, but no visual indicator
+  columnKey: undefined,
+  order: undefined,
 });
 
 const pagination = computed(() => ({
@@ -547,17 +563,66 @@ const onRefresh = () => {
   fourGPlanValue.value = { key: 'all', label: '全部', value: 'all' };
   fourGPaymentValue.value = { key: 'all', label: '全部', value: 'all' };
 
-  // Reset sorter
+  // Reset sorter to default (no active sorting)
   sorterInfo.value = {
-    columnKey: 'registrationTime_25',
-    order: 'descend', // API will sort by this, but no visual indicator
+    columnKey: undefined,
+    order: undefined,
   };
 
+  // Always fetch fresh data on refresh
   fetchData();
 };
 
 const filteredData = computed(() => {
-  return combinedData.value;
+  let data = combinedData.value;
+
+  // Apply sorting based on sorterInfo
+  if (sorterInfo.value?.columnKey === 'registrationTime_25') {
+    // Use Ant Design sorter for registration time when user interacts
+    const columnConfig = columnConfigs.find(config => config.key === 'registrationTime_25');
+    if (columnConfig?.sorter) {
+      data.sort((a, b) => {
+        const result = columnConfig.sorter!(a, b);
+        return sorterInfo.value.order === 'ascend' ? result : -result;
+      });
+    }
+  } else if (sorterInfo.value?.columnKey) {
+    const columnConfig = columnConfigs.find(config => config.key === sorterInfo.value.columnKey);
+    if (columnConfig?.sorter) {
+      // Use the Ant Design sorter for other columns
+      data.sort((a, b) => {
+        const result = columnConfig.sorter!(a, b);
+        return sorterInfo.value.order === 'ascend' ? result : -result;
+      });
+    } else {
+      // Fallback to default sorting
+      const sortByField = getSortByField(sorterInfo.value.columnKey);
+      if (sortByField && sortByField !== 'registration_time') {
+        data.sort((a, b) => {
+          const fieldA = (a as any)[sortByField];
+          const fieldB = (b as any)[sortByField];
+          if (fieldA === null || fieldA === undefined) return 1; // Sort null/undefined to the end
+          if (fieldB === null || fieldB === undefined) return -1;
+
+          if (typeof fieldA === 'string') {
+            return sorterInfo.value.order === 'ascend' ? fieldA.localeCompare(fieldB) : fieldB.localeCompare(fieldA);
+          } else if (typeof fieldA === 'number') {
+            return sorterInfo.value.order === 'ascend' ? fieldA - fieldB : fieldB - fieldA;
+          }
+          return 0; // Default sort for other types
+        });
+      }
+    }
+  } else {
+    // Default sorting when no user interaction - use plain JavaScript for registration time
+    data.sort((a, b) => {
+      const dateA = new Date(a.registrationTime || 0).getTime();
+      const dateB = new Date(b.registrationTime || 0).getTime();
+      return dateB - dateA; // Default to descending order
+    });
+  }
+
+  return data;
 });
 
 const searchInputValue = ref('');
@@ -583,13 +648,14 @@ const handleTableChange = (
       order: currentSorter.order,
     };
   } else {
-    // When sorting is cleared, don't set any sort order (no visual indicator)
+    // When sorting is cleared, reset to default
     sorterInfo.value = {
-      columnKey: 'registrationTime_25',
-      order: 'descend', // Keep the API sorting but don't show visual indicator
+      columnKey: undefined,
+      order: undefined,
     };
   }
   
+  // Fetch data from API for all sorting changes
   fetchData();
 };
 
@@ -935,5 +1001,31 @@ html, body {
 
 :deep(.ant-table-tbody .ant-table-cell a:active) {
   color: #096dd9;
+}
+
+/* Make all sort indicators grey instead of blue */
+:deep(.ant-table-column-sorter) {
+  color: #bfbfbf !important;
+}
+
+:deep(.ant-table-column-sorter .ant-table-column-sorter-inner) {
+  color: #bfbfbf !important;
+}
+
+:deep(.ant-table-column-sorter .ant-table-column-sorter-inner .ant-table-column-sorter-up) {
+  color: #bfbfbf !important;
+}
+
+:deep(.ant-table-column-sorter .ant-table-column-sorter-inner .ant-table-column-sorter-down) {
+  color: #bfbfbf !important;
+}
+
+/* Active sort indicators should be blue */
+:deep(.ant-table-column-sorter .ant-table-column-sorter-inner .ant-table-column-sorter-up.active) {
+  color: #1677ff !important;
+}
+
+:deep(.ant-table-column-sorter .ant-table-column-sorter-inner .ant-table-column-sorter-down.active) {
+  color: #1677ff !important;
 }
 </style>

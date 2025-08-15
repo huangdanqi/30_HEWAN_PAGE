@@ -42,6 +42,36 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ==================== TEST DATABASE CONNECTION ====================
+router.get('/test-db', async (req, res) => {
+  try {
+    // Test database connection
+    const [result] = await pool.execute('SELECT 1 as test');
+    console.log('Database connection test result:', result);
+    
+    // Test if table exists
+    const [tables] = await pool.execute('SHOW TABLES LIKE "product_list"');
+    console.log('Tables check result:', tables);
+    
+    // Test table structure
+    const [columns] = await pool.execute('DESCRIBE product_list');
+    console.log('Table structure:', columns);
+    
+    res.json({
+      connection: 'OK',
+      tableExists: tables.length > 0,
+      tableStructure: columns
+    });
+  } catch (error) {
+    console.error('DATABASE TEST ERROR:', error);
+    res.status(500).json({ 
+      error: 'Database test failed', 
+      details: error.message,
+      code: error.code
+    });
+  }
+});
+
 // ==================== CREATE SINGLE PRODUCT ====================
 router.post('/', async (req, res) => {
   try {
@@ -59,20 +89,21 @@ router.post('/', async (req, res) => {
       qr_code_exported = '否',
       barcode_file_directory,
       barcode_exported = '否',
-      device_id,
-      sub_account_id,
-      file_export_time,
-      first_binding_time,
+      device_id = '',
+      sub_account_id = '',
+      file_export_time = '',
+      first_binding_time = '',
       creator_id
     } = req.body;
 
+    // Only require essential fields
     const requiredFields = [
       serial_number, product_id, ip_role, product_model, product_name, product_type, color,
-      production_batch, manufacturer, qr_code_file_directory, barcode_file_directory,
-      device_id, sub_account_id, file_export_time, first_binding_time, creator_id
+      production_batch, manufacturer, qr_code_file_directory, barcode_file_directory, creator_id
     ];
 
     if (requiredFields.some(field => field === undefined || field === null || field === '')) {
+      console.error('Missing required fields:', { requiredFields, received: req.body });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -93,7 +124,11 @@ router.post('/', async (req, res) => {
       file_export_time, first_binding_time, creator_id
     ];
 
+    console.log('Executing SQL with values:', values);
+
     const [result] = await pool.execute(sql, values);
+
+    console.log('SQL execution result:', result);
 
     res.status(201).json({
       id: result.insertId,
@@ -102,7 +137,18 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('CREATE PRODUCT ERROR:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage
+    });
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error.message,
+      code: error.code,
+      sqlState: error.sqlState
+    });
   }
 });
 
@@ -228,6 +274,68 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('DELETE PRODUCT ERROR:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ==================== TEST PRODUCT CREATION ====================
+router.post('/test-create', async (req, res) => {
+  try {
+    console.log('Testing product creation with data:', req.body);
+    
+    // Test with minimal required data
+    const testData = {
+      serial_number: 1,
+      product_id: 'TEST_' + Date.now(),
+      ip_role: '测试角色',
+      product_model: '测试型号',
+      product_name: '测试产品',
+      product_type: '测试类型',
+      color: '测试颜色',
+      production_batch: '2025-01-27',
+      manufacturer: '测试厂家',
+      qr_code_file_directory: '/test/qr.png',
+      barcode_file_directory: '/test/barcode.png',
+      creator_id: 1
+    };
+    
+    const sql = `
+      INSERT INTO product_list (
+        serial_number, product_id, ip_role, product_model, product_name, product_type, color,
+        production_batch, manufacturer, qr_code_file_directory, qr_code_exported,
+        barcode_file_directory, barcode_exported, device_id, sub_account_id,
+        file_export_time, first_binding_time, creator_id, creation_time, update_time
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    `;
+
+    const values = [
+      testData.serial_number, testData.product_id, testData.ip_role, testData.product_model, 
+      testData.product_name, testData.product_type, testData.color, testData.production_batch, 
+      testData.manufacturer, testData.qr_code_file_directory, '否', 
+      testData.barcode_file_directory, '否', '', '', '', '', testData.creator_id
+    ];
+    
+    console.log('Test SQL values:', values);
+    
+    const [result] = await pool.execute(sql, values);
+    
+    console.log('Test creation result:', result);
+    
+    res.json({
+      success: true,
+      message: 'Test product created successfully',
+      id: result.insertId,
+      data: testData
+    });
+    
+  } catch (error) {
+    console.error('TEST PRODUCT CREATION ERROR:', error);
+    res.status(500).json({ 
+      error: 'Test creation failed', 
+      details: error.message,
+      code: error.code,
+      sqlState: error.sqlState
+    });
   }
 });
 

@@ -5,51 +5,98 @@
     </div>
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
-        <a-input v-model:value="searchInputValue" placeholder="Q 输入关键字搜索" style="width: 200px; margin-right: 16px;">
-          <template #prefix><SearchOutlined /></template>
-        </a-input>
+        <!-- Left side content can be added here if needed -->
       </div>
+      <!-- icon area -->
       <div class="right-aligned-icons">
-        <a-button type="primary" style="margin-right: 16px;" @click="showCreateModal = true">新建闹铃</a-button>
-        <!-- 新建闹铃 Modal -->
-        <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
-          <div class="modal-content alarm-modal" @click.stop>
-            <div class="modal-header">
-              <h3>新建闹铃</h3>
-              <button class="close-btn" @click="closeCreateModal">×</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label class="required-field"><span class="asterisk">*</span> 闹铃名称</label>
-                <input type="text" v-model="createForm.alarmName" class="form-input" placeholder="请输入" />
+          <!-- search area  -->
+          <a-input
+            v-model:value="searchInputValue"
+            placeholder="输入关键字搜索"
+            style="width: 200px"
+          >
+            <template #prefix>
+              <SearchOutlined />
+            </template>
+          </a-input>
+          <a-button type="primary" @click="showCreateModal = true">新建闹铃</a-button>
+          <!-- 新建闹铃 Modal -->
+          <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
+            <div class="modal-content alarm-modal" @click.stop>
+              <div class="modal-header">
+                <h3>新建闹铃</h3>
+                <button class="close-btn" @click="closeCreateModal">×</button>
               </div>
-              <div class="form-group">
-                <label class="required-field"><span class="asterisk">*</span> 上传铃声</label>
-                <div class="upload-area" @click="triggerFileUpload" @drop="handleFileDrop" @dragover.prevent @dragenter.prevent>
-                  <input 
-                    ref="fileInput" 
-                    type="file" 
-                    accept=".mp3,.wav,.aac" 
-                    @change="handleFileChange" 
-                    style="display: none;"
-                  >
-                  <div class="upload-content">
-                    <div class="upload-icon">↑</div>
-                    <div class="upload-text">支持文件格式: mp3, wav, aac</div>
+              <div class="modal-body">
+                <div class="form-group">
+                  <label class="required-field"><span class="asterisk">*</span> 闹铃名称</label>
+                  <input type="text" v-model="createForm.alarmName" class="form-input" placeholder="请输入" />
+                </div>
+                <div class="form-group">
+                  <label class="required-field"><span class="asterisk">*</span> 上传铃声</label>
+                  <div class="upload-area" @click="triggerFileUpload" @drop="handleFileDrop" @dragover.prevent @dragenter.prevent>
+                    <input 
+                      ref="fileInput" 
+                      type="file" 
+                      accept=".mp3,.wav,.aac" 
+                      @change="handleFileChange" 
+                      style="display: none;"
+                    >
+                    <div class="upload-content">
+                      <div class="upload-icon">↑</div>
+                      <div class="upload-text">支持文件格式: mp3, wav, aac</div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="modal-footer">
-              <button class="btn btn-secondary" @click="closeCreateModal">取消</button>
-              <button class="btn btn-primary" @click="handleCreateConfirm">确定</button>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" @click="closeCreateModal">取消</button>
+                <button class="btn btn-primary" @click="handleCreateConfirm">确定</button>
+              </div>
             </div>
           </div>
-        </div>
-        <ReloadOutlined @click="onRefresh" />
-        <InfoCircleOutlined @click="onInfoClick" />
-        <SettingOutlined @click="onSettingClick" />
-        <a-avatar style="margin-left: 8px;">33</a-avatar>
+          <ReloadOutlined @click="onRefresh" />
+          <a-dropdown>
+            <ColumnHeightOutlined @click.prevent />
+            <template #overlay>
+              <a-menu @click="handleMenuClick">
+                <a-menu-item key="large">宽松</a-menu-item>
+                <a-menu-item key="middle">中等</a-menu-item>
+                <a-menu-item key="small">紧凑</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <a-popover trigger="click" placement="bottomRight">
+            <template #content>
+              <div class="column-setting-panel" style="max-height: 300px; overflow-y: auto;">
+                <div class="setting-section">
+                  <div class="section-header" style="display: flex; justify-content: space-between;">
+                    <span>列展示</span>
+                    <a-button type="link" @click="resetColumns">重置</a-button>
+                  </div>
+
+                  <draggable
+                    v-model="columnOrder"
+                    item-key="key"
+                    @end="onColumnOrderChange"
+                    class="column-checkbox-group"
+                  >
+                    <template #item="{ element: colKey }">
+                      <div class="column-checkbox-item" style="padding: 4px 0;">
+                        <a-checkbox
+                          :checked="selectedColumnKeys.includes(colKey)"
+                          @change="(event: Event) => handleColumnVisibilityChange(colKey, (event.target as HTMLInputElement).checked)"
+                        >
+                          {{ columnConfigs.find(config => config.key === colKey)?.title }}
+                        </a-checkbox>
+                      </div>
+                    </template>
+                  </draggable>
+                </div>
+              </div>
+            </template>
+            <SettingOutlined @click="onSettingClick" />
+          </a-popover>
       </div>
     </div>
     <div class="table-container">
@@ -135,7 +182,8 @@
 import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, SettingOutlined, SearchOutlined, InfoCircleOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
+import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, InfoCircleOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
+import draggable from 'vuedraggable';
 import { createColumnConfigs, useTableColumns, createColumn, type ColumnDefinition } from '../utils/tableConfig';
 
 const customLocale = computed(() => ({
@@ -155,14 +203,14 @@ interface AlarmItem {
 }
 
 const columnDefinitions: ColumnDefinition[] = [
-  createColumn('rowIndex', '序号', 'rowIndex', 60, { fixed: 'left' }),
-  createColumn('alarmId', '闹铃 ID', 'alarmId', 150),
-  createColumn('alarmName', '闹铃名称', 'alarmName', 120),
-  createColumn('alarmFileAddress', '闹铃文件地址', 'alarmFileAddress', 200),
+  createColumn('rowIndex', '序号', 'rowIndex', 60, { fixed: 'left', sortable: true, sortType: 'number' }),
+  createColumn('alarmId', '闹铃 ID', 'alarmId', 150, { sortable: true, sortType: 'string' }),
+  createColumn('alarmName', '闹铃名称', 'alarmName', 120, { sortable: true, sortType: 'string' }),
+  createColumn('alarmFileAddress', '闹铃文件地址', 'alarmFileAddress', 200, { sortable: true, sortType: 'string' }),
   createColumn('audition', '试听', 'audition', 80),
-  createColumn('updater', '更新人', 'updater', 120),
-  createColumn('createTime', '创建时间', 'createTime', 150),
-  createColumn('updateTime', '更新时间', 'updateTime', 150),
+  createColumn('updater', '更新人', 'updater', 120, { sortable: true, sortType: 'string' }),
+  createColumn('createTime', '创建时间', 'createTime', 150, { sortable: true, sortType: 'date' }),
+  createColumn('updateTime', '更新时间', 'updateTime', 150, { sortable: true, sortType: 'date' }),
   createColumn('operation', '操作', 'operation', 150, { fixed: 'right' }),
 ];
 
@@ -301,6 +349,10 @@ const onRefresh = () => {
 
 const onInfoClick = () => console.log('Info clicked');
 const onSettingClick = () => console.log('Setting clicked');
+
+const handleMenuClick = ({ key }: { key: string }) => {
+  tableSize.value = key;
+};
 const handleView = (record: AlarmItem) => console.log('View:', record);
 const handleDelete = (record: AlarmItem) => console.log('Delete:', record);
 
@@ -461,7 +513,7 @@ defineExpose({ handleTableChange });
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-right: 30px;
+  padding-right: 60px;
 }
 
 .right-aligned-icons > .anticon {
@@ -755,5 +807,59 @@ defineExpose({ handleTableChange });
   height: 100%;
   background-color: #1890ff;
   transition: width 0.3s ease;
+}
+
+/* Column management panel styling */
+.column-setting-panel {
+  min-width: 250px;
+}
+
+.setting-section {
+  margin-bottom: 16px;
+}
+
+.section-header {
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.column-checkbox-group {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.column-checkbox-item {
+  margin-bottom: 8px;
+}
+
+/* Sorting icon styling - ensure default state is grey */
+:deep(.ant-table-column-sorter-up),
+:deep(.ant-table-column-sorter-down) {
+  color: #bfbfbf !important; /* grey by default */
+}
+
+/* Only show blue for the active sorting direction */
+:deep(.ant-table-column-sorter-up.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* blue when ascending is active */
+}
+
+:deep(.ant-table-column-sorter-down.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* blue when descending is active */
+}
+
+/* Hover effects */
+:deep(th .ant-table-column-sorter-up:hover),
+:deep(th .ant-table-column-sorter-down:hover) {
+  color: #1677ff !important; /* blue on hover */
+}
+
+/* Ensure the default sort column shows the correct icon state */
+:deep(.ant-table-column-sorter) {
+  color: #bfbfbf !important; /* Default grey color */
+}
+
+:deep(.ant-table-column-sorter.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* Blue when column is actively sorted */
 }
 </style> 

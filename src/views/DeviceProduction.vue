@@ -433,17 +433,17 @@ interface ColumnConfig {
 
 const columnConfigs: ColumnConfig[] = [
   { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
-  { key: 'productionDeviceId_1', title: '生产设备ID', dataIndex: 'productionDeviceId', width: 150 },
-  { key: 'deviceModel_2', title: '设备型号', dataIndex: 'deviceModel', width: 120 },
+  { key: 'productionDeviceId_1', title: '生成批次ID', dataIndex: 'productionDeviceId', width: 150, sorter: (a, b) => a.productionDeviceId.localeCompare(b.productionDeviceId), sortDirections: ['ascend', 'descend'] },
+  { key: 'deviceModel_2', title: '设备型号', dataIndex: 'deviceModel', width: 120, sorter: (a, b) => a.deviceModel.localeCompare(b.deviceModel), sortDirections: ['ascend', 'descend'] },
   { key: 'productionBatch_3', title: '生产批次', dataIndex: 'productionBatch', width: 120, sorter: (a, b) => new Date(a.productionBatch).getTime() - new Date(b.productionBatch).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'manufacturer_4', title: '生产厂家', dataIndex: 'manufacturer', width: 200 },
-  { key: 'firmwareVersion_5', title: '固件版本', dataIndex: 'firmwareVersion', width: 150 },
+  { key: 'manufacturer_4', title: '生产厂家', dataIndex: 'manufacturer', width: 200, sorter: (a, b) => a.manufacturer.localeCompare(b.manufacturer), sortDirections: ['ascend', 'descend'] },
+  { key: 'firmwareVersion_5', title: '固件版本', dataIndex: 'firmwareVersion', width: 150, sorter: (a, b) => a.firmwareVersion.localeCompare(b.firmwareVersion), sortDirections: ['ascend', 'descend'] },
   { key: 'unitPrice_6', title: '单价 (元)', dataIndex: 'unitPrice', width: 120, sorter: (a, b) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
   { key: 'quantity_7', title: '数量 (个)', dataIndex: 'quantity', width: 120, sorter: (a, b) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
   { key: 'totalPrice_8', title: '总价 (元)', dataIndex: 'totalPrice', width: 120, sorter: (a, b) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'updater_9', title: '更新人', dataIndex: 'updater', width: 120 },
+  { key: 'updater_9', title: '更新人', dataIndex: 'updater', width: 120, sorter: (a, b) => a.updater.localeCompare(b.updater), sortDirections: ['ascend', 'descend'] },
   { key: 'createTime_10', title: '创建时间', dataIndex: 'createTime', width: 180, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime_11', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a, b) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'updateTime_11', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a, b) => new Date(b.updateTime).getTime() - new Date(a.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'operation_12', title: '操作', dataIndex: '', width: 330, fixed: 'right' },
 ];
 

@@ -7,6 +7,8 @@
 <!-- Temporary test button - add this somewhere in your template -->
 <a-button @click="testSimpleProductCreation" style="margin-left: 10px;">测试简单创建</a-button>
 <a-button @click="testBatchAddEndpoint" style="margin-left: 10px;">测试批量新增端点</a-button>
+<a-button @click="testDatabaseConnection" style="margin-left: 10px;">测试数据库连接</a-button>
+<a-button @click="testTableStructure" style="margin-left: 10px;">测试表结构</a-button>
     <!-- select item area -->
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
@@ -438,7 +440,7 @@ const handleFormConfirmationConfirm = async () => {
       resetBatchAddForm();
       await fetchProductList(); // Refresh the list
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in form confirmation:', error);
     message.error('添加产品失败: ' + (error.message || '未知错误'));
   }
@@ -554,11 +556,11 @@ const createBatchProducts = async () => {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
         
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error creating product ${i + 1}:`, error);
         errors.push({
           index: i + 1,
-          error: error.response?.data?.message || error.message || '未知错误'
+          error: (error as any).response?.data?.message || (error as any).message || '未知错误'
         });
       }
     }
@@ -582,7 +584,7 @@ const createBatchProducts = async () => {
       await fetchProductList(); // Refresh the list
     }
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in batch creation process:', error);
     message.error('批量创建过程中发生错误: ' + (error.message || '未知错误'));
   } finally {
@@ -615,7 +617,7 @@ const handleConfirmationConfirm = async () => {
     batchAddModalVisible.value = false;
     resetBatchAddForm();
     await fetchProductList(); // Refresh the list
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in confirmation confirm:', error);
     message.error('添加产品失败: ' + (error.message || '未知错误'));
   }
@@ -656,6 +658,7 @@ interface DataItem {
   creatorId: number; // 创建人
   creationTime: string; // 创建时间
   updateTime: string; // 更新时间
+  serialNumber?: number; // Added for batch creation
 }
 
 // Define column configuration separately from the table columns
@@ -675,14 +678,14 @@ interface ColumnConfig {
 const columnConfigs = [
   { key: 'serialNumber', title: '序号', dataIndex: 'serialNumber', width: 60, fixed: 'left', customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1 },
   { key: 'productId', title: '商品ID', dataIndex: 'productId', width: 120 },
-  { key: 'ipRole', title: 'IP角色', dataIndex: 'ipRole', width: 100, customRender: ({ text, record }) => {
+  { key: 'ipRole', title: 'IP角色', dataIndex: 'ipRole', width: 100, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
       style: { color: '#1890ff', cursor: 'pointer' },
       onClick: () => router.push({ name: 'agent-configuration', query: { search: text } })
     }, text);
   }},
-  { key: 'productModel', title: '产品型号', dataIndex: 'productModel', width: 120, customRender: ({ text, record }) => {
+  { key: 'productModel', title: '产品型号', dataIndex: 'productModel', width: 120, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
       style: { color: '#1890ff', cursor: 'pointer' },
@@ -692,7 +695,7 @@ const columnConfigs = [
   { key: 'productName', title: '产品名称', dataIndex: 'productName', width: 200 },
   { key: 'productType', title: '产品类型', dataIndex: 'productType', width: 200 },
   { key: 'color', title: '颜色', dataIndex: 'color', width: 100 },
-  { key: 'productionBatch', title: '生产批次', dataIndex: 'productionBatch', width: 120, customRender: ({ text, record }) => {
+  { key: 'productionBatch', title: '生产批次', dataIndex: 'productionBatch', width: 120, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
       style: { color: '#1890ff', cursor: 'pointer' },
@@ -704,14 +707,14 @@ const columnConfigs = [
   { key: 'qrCodeExported', title: '二维码是否导出', dataIndex: 'qrCodeExported', width: 120 },
   { key: 'barcodeFileDirectory', title: '条形码目录', dataIndex: 'barcodeFileDirectory', width: 200 },
   { key: 'barcodeExported', title: '条形码是否导出', dataIndex: 'barcodeExported', width: 120 },
-  { key: 'deviceId', title: '设备ID', dataIndex: 'deviceId', width: 220, customRender: ({ text, record }) => {
+  { key: 'deviceId', title: '设备ID', dataIndex: 'deviceId', width: 220, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
       style: { color: '#1890ff', cursor: 'pointer' },
       onClick: () => router.push({ name: 'device-management', query: { search: text } })
     }, text);
   }},
-  { key: 'subAccountId', title: '子账户ID', dataIndex: 'subAccountId', width: 120, customRender: ({ text, record }) => {
+  { key: 'subAccountId', title: '子账户ID', dataIndex: 'subAccountId', width: 120, customRender: ({ text, record }: { text: any, record: any }) => {
     if (!text || text === '') return '-';
     return h('a', {
       style: { color: '#1890ff', cursor: 'pointer' },
@@ -809,7 +812,8 @@ const fetchProductList = async () => {
       firstBindingTime: item.first_binding_time || item.firstBindingTime || '',
       creatorId: item.creator_id || item.creatorId || 0,
       creationTime: item.creation_time || item.creationTime || '',
-      updateTime: item.update_time || item.updateTime || ''
+      updateTime: item.update_time || item.updateTime || '',
+      serialNumber: item.serial_number || 1 // Ensure serialNumber is present
     }));
     
     console.log('Processed product list data:', rawData.value);
@@ -838,6 +842,7 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
     
     // Match the actual API structure based on existing data
     const apiData: any = {
+      serial_number: productListData.serialNumber || 1, // Add missing serial_number field
       product_id: productListData.productId || '',
       product_name: productListData.productName || '',
       product_type: productListData.productType || '',
@@ -850,23 +855,12 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
       qr_code_exported: productListData.qrCodeExported || '否',
       barcode_file_directory: productListData.barcodeFileDirectory || '',
       barcode_exported: productListData.barcodeExported || '否',
-      creator_id: productListData.creatorId || 1,
-      creation_time: productListData.creationTime || new Date().toISOString().slice(0, 19).replace('T', ' ')
+      device_id: productListData.deviceId || '默认设备',
+      sub_account_id: productListData.subAccountId || '默认账户',
+      file_export_time: productListData.fileExportTime || new Date().toISOString().slice(0, 19).replace('T', ' '),
+      first_binding_time: productListData.firstBindingTime || new Date().toISOString().slice(0, 19).replace('T', ' '),
+      creator_id: productListData.creatorId || 1
     };
-    
-    // Only include optional fields if they have values
-    if (productListData.deviceId) {
-      apiData.device_id = productListData.deviceId;
-    }
-    if (productListData.subAccountId) {
-      apiData.sub_account_id = productListData.subAccountId;
-    }
-    if (productListData.fileExportTime) {
-      apiData.file_export_time = productListData.fileExportTime;
-    }
-    if (productListData.firstBindingTime) {
-      apiData.first_binding_time = productListData.firstBindingTime;
-    }
     
     console.log('Sending API data:', apiData);
     
@@ -874,7 +868,7 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
     console.log('Product creation response:', response.data);
     
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating product list:', error);
     if (error.response) {
       console.error('Response status:', error.response.status);
@@ -887,16 +881,42 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
 // Simple batch add function that sends empty request to trigger backend batch add logic
 const createSimpleBatchProduct = async () => {
   try {
-    console.log('Creating simple batch product with empty request');
-    console.log('Request payload:', {});
-    console.log('Request URL:', constructApiUrl('product-list'));
+    console.log('Creating simple batch product with form data');
     
-    // Send empty request to trigger batch add logic in backend
-    const response = await axios.post(constructApiUrl('product-list'), {});
-    console.log('Simple batch product creation response:', response.data);
+    // Create product data from the form
+    const productId = generateUniqueProductId();
+    const filePaths = generateFilePaths(productId);
     
-    return response.data;
-  } catch (error) {
+    const productData = {
+      serialNumber: 1, // Default serial number
+      productId: productId,
+      ipRole: '默认角色',
+      productModel: batchAddForm.value.productName,
+      productName: batchAddForm.value.productName,
+      productType: '玩具',
+      color: '默认颜色',
+      productionBatch: batchAddForm.value.productionBatch,
+      manufacturer: batchAddForm.value.manufacturer,
+      qrCodeFileDirectory: filePaths.qrCodePath,
+      qrCodeExported: '否',
+      barcodeFileDirectory: filePaths.barcodePath,
+      barcodeExported: '否',
+      deviceId: '默认设备',
+      subAccountId: '默认账户',
+      fileExportTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      firstBindingTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      creatorId: 1,
+      creationTime: new Date().toISOString().slice(0, 19).replace('T', ' ')
+    };
+    
+    console.log('Request payload:', productData);
+    
+    // Use the createProductList function instead of direct API call
+    const result = await createProductList(productData);
+    console.log('Simple batch product creation response:', result);
+    
+    return result;
+  } catch (error: any) {
     console.error('Error creating simple batch product:', error);
     if (error.response) {
       console.error('Response status:', error.response.status);
@@ -928,7 +948,7 @@ const testSimpleProductCreation = async () => {
     const response = await axios.post(constructApiUrl('product-list'), testData);
     console.log('Test response:', response.data);
     message.success('测试成功！');
-  } catch (error) {
+  } catch (error: any) {
     console.error('Test failed:', error);
     if (error.response) {
       console.error('Response status:', error.response.status);
@@ -959,13 +979,66 @@ const testBatchAddEndpoint = async () => {
     console.log('Regular creation test response:', response2.data);
     message.success('常规创建端点测试成功！');
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Batch add endpoint test failed:', error);
     if (error.response) {
       console.error('Response status:', error.response.status);
       console.error('Response data:', error.response.data);
     }
     message.error('批量新增端点测试失败');
+  }
+};
+
+// Test database connection
+const testDatabaseConnection = async () => {
+  try {
+    console.log('Testing database connection...');
+    const response = await axios.get(constructApiUrl('product-list/test-db'));
+    console.log('Database test response:', response.data);
+    
+    if (response.data.connection === 'OK') {
+      message.success('数据库连接正常！');
+      if (response.data.tableExists) {
+        message.success('product_list表存在！');
+        console.log('Table structure:', response.data.tableStructure);
+      } else {
+        message.warning('product_list表不存在！');
+      }
+    } else {
+      message.error('数据库连接失败！');
+    }
+  } catch (error: any) {
+    console.error('Database connection test failed:', error);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    message.error('数据库连接测试失败');
+  }
+};
+
+// Test table structure
+const testTableStructure = async () => {
+  try {
+    console.log('Testing table structure...');
+    const response = await axios.get(constructApiUrl('product-list/test-db'));
+    console.log('Table structure test response:', response.data);
+    
+    if (response.data.tableStructure) {
+      const columns = response.data.tableStructure;
+      const columnNames = columns.map((col: any) => col.Field).join(', ');
+      message.success(`表结构: ${columnNames}`);
+      console.log('Available columns:', columnNames);
+    } else {
+      message.warning('无法获取表结构信息');
+    }
+  } catch (error: any) {
+    console.error('Table structure test failed:', error);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    message.error('表结构测试失败');
   }
 };
 const updateProductList = async (id: number, productListData: Partial<DataItem>) => {

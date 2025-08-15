@@ -232,15 +232,15 @@ interface ColumnConfig {
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
-  { key: 'deviceModel', title: '设备型号', dataIndex: 'deviceModel', width: 100 },
-  { key: 'releaseVersion', title: '发布版本', dataIndex: 'releaseVersion', width: 100 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', sorter: (a: any, b: any) => a.id - b.id, sortDirections: ['ascend', 'descend'] },
+  { key: 'deviceModel', title: '设备型号', dataIndex: 'deviceModel', width: 100, sorter: (a: any, b: any) => a.deviceModel.localeCompare(b.deviceModel), sortDirections: ['ascend', 'descend'] },
+  { key: 'releaseVersion', title: '发布版本', dataIndex: 'releaseVersion', width: 100, sorter: (a: any, b: any) => a.releaseVersion.localeCompare(b.releaseVersion), sortDirections: ['ascend', 'descend'] },
   { key: 'versionNumber', title: '版本号', dataIndex: 'versionNumber', width: 100, sorter: (a: any, b: any) => a.versionNumber.localeCompare(b.versionNumber), sortDirections: ['ascend', 'descend'] },
-  { key: 'description', title: '内容描述', dataIndex: 'description', width: 600 },
-  { key: 'fileAddress', title: '文件地址', dataIndex: 'fileAddress', width: 200 },
-  { key: 'creator', title: '更新人', dataIndex: 'creator', width: 100 },
+  { key: 'description', title: '内容描述', dataIndex: 'description', width: 600, sorter: (a: any, b: any) => (a.description || '').localeCompare(b.description || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'fileAddress', title: '文件地址', dataIndex: 'fileAddress', width: 320, sorter: (a: any, b: any) => (a.fileAddress || '').localeCompare(b.fileAddress || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'creator', title: '更新人', dataIndex: 'creator', width: 100, sorter: (a: any, b: any) => (a.creator || '').localeCompare(b.creator || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'releaseTime', title: '发布时间', dataIndex: 'releaseTime', width: 180, sorter: (a: any, b: any) => new Date(a.releaseTime).getTime() - new Date(b.releaseTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
   { key: 'operation', title: '操作', dataIndex: '', width: 280, fixed: 'right' },
 ];
 
@@ -478,6 +478,12 @@ const onRefresh = () => {
   currentPage.value = 1;
   pageSize.value = 10;
   resetColumns(); // Reset column order and visibility
+  
+  // Clear sorting state
+  sorterInfo.value = {
+    columnKey: 'updateTime',
+    order: 'descend',
+  };
 
   // Reset all selector values to '全部'
   deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
@@ -536,6 +542,12 @@ const filteredData = computed<DataItem[]>(() => {
         return order === 'ascend' ? result : -result;
       });
     }
+  } else {
+    // Apply default sorting by updateTime in descending order
+    console.log('Applying default sorting by updateTime descending');
+    dataToFilter.sort((a, b) => {
+      return new Date(b.updateTime).getTime() - new Date(a.updateTime).getTime(); // Descending order
+    });
   }
 
   return dataToFilter;
@@ -1023,13 +1035,6 @@ html, body {
 }
 
 /* Ensure operation column content stays horizontal */
-:deep(.ant-table-tbody .ant-table-cell:last-child) {
-  white-space: nowrap !important;
-  word-break: keep-all !important;
-  text-wrap: nowrap !important;
-}
-
-/* Additional styling for cells containing action-cell */
 :deep(.ant-table-cell .action-cell) {
   display: flex;
   align-items: center;
@@ -1038,38 +1043,54 @@ html, body {
   white-space: nowrap;
   flex-wrap: nowrap;
 }
+
 :deep(.ant-table-cell .action-cell .ant-space) {
   white-space: nowrap !important;
   flex-wrap: nowrap !important;
 }
+
 :deep(.ant-table-cell .action-cell .ant-space-item) {
   white-space: nowrap !important;
   flex-shrink: 0 !important;
 }
+
 :deep(.ant-table-cell .action-cell .ant-divider-vertical) {
   flex-shrink: 0 !important;
   white-space: nowrap !important;
 }
-:deep(.ant-table-cell .action-cell a) {
-  white-space: nowrap !important;
-  word-break: keep-all !important;
-  text-wrap: nowrap !important;
-  flex-shrink: 0;
+
+/* Unified hyperlink styling for all table links */
+:deep(.ant-table-tbody .ant-table-cell a) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  cursor: pointer;
 }
+
+:deep(.ant-table-tbody .ant-table-cell a:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:active) {
+  color: #096dd9;
+}
+
+/* Action button specific styling */
 :deep(.ant-table-cell .action-cell .view-link) {
-  color: #1890ff !important; /* Ant Design blue */
   font-weight: bold;
 }
+
 :deep(.ant-table-cell .action-cell .edit-link) {
-  color: #1890ff !important; /* Ant Design blue */
   font-weight: bold;
 }
+
 :deep(.ant-table-cell .action-cell .download-link) {
-  color: #1890ff !important; /* Ant Design blue */
   font-weight: bold;
 }
+
 :deep(.ant-table-cell .action-cell .danger-link) {
-  color: #ff4d4f !important; /* Ant Design red */
+  color: #ff4d4f !important;
   font-weight: bold;
 }
 
@@ -1091,19 +1112,33 @@ html, body {
   font-size: 14px;
 }
 
-/* Hyperlink styling */
-:deep(.ant-table-tbody .ant-table-cell a) {
-  color: #1890ff;
-  text-decoration: none;
-  transition: color 0.3s ease;
+/* Sorting icon styling - ensure default state is grey */
+:deep(.ant-table-column-sorter-up),
+:deep(.ant-table-column-sorter-down) {
+  color: #bfbfbf !important; /* grey by default */
 }
 
-:deep(.ant-table-tbody .ant-table-cell a:hover) {
-  color: #40a9ff;
-  text-decoration: underline;
+/* Only show blue for the active sorting direction */
+:deep(.ant-table-column-sorter-up.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* blue when ascending is active */
 }
 
-:deep(.ant-table-tbody .ant-table-cell a:active) {
-  color: #096dd9;
+:deep(.ant-table-column-sorter-down.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* blue when descending is active */
+}
+
+/* Hover effects */
+:deep(th .ant-table-column-sorter-up:hover),
+:deep(th .ant-table-column-sorter-down:hover) {
+  color: #1677ff !important; /* blue on hover */
+}
+
+/* Ensure the default sort column shows the correct icon state */
+:deep(.ant-table-column-sorter) {
+  color: #bfbfbf !important; /* Default grey color */
+}
+
+:deep(.ant-table-column-sorter.ant-table-column-sorter-active) {
+  color: #1677ff !important; /* Blue when column is actively sorted */
 }
 </style>

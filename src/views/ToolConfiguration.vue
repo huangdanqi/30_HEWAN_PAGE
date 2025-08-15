@@ -415,7 +415,7 @@ import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
-import { theme } from 'ant-design-vue';
+import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, ExportOutlined, PlusOutlined, MinusOutlined, MinusCircleOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import { 
@@ -474,18 +474,18 @@ interface ColumnConfig {
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
-  { key: 'toolId_1', title: '工具ID', dataIndex: 'toolId', width: 150 },
-  { key: 'toolType_2', title: '工具类型', dataIndex: 'toolType', width: 120 },
-  { key: 'toolName_3', title: '工具名称', dataIndex: 'toolName', width: 120 },
-  { key: 'apiAddress_4', title: 'API地址', dataIndex: 'apiAddress', width: 200 },
-  { key: 'localToolFilePath_5', title: '本地工具文件目录', dataIndex: 'localToolFilePath', width: 200 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1, sorter: (a, b) => a.id - b.id, sortDirections: ['ascend', 'descend'] },
+  { key: 'toolId_1', title: '工具ID', dataIndex: 'toolId', width: 150, sorter: (a, b) => a.toolId.localeCompare(b.toolId), sortDirections: ['ascend', 'descend'] },
+  { key: 'toolType_2', title: '工具类型', dataIndex: 'toolType', width: 120, sorter: (a, b) => a.toolType.localeCompare(b.toolType), sortDirections: ['ascend', 'descend'] },
+  { key: 'toolName_3', title: '工具名称', dataIndex: 'toolName', width: 120, sorter: (a, b) => a.toolName.localeCompare(b.toolName), sortDirections: ['ascend', 'descend'] },
+  { key: 'apiAddress_4', title: 'API地址', dataIndex: 'apiAddress', width: 200, sorter: (a, b) => (a.apiAddress || '').localeCompare(b.apiAddress || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'localToolFilePath_5', title: '本地工具文件目录', dataIndex: 'localToolFilePath', width: 200, sorter: (a, b) => (a.localToolFilePath || '').localeCompare(b.localToolFilePath || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'purchaseTime_6', title: '购买时间', dataIndex: 'purchaseTime', width: 150, sorter: (a, b) => new Date(a.purchaseTime).getTime() - new Date(b.purchaseTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'activationTime_7', title: '启用时间', dataIndex: 'activationTime', width: 150, sorter: (a, b) => new Date(a.activationTime).getTime() - new Date(b.activationTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'expirationTime_8', title: '到期时间', dataIndex: 'expirationTime', width: 150, sorter: (a, b) => new Date(a.expirationTime).getTime() - new Date(b.expirationTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'accumulatedUsage_9', title: '累积使用量', dataIndex: 'accumulatedUsage', width: 120 },
-  { key: 'accumulatedCost_10', title: '累积费用', dataIndex: 'accumulatedCost', width: 120 },
-  { key: 'updater_11', title: '更新人', dataIndex: 'updater', width: 100 },
+  { key: 'accumulatedUsage_9', title: '累积使用量', dataIndex: 'accumulatedUsage', width: 120, sorter: (a, b) => a.accumulatedUsage - b.accumulatedUsage, sortDirections: ['ascend', 'descend'] },
+  { key: 'accumulatedCost_10', title: '累积费用', dataIndex: 'accumulatedCost', width: 120, sorter: (a, b) => a.accumulatedCost - b.accumulatedCost, sortDirections: ['ascend', 'descend'] },
+  { key: 'updater_11', title: '更新人', dataIndex: 'updater', width: 100, sorter: (a, b) => (a.updater || '').localeCompare(b.updater || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'createdAt_12', title: '创建时间', dataIndex: 'createdAt', width: 150, sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updatedAt_13', title: '更新时间', dataIndex: 'updatedAt', width: 150, sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'operation_14', title: '操作', dataIndex: '', width: 180, fixed: 'right' },

@@ -108,14 +108,14 @@
       </a-table>
       
       <!-- No data message -->
-      <div v-if="showNoDataMessage" class="no-data-message">
+      <!-- <div v-if="showNoDataMessage" class="no-data-message">
         <a-empty 
           :description="noDataMessage"
           :image="Empty.PRESENTED_IMAGE_SIMPLE"
         >
           <a-button type="primary" @click="clearSearch">清除搜索</a-button>
         </a-empty>
-      </div>
+      </div> -->
     </div>
 
     <!-- 新建设备型号 Modal -->
@@ -288,13 +288,13 @@ interface ColumnConfig {
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
-  { key: 'deviceModelId_1', title: '设备型号ID', dataIndex: 'deviceModelId', width: 150 },
-  { key: 'deviceModelName_2', title: '设备型号名称', dataIndex: 'deviceModelName', width: 120 },
-  { key: 'introduction_3', title: '介绍', dataIndex: 'introduction', width: 300 },
-  { key: 'enable4G_4', title: '开通4G', dataIndex: 'enable4G', width: 100 },
-  { key: 'latestFirmwareVersion_5', title: '最新可更新固件版本', dataIndex: 'latestFirmwareVersion', width: 200 },
-  { key: 'updater_6', title: '更新人', dataIndex: 'updater', width: 120 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1, sorter: (a, b) => a.id - b.id, sortDirections: ['ascend', 'descend'] },
+  { key: 'deviceModelId_1', title: '设备型号ID', dataIndex: 'deviceModelId', width: 150, sorter: (a, b) => a.deviceModelId.localeCompare(b.deviceModelId), sortDirections: ['ascend', 'descend'] },
+  { key: 'deviceModelName_2', title: '设备型号名称', dataIndex: 'deviceModelName', width: 120, sorter: (a, b) => a.deviceModelName.localeCompare(b.deviceModelName), sortDirections: ['ascend', 'descend'] },
+  { key: 'introduction_3', title: '介绍', dataIndex: 'introduction', width: 300, sorter: (a, b) => (a.introduction || '').localeCompare(b.introduction || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'enable4G_4', title: '开通4G', dataIndex: 'enable4G', width: 100, sorter: (a, b) => (a.enable4G ? 1 : 0) - (b.enable4G ? 1 : 0), sortDirections: ['ascend', 'descend'] },
+  { key: 'latestFirmwareVersion_5', title: '最新可更新固件版本', dataIndex: 'latestFirmwareVersion', width: 200, sorter: (a, b) => (a.latestFirmwareVersion || '').localeCompare(b.latestFirmwareVersion || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'updater_6', title: '更新人', dataIndex: 'updater', width: 120, sorter: (a, b) => (a.updater || '').localeCompare(b.updater || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'createTime_7', title: '创建时间', dataIndex: 'createTime', width: 150, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime_8', title: '更新时间', dataIndex: 'updateTime', width: 150, sorter: (a, b) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'operation_9', title: '操作', dataIndex: '', width: 180, fixed: 'right' },
@@ -545,12 +545,12 @@ const showNoDataMessage = computed(() => {
 });
 
 // Computed property for no data message
-const noDataMessage = computed(() => {
-  if (searchInputValue.value && filteredData.value.length === 0) {
-    return `未找到包含 "${searchInputValue.value}" 的数据`;
-  }
-  return '';
-});
+// const noDataMessage = computed(() => {
+//   if (searchInputValue.value && filteredData.value.length === 0) {
+//     return `未找到包含 "${searchInputValue.value}" 的数据`;
+//   }
+//   return '';
+// });
 
 const clearSearch = () => {
   searchInputValue.value = '';
@@ -1089,37 +1089,6 @@ html, body {
   white-space: nowrap;
 }
 
-:deep(.firmware-link) {
-  color: #1890ff !important; /* Ant Design blue */
-  text-decoration: underline;
-  cursor: pointer;
-  font-weight: 500;
-  transition: color 0.3s ease;
-}
-
-:deep(.firmware-link:hover) {
-  color: #40a9ff !important; /* Lighter blue on hover */
-  text-decoration: underline;
-}
-
-:deep(.link-text) {
-  color: #1890ff !important; /* Ant Design blue */
-  /* text-decoration: underline; */
-  cursor: pointer;
-  font-weight: 500;
-  transition: color 0.3s ease;
-}
-
-:deep(.link-text:hover) {
-  color: #40a9ff !important; /* Lighter blue on hover */
-  /* text-decoration: underline; */
-}
-
-:deep(.no-data-text) {
-  color: rgba(0, 0, 0, 0.45) !important; /* Gray color for no data */
-  font-style: italic;
-}
-
 :deep(.nowrap-header) {
   white-space: nowrap !important;
 }
@@ -1208,6 +1177,22 @@ html, body {
 
 :deep(.product-type-select .ant-select-selector) {
   padding-left: 70px !important;
+}
+
+/* Hyperlink styling - using Account.vue style */
+:deep(.ant-table-tbody .ant-table-cell a) {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:hover) {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+:deep(.ant-table-tbody .ant-table-cell a:active) {
+  color: #096dd9;
 }
 
 /* No data message styling */
