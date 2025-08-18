@@ -187,9 +187,7 @@
             <label class="required-field"><span class="asterisk">*</span> IP名称</label>
             <select v-model="createForm.ipName" class="form-select">
               <option value="">请选择</option>
-              <option value="啵啵">啵啵</option>
-              <option value="蝴蝶">蝴蝶</option>
-              <option value="小熊">小熊</option>
+              <option v-for="name in ipNamesForForms" :key="name" :value="name">{{ name }}</option>
             </select>
           </div>
           <div class="form-group">
@@ -311,11 +309,7 @@
             <label class="required-field"><span class="asterisk">*</span> IP名称</label>
             <select v-model="editForm.ipName" class="form-select">
               <option value="">请选择</option>
-              <option value="啵啵">啵啵</option>
-              <option value="蝴蝶">蝴蝶</option>
-              <option value="小熊">小熊</option>
-              <option value="小兔">小兔</option>
-              <option value="小猫">小猫</option>
+              <option v-for="name in ipNamesForForms" :key="name" :value="name">{{ name }}</option>
             </select>
           </div>
           <div class="form-group">
@@ -503,15 +497,15 @@ interface DataItem {
 const columnDefinitions: ColumnDefinition[] = [
   createColumn('rowIndex', '序号', 'rowIndex', 60, { fixed: 'left' }),
   createColumn('audioId', '音频 ID', 'audioId', 150, { sortable: true, sortType: 'string' }),
-  createColumn('ipName', 'IP名称', 'ipName', 120),
+  createColumn('ipName', 'IP名称', 'ipName', 120, { sortable: true, sortType: 'string' }),
   createColumn('audioName', '音频名称', 'audioName', 150, { sortable: true, sortType: 'string' }),
   createColumn('audioType', '音频类型', 'audioType', 120, { sortable: true, sortType: 'string' }),
-  createColumn('tags', '标签', 'tags', 100),
+  createColumn('tags', '标签', 'tags', 100, { sortable: true, sortType: 'string' }),
   createColumn('emotion', '情绪', 'emotion', 120, { sortable: true, sortType: 'string' }),
   createColumn('language', '语种', 'language', 100, { sortable: true, sortType: 'string' }),
-  createColumn('audioFileAddress', '音频文件地址', 'audioFileAddress', 300),
-  createColumn('audition', '试听', 'audition', 80),
-  createColumn('updater', '更新人', 'updater', 120),
+  createColumn('audioFileAddress', '音频文件地址', 'audioFileAddress', 300, { sortable: true, sortType: 'string' }),
+  createColumn('audition', '试听', 'audition', 80, { sortable: true, sortType: 'string' }),
+  createColumn('updater', '更新人', 'updater', 120, { sortable: true, sortType: 'string' }),
   createColumn('createTime', '创建时间', 'createTime', 180, { sortable: true, sortType: 'date' }),
   createColumn('updateTime', '更新时间', 'updateTime', 180, { sortable: true, sortType: 'date' }),
   createColumn('operation', '操作', 'operation', 200, { fixed: 'right' }),
@@ -547,6 +541,36 @@ const {
 const rawData = ref<DataItem[]>([]);
 const loading = ref(false);
 const audioElements = ref<Map<number, HTMLAudioElement>>(new Map()); // Store audio elements
+
+// IP names for dynamic dropdown in forms
+const ipNamesForForms = ref<string[]>([]);
+
+// Fetch IP names from IP Management API
+const fetchIpNamesForForms = async () => {
+  try {
+    const response = await axios.get(constructApiUrl('ip-management'));
+    if (response.data && response.data.data) {
+      // Extract unique IP names from the response
+      const uniqueIpNames = Array.from(new Set(
+        response.data.data
+          .map((item: any) => item.ipName)
+          .filter((name: string) => name && name.trim() !== '')
+      ));
+      ipNamesForForms.value = uniqueIpNames;
+      console.log('Fetched IP names for forms:', ipNamesForForms.value);
+    }
+  } catch (error) {
+    console.error('Error fetching IP names for forms:', error);
+    // Fallback to default options if API fails
+    ipNamesForForms.value = [
+      '啵啵',
+      '蝴蝶',
+      '小熊',
+      '小兔',
+      '小猫'
+    ];
+  }
+};
 
 const fetchData = async () => {
   console.log('fetchData called');
@@ -754,6 +778,7 @@ const onRefresh = () => {
   emotionValue.value = { key: 'all', label: '全部', value: 'all' };
   languageValue.value = { key: 'all', label: '全部', value: 'all' };
   fetchData(); // Re-fetch data on refresh
+  fetchIpNamesForForms(); // Refresh IP names for forms
 
   setTimeout(() => {
     loading.value = false;
@@ -882,7 +907,9 @@ const handleAudition = (record: DataItem) => {
     
     audioElement.addEventListener('error', (e) => {
       console.error('Audio error for record ID:', record.id, e);
-      console.error('Audio error details:', audioElement.error);
+      if (audioElement) {
+        console.error('Audio error details:', audioElement.error);
+      }
     });
     
     // Add event listener for when audio ends
@@ -898,7 +925,7 @@ const handleAudition = (record: DataItem) => {
 
   if (record.isPlaying) {
     // Currently playing, so stop it
-    audioElement.pause();
+    audioElement?.pause();
     record.isPlaying = false;
   } else {
     // Currently stopped, so play it
@@ -915,11 +942,13 @@ const handleAudition = (record: DataItem) => {
     });
     
     // Play the audio
-    audioElement.play().catch(error => {
+    audioElement?.play().catch(error => {
       console.error('Error playing audio:', error);
-      console.error('Audio element readyState:', audioElement.readyState);
-      console.error('Audio element networkState:', audioElement.networkState);
-      console.error('Audio element error:', audioElement.error);
+      if (audioElement) {
+        console.error('Audio element readyState:', audioElement.readyState);
+        console.error('Audio element networkState:', audioElement.networkState);
+        console.error('Audio element error:', audioElement.error);
+      }
       
       // If the file doesn't exist, show a message
       alert('音频文件不存在或无法播放');
@@ -1268,6 +1297,7 @@ const closeViewModal = () => {
 onMounted(() => {
   fetchData(); // Fetch data on mount
   selectedColumnKeys.value = updatedColumnConfigs.map(config => config.key);
+  fetchIpNamesForForms(); // Fetch IP names for forms on mount
 });
 
 defineExpose({
@@ -1681,6 +1711,7 @@ defineExpose({
   background-color: #1890ff;
   border-color: #1890ff;
   color: white;
+  font-weight: bold;
 }
 
 .btn-primary:hover {

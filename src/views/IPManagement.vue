@@ -7,84 +7,83 @@
 
     <!-- select item area -->
     <div class="top-controls-wrapper">
-      <div class="left-aligned-section">
-        <div class="select-container ip-name-select" style="margin-right: 16px;">
-          <span class="select-always-placeholder">IP名称:</span>
-          <a-tooltip :title="ipNameValue.label">
+      <!-- <div class="left-aligned-section">
+
+        <div class="select-container device-model-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">设备型号:</span>
+          <a-tooltip :title="deviceModelValue.label">
             <a-select
-              v-model:value="ipNameValue"
-              style="width: 120px;"
-              :options="ipNameOptions"
-              @change="handleIpNameChange"
-              :allowClear="true"
-              label-in-value
-              placeholder="请选择IP名称"
-            >
-              <a-select-option value="all">全部</a-select-option>
-            </a-select>
-          </a-tooltip>
-        </div>
-        <div class="select-container ip-type-select" style="margin-right: 16px;">
-          <span class="select-always-placeholder">IP类型:</span>
-          <a-tooltip :title="ipTypeValue.label">
-            <a-select
-              v-model:value="ipTypeValue"
+              v-model:value="deviceModelValue"
               style="width: 130px;"
-              :options="ipTypeOptions"
-              @change="handleIpTypeChange"
+              :options="deviceModelOptions"
+              @change="handleDeviceModelChange"
               :allowClear="true"
               label-in-value
-              placeholder="请选择IP类型"
+              class="device-model-select"
             >
               <a-select-option value="all">全部</a-select-option>
             </a-select>
           </a-tooltip>
         </div>
-        <div class="select-container status-select" style="margin-right: 16px;">
-          <span class="select-always-placeholder">状态:</span>
-          <a-tooltip :title="statusValue.label">
+        <div class="select-container release-version-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">发布版本:</span>
+          <a-tooltip :title="releaseVersionValue.label">
             <a-select
-              v-model:value="statusValue"
-              style="width: 100px;"
-              :options="statusOptions"
-              @change="handleStatusChange"
+              v-model:value="releaseVersionValue"
+              style="width: 130px;"
+              :options="releaseVersionOptions"
+              @change="handleReleaseVersionChange"
               :allowClear="true"
               label-in-value
-              placeholder="请选择状态"
+              class="release-version-select"
             >
               <a-select-option value="all">全部</a-select-option>
             </a-select>
           </a-tooltip>
         </div>
-      </div>
-      
+        <div class="select-container version-number-select" style="margin-left: 10px;">
+          <span class="select-always-placeholder">版本号:</span>
+          <a-tooltip :title="versionNumberValue.label">
+            <a-select
+              v-model:value="versionNumberValue"
+              style="width: 120px;"
+              :options="versionNumberOptions"
+              @change="handleVersionNumberChange"
+              :allowClear="true"
+              label-in-value
+              class="version-number-select"
+            >
+              <a-select-option value="all">全部</a-select-option>
+            </a-select>
+          </a-tooltip>
+        </div>
+      </div> -->
       <!-- icon area -->
       <div class="right-aligned-icons">
-        <a-input
-          v-model:value="searchInputValue"
-          placeholder="输入关键字搜索"
-          style="width: 200px; margin-right: 16px;"
-          @input="handleSearchChange"
-        >
-          <template #prefix>
-            <SearchOutlined />
-          </template>
-        </a-input>
-        <a-button type="primary" @click="showCreateIpModal = true" style="margin-right: 16px;">
-          新建 IP
-        </a-button>
-        <ReloadOutlined @click="onRefresh" />
-        <a-dropdown>
-          <ColumnHeightOutlined @click.prevent />
-          <template #overlay>
+          <!-- search area  -->
+          <a-input
+            v-model:value="searchInputValue"
+            placeholder="输入关键字搜索"
+            style="width: 200px"
+            @input="handleSearchChange"
+          >
+            <template #prefix>
+              <SearchOutlined />
+            </template>
+          </a-input>
+    
+            <a-button type="primary" @click="showCreateIpModal = true">新建 IP</a-button>
+        
+          <ReloadOutlined @click="onRefresh" />
+          <a-dropdown>
+            <ColumnHeightOutlined @click.prevent />
             <a-menu @click="handleMenuClick">
               <a-menu-item key="large">宽松</a-menu-item>
               <a-menu-item key="middle">中等</a-menu-item>
               <a-menu-item key="small">紧凑</a-menu-item>
             </a-menu>
-          </template>
-        </a-dropdown>
-        <a-popover trigger="click" placement="bottomRight">
+          </a-dropdown>
+          <a-popover trigger="click" placement="bottomRight">
   <template #content>
     <div class="column-setting-panel" style="max-height: 300px; overflow-y: auto;">
       <div class="setting-section">
@@ -304,26 +303,7 @@
         
         <a-form-item label="Agent名称" name="agentLink">
           <a-select v-model:value="createFormData.agentLink" placeholder="请选择">
-            <a-select-option value="啵啵多模态情感陪伴智能体">啵啵多模态情感陪伴智能体</a-select-option>
-            <a-select-option value="明细多维度心理测评模型">明细多维度心理测评模型</a-select-option>
-            <a-select-option value="小智智能对话系统">小智智能对话系统</a-select-option>
-            <a-select-option value="暖暖情感陪伴机器人">暖暖情感陪伴机器人</a-select-option>
-            <a-select-option value="阳光正能量传播者">阳光正能量传播者</a-select-option>
-            <a-select-option value="细心数据分析专家">细心数据分析专家</a-select-option>
-            <a-select-option value="和谐关系协调者">和谐关系协调者</a-select-option>
-            <a-select-option value="深度洞察分析师">深度洞察分析师</a-select-option>
-            <a-select-option value="自由探索引导者">自由探索引导者</a-select-option>
-            <a-select-option value="稳重目标规划师">稳重目标规划师</a-select-option>
-            <a-select-option value="创新思维启发者">创新思维启发者</a-select-option>
-            <a-select-option value="梦幻艺术创作者">梦幻艺术创作者</a-select-option>
-            <a-select-option value="智慧知识传播者">智慧知识传播者</a-select-option>
-            <a-select-option value="温暖家庭守护者">温暖家庭守护者</a-select-option>
-            <a-select-option value="活力社交达人">活力社交达人</a-select-option>
-            <a-select-option value="关怀情感陪伴者">关怀情感陪伴者</a-select-option>
-            <a-select-option value="魅力表演艺术家">魅力表演艺术家</a-select-option>
-            <a-select-option value="精准数据分析师">精准数据分析师</a-select-option>
-            <a-select-option value="平衡关系协调者">平衡关系协调者</a-select-option>
-            <a-select-option value="神秘洞察专家">神秘洞察专家</a-select-option>
+            <a-select-option v-for="name in agentNames" :key="name" :value="name">{{ name }}</a-select-option>
           </a-select>
         </a-form-item>
         
@@ -468,26 +448,7 @@
         
         <a-form-item label="Agent名称" name="agentLink">
           <a-select v-model:value="editFormData.agentLink" placeholder="请选择">
-            <a-select-option value="啵啵多模态情感陪伴智能体">啵啵多模态情感陪伴智能体</a-select-option>
-            <a-select-option value="明细多维度心理测评模型">明细多维度心理测评模型</a-select-option>
-            <a-select-option value="小智智能对话系统">小智智能对话系统</a-select-option>
-            <a-select-option value="暖暖情感陪伴机器人">暖暖情感陪伴机器人</a-select-option>
-            <a-select-option value="阳光正能量传播者">阳光正能量传播者</a-select-option>
-            <a-select-option value="细心数据分析专家">细心数据分析专家</a-select-option>
-            <a-select-option value="和谐关系协调者">和谐关系协调者</a-select-option>
-            <a-select-option value="深度洞察分析师">深度洞察分析师</a-select-option>
-            <a-select-option value="自由探索引导者">自由探索引导者</a-select-option>
-            <a-select-option value="稳重目标规划师">稳重目标规划师</a-select-option>
-            <a-select-option value="创新思维启发者">创新思维启发者</a-select-option>
-            <a-select-option value="梦幻艺术创作者">梦幻艺术创作者</a-select-option>
-            <a-select-option value="智慧知识传播者">智慧知识传播者</a-select-option>
-            <a-select-option value="温暖家庭守护者">温暖家庭守护者</a-select-option>
-            <a-select-option value="活力社交达人">活力社交达人</a-select-option>
-            <a-select-option value="关怀情感陪伴者">关怀情感陪伴者</a-select-option>
-            <a-select-option value="魅力表演艺术家">魅力表演艺术家</a-select-option>
-            <a-select-option value="精准数据分析师">精准数据分析师</a-select-option>
-            <a-select-option value="平衡关系协调者">平衡关系协调者</a-select-option>
-            <a-select-option value="神秘洞察专家">神秘洞察专家</a-select-option>
+            <a-select-option v-for="name in agentNames" :key="name" :value="name">{{ name }}</a-select-option>
           </a-select>
         </a-form-item>
         
@@ -709,6 +670,67 @@ const rawData = ref<DataItem[]>([]);
 const totalRecords = ref(0);
 const loading = ref(false);
 
+// Agent names for dynamic dropdown
+const agentNames = ref<string[]>([]);
+
+// IP names for dynamic dropdown in forms
+const ipNames = ref<string[]>([]);
+
+// Fetch agent names from Agent Configuration
+const fetchAgentNames = async () => {
+  try {
+    const response = await axios.get(constructApiUrl('agent-configuration?page=1&pageSize=1000'));
+    if (response.data && response.data.data) {
+      // Extract unique agent names from the response
+      const uniqueAgentNames = Array.from(new Set(
+        response.data.data
+          .map((item: any) => item.agent_name || item.agentName)
+          .filter((name: any) => name && typeof name === 'string' && name.trim() !== '')
+      ));
+      agentNames.value = uniqueAgentNames as string[];
+      console.log('Fetched agent names:', agentNames.value);
+    }
+  } catch (error) {
+    console.error('Error fetching agent names:', error);
+    // Fallback to default options if API fails
+    agentNames.value = [
+      '啵啵多模态情感陪伴智能体',
+      '明细多维度心理测评模型',
+      '小智智能对话系统',
+      '暖暖情感陪伴机器人',
+      '阳光正能量传播者',
+      '细心数据分析专家',
+      '和谐关系协调者',
+      '深度洞察分析师',
+      '自由探索引导者',
+      '稳重目标规划师',
+      '创新思维启发者',
+      '梦幻艺术创作者',
+      '智慧知识传播者',
+      '温暖家庭守护者',
+      '活力社交达人',
+      '关怀情感陪伴者',
+      '魅力表演艺术家',
+      '精准数据分析师',
+      '平衡关系协调者',
+      '神秘洞察专家'
+    ];
+  }
+};
+
+// Extract IP names from current data
+const extractIpNames = () => {
+  if (rawData.value && rawData.value.length > 0) {
+    const uniqueIpNames = Array.from(new Set(
+      rawData.value
+        .map(item => item.ipName)
+        .filter(name => name && name.trim() !== '')
+    ));
+    ipNames.value = uniqueIpNames;
+    console.log('Extracted IP names:', ipNames.value);
+  }
+};
+
 // Fetch data from API
 const fetchData = async () => {
   console.log('fetchData called');
@@ -721,6 +743,9 @@ const fetchData = async () => {
     
     rawData.value = response.data.data;
     totalRecords.value = parseInt(response.data.total) || 0;
+    
+    // Extract IP names after data is fetched
+    extractIpNames();
 
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -764,6 +789,8 @@ const onRefresh = () => {
   currentPage.value = 1;
   resetColumns(); // Reset column order and visibility
   fetchData(); // Fetch data after refresh
+  fetchAgentNames(); // Refresh agent names
+  extractIpNames(); // Extract IP names after refresh
 };
 
 const filteredData = computed<DataItem[]>(() => {
@@ -828,55 +855,6 @@ const filteredData = computed<DataItem[]>(() => {
 });
 
 const searchInputValue = ref('');
-
-// Filter values for dropdowns
-const ipNameValue = ref({ key: 'all', label: '全部', value: 'all' });
-const ipTypeValue = ref({ key: 'all', label: '全部', value: 'all' });
-const statusValue = ref({ key: 'all', label: '全部', value: 'all' });
-
-// Filter options for dropdowns
-const ipNameOptions = computed(() => {
-  const uniqueIpNames = Array.from(new Set(rawData.value.map(item => item.ipName)));
-  const options = uniqueIpNames.map(name => ({ key: name, value: name, label: name }));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...options];
-});
-
-const ipTypeOptions = computed(() => {
-  const uniqueIpTypes = Array.from(new Set(rawData.value.map(item => item.running)));
-  const options = uniqueIpTypes.map(type => ({ key: type, value: type, label: type }));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...options];
-});
-
-const statusOptions = computed(() => {
-  const uniqueStatuses = Array.from(new Set(rawData.value.map(item => item.mbti)));
-  const options = uniqueStatuses.map(status => ({ key: status, value: status, label: status }));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...options];
-});
-
-// Filter change handlers
-const handleIpNameChange = (val: any) => {
-  if (!val || !val.value || val.value === 'all') {
-    ipNameValue.value = { key: 'all', label: '全部', value: 'all' };
-  } else {
-    ipNameValue.value = val;
-  }
-};
-
-const handleIpTypeChange = (val: any) => {
-  if (!val || !val.value || val.value === 'all') {
-    ipTypeValue.value = { key: 'all', label: '全部', value: 'all' };
-  } else {
-    ipTypeValue.value = val;
-  }
-};
-
-const handleStatusChange = (val: any) => {
-  if (!val || !val.value || val.value === 'all') {
-    statusValue.value = { key: 'all', label: '全部', value: 'all' };
-  } else {
-    statusValue.value = val;
-  }
-};
 
 // Watch for search input changes
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
@@ -1107,12 +1085,12 @@ const showViewModal = ref(false);
 const viewRecord = ref<any>(null);
 
 const viewFormData = ref({
-  ipName: '',
-  ipIntro: '',
-  running: '',
-  portrait: '',
-  mbti: '',
-  preference: '',
+    ipName: '',
+    ipIntro: '',
+    running: '',
+    portrait: '',
+    mbti: '',
+    preference: '',
   agentLink: '',
   personalizedParams: [{ fieldName: '', value: '', type: 'string' }] as { fieldName: string; value: string | number | boolean; type: 'string' | 'number' | 'boolean' }[]
 });
@@ -1276,25 +1254,83 @@ const removeEditPersonalizedParam = (index: number) => {
 
 onMounted(() => {
   fetchData();
+  fetchAgentNames(); // Fetch agent names on mount
+  extractIpNames(); // Extract IP names on mount
+  
+  // Check if there's a search parameter in the route query
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+    // Trigger search immediately
+    handleSearchChange();
+  }
+});
+
+// Watch for route changes to handle search parameters
+watch(() => route.query.search, (newSearch) => {
+  if (newSearch && typeof newSearch === 'string') {
+    searchInputValue.value = newSearch;
+    // Trigger search when route changes
+    handleSearchChange();
+  }
 });
 
 </script>
 
 <style scoped>
-/* Reuse the same styles from IPAudio.vue */
+#components-table-demo-summary tfoot th,
+#components-table-demo-summary tfoot td {
+  background: #fafafa;
+}
+[data-theme='dark'] #components-table-demo-summary tfoot th,
+[data-theme='dark'] #components-table-demo-summary tfoot td {
+  background: #1d1d1d;
+}
+
+/* Custom style to adjust row height and font size based on table size */
+.ant-table-tbody > tr > td,
+.ant-table-thead > tr > th {
+  font-family: 'PingFang SC', sans-serif; /* Keep font family consistent */
+  white-space: nowrap; /* Prevent text from stacking */
+  text-align: left; /* Ensure left alignment for headers */
+}
+
+.ant-table-wrapper-small .ant-table-tbody > tr > td,
+.ant-table-wrapper-small .ant-table-thead > tr > th {
+  padding: 2px 2px; /* Very compact */
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.ant-table-wrapper-middle .ant-table-tbody > tr > td,
+.ant-table-wrapper-middle .ant-table-thead > tr > th {
+  padding: 8px 8px; /* Medium density */
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ant-table-wrapper-large .ant-table-tbody > tr > td,
+.ant-table-wrapper-large .ant-table-thead > tr > th {
+  padding: 16px 16px; /* Larger, more spacious */
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* title like demo page */
 .title-container {
-  padding: 10px 14px;
-  margin-bottom: 10px;
-  background-color: #fff;
-  border-radius: 4px;
+   /* Light grey border */
+  padding: 10px 14px; /* Adjusted from 16px 24px * 0.60 */
+  margin-bottom: 10px; /* Adjusted from 16px * 0.60 */
+  background-color: #fff; /* White background */
+  border-radius: 4px; /* Slightly rounded corners */
 }
 
 .title-container h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: bold;
-  color: rgba(0, 0, 0, 0.85);
+  margin: 0; /* Remove default margin from h2 */
+  font-size: 16px; /* Adjusted to 12px */
+  font-weight: 500; /* Adjust font weight if needed */
+  color: rgba(0, 0, 0, 0.85); /* Standard Ant Design text color */
   text-align: left;
+  font-weight: bold; /* Center the text horizontally */
 }
 
 .top-controls-wrapper {
@@ -1309,40 +1345,57 @@ onMounted(() => {
   align-items: center;
 }
 
+.right-aligned-section {
+  display: none;
+}
+
 .right-aligned-icons {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-right: 60px;
+  gap: 10px; /* Add space between icons */
+  padding-right: 30px;
+  margin-left: auto;
 }
 
 .right-aligned-icons > .anticon {
-  padding: 6px 8px;
-  border: 1px solid #d9d9d9;
-  background-color: #f0f0f0;
-  border-radius: 4px;
-  transition: all 0.3s;
+  padding: 6px 8px; /* Add padding to make them look like buttons */
+  border: 1px solid #d9d9d9; /* Add a subtle border */
+  background-color: #f0f0f0; /* Add a light background */
+  border-radius: 4px; /* Slightly rounded corners */
+  transition: all 0.3s; /* Smooth transition for hover effects */
   cursor: pointer;
   font-size: 16px;
   color: rgba(0, 0, 0, 0.65);
+   /* Slightly darker grey for better visibility */
 }
 
 .right-aligned-icons > .anticon:hover {
-  border-color: #4096ff;
-  color: #4096ff;
-  background-color: #e6f7ff;
+  border-color: #4096ff; /* Ant Design primary color on hover */
+  color: #4096ff; /* Change icon color on hover */
+  background-color: #e6f7ff; /* Lighter background on hover */
+}
+
+.right-aligned-icons > .anticon:last-child,
+.right-aligned-icons > .ant-btn:last-child,
+.right-aligned-icons > .ant-dropdown:last-child,
+.right-aligned-icons > .ant-popover:last-child {
+  margin-right: 28px; /* Adjust this value for a bigger gap */
+}
+
+html, body {
+  overflow-x: hidden;
 }
 
 .table-container {
-  padding: 10px;
+  padding: 10px ;
   padding-right: 50px;
 }
 
+/* Styling for the custom always-visible placeholder */
 .select-container {
   position: relative;
   display: inline-block;
 }
-
 .select-always-placeholder {
   position: absolute;
   top: 50%;
@@ -1353,23 +1406,15 @@ onMounted(() => {
   z-index: 1;
   font-size: 13px;
 }
-
-:deep(.ant-select-selector) {
-  padding-left: 60px !important;
-}
-
-:deep(.ip-name-select .ant-select-selector) {
-  padding-left: 50px !important;
-}
-
-:deep(.ip-type-select .ant-select-selector) {
+:deep(.device-model-select .ant-select-selector) {
   padding-left: 65px !important;
 }
-
-:deep(.status-select .ant-select-selector) {
-  padding-left: 40px !important;
+:deep(.release-version-select .ant-select-selector) {
+  padding-left: 65px !important;
 }
-
+:deep(.version-number-select .ant-select-selector) {
+  padding-left: 50px !important;
+}
 :deep(.ant-select-selector),
 :deep(.ant-select-dropdown),
 :deep(.ant-select-item),
@@ -1378,6 +1423,7 @@ onMounted(() => {
   font-size: 12px !important;
 }
 
+/* Add custom style for pagination font size */
 :deep(.ant-pagination) {
   font-size: 12px !important;
 }
@@ -1395,9 +1441,10 @@ onMounted(() => {
   min-width: unset !important;
   width: auto !important;
   padding-left: 4px !important;
-  padding-right: 18px !important;
+  padding-right: 18px !important; /* keep space for arrow */
 }
 
+/* Make the action buttons horizontal and style '编辑' as blue and bold */
 :deep(.ant-table-cell .action-cell) {
   display: flex;
   align-items: center;
@@ -1405,37 +1452,33 @@ onMounted(() => {
   min-width: 180px;
   flex-wrap: wrap;
 }
-
 :deep(.ant-table-cell .action-cell .view-link) {
-  color: #1890ff !important;
+  color: #1890ff !important; /* Ant Design blue */
   font-weight: bold;
 }
-
 :deep(.ant-table-cell .action-cell .edit-link) {
-  color: #1890ff !important;
+  color: #1890ff !important; /* Ant Design blue */
   font-weight: bold;
 }
-
 :deep(.ant-table-cell .action-cell .danger-link) {
-  color: #ff4d4f !important;
+  color: #ff4d4f !important; /* Ant Design red */
   font-weight: bold;
 }
 
 :deep(.ant-table-column-sorter-up),
 :deep(.ant-table-column-sorter-down) {
-  color: #bfbfbf !important;
+  color: #bfbfbf !important; /* grey by default */
 }
-
 :deep(.ant-table-column-sorter-up.active),
 :deep(.ant-table-column-sorter-down.active) {
-  color: #1677ff !important;
+  color: #1677ff !important; /* blue when active */
 }
-
 :deep(th .ant-table-column-sorter-up:hover),
 :deep(th .ant-table-column-sorter-down:hover) {
   color: #1677ff !important;
 }
 
+/* View form styles */
 .view-form {
   padding: 0;
 }
@@ -1465,6 +1508,7 @@ onMounted(() => {
   white-space: pre-wrap;
 }
 
+/* Hyperlink styling */
 :deep(.ant-table-tbody .ant-table-cell a) {
   color: #1890ff;
   text-decoration: none;
@@ -1480,6 +1524,7 @@ onMounted(() => {
   color: #096dd9;
 }
 
+/* No data message styling */
 .no-data-message {
   text-align: center;
   padding: 40px 20px;

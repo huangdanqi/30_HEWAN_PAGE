@@ -532,12 +532,12 @@ interface ColumnConfig {
   sortDirections?: ('ascend' | 'descend')[];
   sortOrder?: 'ascend' | 'descend';
   defaultSortOrder?: 'ascend' | 'descend';
-  customRender?: (record: any) => string | number;
+  customCell?: (record: any) => { children: any };
   className?: string;
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customCell: (record: any) => ({ children: (currentPage.value - 1) * pageSize.value + record.index + 1 }) },
   { key: 'modelId', title: '模型 ID', dataIndex: 'modelId', width: 150, sorter: (a, b) => a.modelId.localeCompare(b.modelId), sortDirections: ['ascend', 'descend'] },
   { key: 'modelType', title: '模型类型', dataIndex: 'modelType', width: 120, sorter: (a, b) => a.modelType.localeCompare(b.modelType), sortDirections: ['ascend', 'descend'] },
   { key: 'modelName', title: '模型名称', dataIndex: 'modelName', width: 150, sorter: (a, b) => a.modelName.localeCompare(b.modelName), sortDirections: ['ascend', 'descend'] },
@@ -574,9 +574,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sorter: config.sorter,
     sortDirections: config.sortDirections,
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    customRender: config.customRender
-      ? config.customRender
-      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+          customCell: config.customCell || ((record: any) => ({ children: record[config.dataIndex] === undefined || record[config.dataIndex] === null || record[config.dataIndex] === '' ? '-' : record[config.dataIndex] })),
     className: config.className,
   })) as ColumnsType;
 };

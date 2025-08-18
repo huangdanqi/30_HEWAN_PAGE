@@ -32,6 +32,16 @@
                   <label class="required-field"><span class="asterisk">*</span> 闹铃名称</label>
                   <input type="text" v-model="createForm.alarmName" class="form-input" placeholder="请输入" />
                 </div>
+                <!-- <div class="form-group">
+                  <label>更新人</label>
+                  <input 
+                    type="text" 
+                    :value="userName"
+                    class="form-input" 
+                    readonly
+                    style="background-color: #f5f5f5;"
+                  >
+                </div> -->
                 <div class="form-group">
                   <label class="required-field"><span class="asterisk">*</span> 上传铃声</label>
                   <div class="upload-area" @click="triggerFileUpload" @drop="handleFileDrop" @dragover.prevent @dragenter.prevent>
@@ -46,6 +56,19 @@
                       <div class="upload-icon">↑</div>
                       <div class="upload-text">支持文件格式: mp3, wav, aac</div>
                     </div>
+                  </div>
+                  <!-- File display after upload -->
+                  <div v-if="createForm.alarmFile" class="file-info">
+                    <span class="file-icon">📎</span>
+                    <span class="file-name">{{ createForm.alarmFile.name }}</span>
+                    <span class="delete-icon" @click="removeUploadedFile">🗑️</span>
+                  </div>
+                  <!-- Upload progress bar -->
+                  <div v-if="uploadProgress > 0 && uploadProgress < 100" class="file-progress">
+                    <div class="progress-bar">
+                      <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+                    </div>
+                    <span class="progress-text">{{ uploadProgress }}%</span>
                   </div>
                 </div>
               </div>
@@ -100,7 +123,22 @@
       </div>
     </div>
     <div class="table-container">
+      <!-- Debug info -->
+      <div v-if="loading" style="text-align: center; padding: 20px; color: #666;">
+        正在加载数据...
+      </div>
+      <div v-else-if="rawData.length === 0" style="text-align: center; padding: 20px; color: #666;">
+        <div>暂无数据</div>
+        <div style="margin-top: 10px; font-size: 12px; color: #999;">
+          可能的原因：1) API端点不存在 2) 数据库中没有数据 3) 权限问题
+        </div>
+        <button @click="fetchData" style="margin-top: 10px; padding: 5px 10px; border: 1px solid #d9d9d9; border-radius: 4px; background: white; cursor: pointer;">
+          重新加载
+        </button>
+      </div>
+      
       <a-table
+        v-if="rawData.length > 0"
         :columns="columns"
         :data-source="filteredData"
         :pagination="pagination"
@@ -141,6 +179,16 @@
         <label class="required-field"><span class="asterisk">*</span> 闹铃名称</label>
         <input type="text" v-model="editForm.alarmName" class="form-input" placeholder="请输入" />
       </div>
+      <!-- <div class="form-group">
+        <label>更新人</label>
+        <input 
+          type="text" 
+          :value="userName"
+          class="form-input" 
+          readonly
+          style="background-color: #f5f5f5;"
+        >
+      </div> -->
       <div class="form-group">
         <label class="required-field"><span class="asterisk">*</span> 上传铃声</label>
         <div class="upload-area" @click="triggerEditFileUpload" @drop="handleEditFileDrop" @dragover.prevent @dragenter.prevent>
@@ -156,22 +204,35 @@
             <div class="upload-text">支持文件格式: mp3、wav、opus</div>
           </div>
         </div>
-        <!-- File Progress Display -->
-        <div v-if="editForm.fileList.length > 0" class="file-progress">
-          <div class="file-info">
-            <span class="file-name">{{ editForm.fileList[0].name }}</span>
-            <span class="progress-text">{{ editForm.uploadProgress }}%</span>
-            <button class="delete-btn" @click="removeEditUploadFile">🗑️</button>
-          </div>
+        <div v-if="editForm.existingFile" style="font-size: 12px; color: #666; margin-top: 4px;">
+          提示：如果不选择新文件，将保留现有文件
+        </div>
+        <!-- Show existing file info if available -->
+        <div v-if="editForm.existingFile" class="file-info">
+          <span class="file-icon">📎</span>
+          <span class="file-name">{{ editForm.existingFile }}</span>
+          <!-- <span class="file-note">(当前文件)</span> -->
+        </div>
+        <!-- Show new file info if uploading -->
+        <div v-if="editForm.fileList.length > 0" class="file-info">
+          <span class="file-icon">📎</span>
+          <span class="file-name">{{ editForm.fileList[0].name }}</span>
+          <span class="delete-icon" @click="removeEditUploadFile">🗑️</span>
+        </div>
+        <!-- Upload progress bar for new file -->
+        <div v-if="editForm.uploadProgress > 0 && editForm.uploadProgress < 100" class="file-progress">
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: editForm.uploadProgress + '%' }"></div>
           </div>
+          <span class="progress-text">{{ editForm.uploadProgress }}%</span>
         </div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" @click="closeEditModal">取消</button>
-      <button class="btn btn-primary" @click="handleEditConfirm">确定</button>
+      <button class="btn btn-secondary" @click="closeEditModal" :disabled="isEditing">取消</button>
+      <button class="btn btn-primary" @click="handleEditConfirm" :disabled="isEditing">
+        {{ isEditing ? '更新中...' : '确定' }}
+      </button>
     </div>
   </div>
 </div>
@@ -185,11 +246,17 @@ import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, InfoCircleOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import { createColumnConfigs, useTableColumns, createColumn, type ColumnDefinition } from '../utils/tableConfig';
+import axios from 'axios';
+import { useAuthStore } from '../stores/auth';
 
 const customLocale = computed(() => ({
   ...zh_CN,
   Pagination: { ...zh_CN.Pagination, page: '' },
 }));
+
+// Initialize auth store
+const authStore = useAuthStore();
+const userName = computed(() => authStore.user?.name || authStore.user?.username || '管理员');
 
 interface AlarmItem {
   key: number;
@@ -239,19 +306,59 @@ const {
   handleTableChange,
 } = useTableColumns(updatedColumnConfigs);
 
-const rawData: AlarmItem[] = [];
-for (let i = 0; i < 20; i++) {
-  rawData.push({
-    key: i + 1,
-    alarmId: 'hjhwn832nj2f',
-    alarmName: '清晨的风铃',
-    alarmFileAddress: 'https://example.com/firmware.bin',
-    updater: '33',
-    createTime: '2025-7-13 19:25:11',
-    updateTime: '2025-7-13 19:25:11',
-    isPlaying: false // Initialize isPlaying
-  });
-}
+// Data fetching
+const rawData = ref<AlarmItem[]>([]);
+const loading = ref(false);
+
+const fetchData = async () => {
+  console.log('fetchData called');
+  console.log('Current rawData value:', rawData.value);
+  loading.value = true;
+  try {
+    console.log('Calling built-in alarm endpoint');
+    // Use the correct endpoint
+    console.log('Trying endpoint: /api/alarm');
+    const response = await axios.get('http://121.43.196.106:2829/api/alarm?page=1&pageSize=1000');
+    console.log('✅ /api/alarm succeeded');
+    
+    console.log('Alarm response:', response.data);
+    console.log('Response data length:', response.data.data?.length);
+    console.log('Response structure keys:', Object.keys(response.data));
+    
+    if (response.data.data && Array.isArray(response.data.data)) {
+      rawData.value = response.data.data.map((item: any) => ({
+        ...item,
+        key: item.id || item.alarmId || item.key,
+        isPlaying: false
+      }));
+      console.log('Processed data length:', rawData.value.length);
+      console.log('First processed item:', rawData.value[0]);
+    } else if (response.data && Array.isArray(response.data)) {
+      // If the response is directly an array
+      rawData.value = response.data.map((item: any) => ({
+        ...item,
+        key: item.id || item.alarmId || item.key,
+        isPlaying: false
+      }));
+      console.log('Processed data length (direct array):', rawData.value.length);
+      console.log('First processed item:', rawData.value[0]);
+    } else {
+      console.error('Unexpected response structure:', response.data);
+      console.log('Response type:', typeof response.data);
+      console.log('Response is array:', Array.isArray(response.data));
+      rawData.value = [];
+    }
+  } catch (error: any) {
+    console.error('Error fetching data:', error);
+    console.error('Error details:', error.response?.data);
+    console.error('Error status:', error.response?.status);
+    rawData.value = [];
+  } finally {
+    loading.value = false;
+    console.log('Final rawData value:', rawData.value);
+    console.log('Final rawData length:', rawData.value.length);
+  }
+};
 
 // Audio elements management
 const audioElements = ref<Map<number, HTMLAudioElement>>(new Map()); // Store audio elements
@@ -263,22 +370,64 @@ const handleAudition = (record: AlarmItem) => {
   let audioElement = audioElements.value.get(record.key);
 
   if (!audioElement) {
-    // Construct the full URL for the audio file using the backend server
-    const audioUrl = `${import.meta.env.VITE_API_BASE_URL || '/api'}${record.alarmFileAddress}`;
+    // Construct the correct URL for the audio file
+    // Backend serves audio files from /audio endpoint (not /api/audio)
+    let audioUrl;
+    if (record.alarmFileAddress.startsWith('http://') || record.alarmFileAddress.startsWith('https://')) {
+      audioUrl = record.alarmFileAddress;
+    } else {
+      // Check if the path already contains /audio/ and handle accordingly
+      let fileName = record.alarmFileAddress;
+      
+      // Remove leading slashes
+      fileName = fileName.replace(/^\/+/, '');
+      
+      // If it already contains 'audio/' at the beginning, use it as is
+      if (fileName.startsWith('audio/')) {
+        audioUrl = `http://121.43.196.106:2829/${fileName}`;
+      } else {
+        // Otherwise, add the /audio/ prefix
+        audioUrl = `http://121.43.196.106:2829/audio/${fileName}`;
+      }
+    }
+    
     console.log('Audio URL:', audioUrl);
+    console.log('Original alarmFileAddress:', record.alarmFileAddress);
     
-    audioElement = new Audio(audioUrl);
-    audioElements.value.set(record.key, audioElement);
-    
-    // Add event listener for when audio ends
-    audioElement.addEventListener('ended', () => {
-      record.isPlaying = false;
-    });
-    
-    // Add event listener for when audio is paused
-    audioElement.addEventListener('pause', () => {
-      record.isPlaying = false;
-    });
+    try {
+      audioElement = new Audio(audioUrl);
+      audioElements.value.set(record.key, audioElement);
+      
+      // Add event listener for when audio ends
+      audioElement.addEventListener('ended', () => {
+        record.isPlaying = false;
+      });
+      
+      // Add event listener for when audio is paused
+      audioElement.addEventListener('pause', () => {
+        record.isPlaying = false;
+      });
+      
+      // Add error handling
+      audioElement.addEventListener('error', (e) => {
+        console.error('Audio error:', e);
+        if (audioElement) {
+          console.error('Audio error details:', audioElement.error);
+        }
+        alert('闹铃文件播放失败，请检查文件是否存在');
+        record.isPlaying = false;
+      });
+    } catch (error) {
+      console.error('Error creating audio element:', error);
+      alert('创建音频元素失败');
+      return;
+    }
+  }
+
+  if (!audioElement) {
+    console.error('Failed to create audio element');
+    alert('无法创建音频元素');
+    return;
   }
 
   if (record.isPlaying) {
@@ -292,7 +441,7 @@ const handleAudition = (record: AlarmItem) => {
       if (id !== record.key && el.readyState > 0) {
         el.pause();
         // Find and update the corresponding record
-        const otherRecord = rawData.find(item => item.key === id);
+        const otherRecord = rawData.value.find(item => item.key === id);
         if (otherRecord) {
           otherRecord.isPlaying = false;
         }
@@ -310,13 +459,12 @@ const handleAudition = (record: AlarmItem) => {
 };
 
 const searchInputValue = ref('');
-const loading = ref(false);
 const tableSize = ref('middle');
 const currentPage = ref(1);
 const pageSize = ref(10);
 
 const filteredData = computed(() => {
-  let data = rawData;
+  let data = rawData.value;
   if (searchInputValue.value) {
     const term = searchInputValue.value.toLowerCase();
     data = data.filter(item => 
@@ -344,7 +492,8 @@ const onRefresh = () => {
   loading.value = true;
   searchInputValue.value = '';
   currentPage.value = 1;
-  setTimeout(() => { loading.value = false; }, 500);
+  resetColumns();
+  fetchData(); // Actually fetch fresh data
 };
 
 const onInfoClick = () => console.log('Info clicked');
@@ -363,13 +512,19 @@ const createForm = ref({
   alarmFile: null as File | null
 });
 const fileInput = ref<HTMLInputElement>();
+const uploadProgress = ref(0);
 
-const closeCreateModal = () => {
-  showCreateModal.value = false;
+const resetCreateForm = () => {
   createForm.value = {
     alarmName: '',
     alarmFile: null
   };
+  uploadProgress.value = 0;
+};
+
+const closeCreateModal = () => {
+  showCreateModal.value = false;
+  resetCreateForm();
 };
 
 const triggerFileUpload = () => fileInput.value?.click();
@@ -388,45 +543,168 @@ const handleFileDrop = (event: DragEvent) => {
   }
 };
 
-const handleCreateConfirm = () => {
-  // Validate and submit
-  closeCreateModal();
+const removeUploadedFile = () => {
+  createForm.value.alarmFile = null;
+  uploadProgress.value = 0;
+};
+
+const handleCreateConfirm = async () => {
+  // Validate required fields
+  if (!createForm.value.alarmName || createForm.value.alarmName.trim() === '') {
+    alert('请输入闹铃名称');
+    return;
+  }
+  
+  if (!createForm.value.alarmFile) {
+    alert('请上传铃声文件');
+    return;
+  }
+  
+  try {
+    const formData = new FormData();
+    formData.append('alarmName', createForm.value.alarmName);
+    formData.append('alarmFile', createForm.value.alarmFile);
+    formData.append('updater', userName.value);
+    
+    console.log('Sending form data:', {
+      alarmName: createForm.value.alarmName,
+      updater: userName.value
+    });
+    
+    const response = await axios.post('http://121.43.196.106:2829/api/alarm', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        }
+      },
+    });
+    
+    console.log('Create response:', response.data);
+    
+    if (response.data.success) {
+      alert('闹铃创建成功');
+      showCreateModal.value = false;
+      resetCreateForm();
+      // Refresh the data or add the new record to the table
+      onRefresh();
+    } else {
+      alert('创建失败: ' + (response.data.error || '未知错误'));
+    }
+  } catch (error: any) {
+    console.error('Error creating alarm:', error);
+    alert('创建失败: ' + (error.response?.data?.error || error.message || '未知错误'));
+  } finally {
+    uploadProgress.value = 0;
+  }
 };
 
 // Edit Modal Logic
 const showEditModal = ref(false);
 const editForm = ref({
+  recordId: null as number | null, // Add record ID to track which record is being edited
   alarmName: '',
-  fileList: [] as any[],
-  uploadProgress: 0
+  fileList: [] as File[], // Changed to File[] instead of any[]
+  uploadProgress: 0,
+  existingFile: '' as string | null
 });
 const editFileInput = ref<HTMLInputElement>();
+const isEditing = ref(false); // Add loading state for edit operation
 
 const closeEditModal = () => {
   showEditModal.value = false;
   editForm.value = {
+    recordId: null,
     alarmName: '',
     fileList: [],
-    uploadProgress: 0
+    uploadProgress: 0,
+    existingFile: null
   };
 };
 
 const handleEdit = (record: AlarmItem) => {
   // Populate form with record data
   editForm.value = {
+    recordId: record.key, // Store the record ID for update
     alarmName: record.alarmName,
-    fileList: [{
-      name: '文件名.xls',
-      uid: '1'
-    }],
-    uploadProgress: 45 // Progress from image
+    fileList: [], // Start with empty file list
+    uploadProgress: 0, // Start with 0 progress
+    existingFile: record.alarmFileAddress // Show the existing file
   };
   showEditModal.value = true;
 };
 
-const handleEditConfirm = () => {
-  // Validate and submit
-  closeEditModal();
+const handleEditConfirm = async () => {
+  // Validate required fields
+  if (!editForm.value.alarmName || editForm.value.alarmName.trim() === '') {
+    alert('请输入闹铃名称');
+    return;
+  }
+  
+  // Check if user wants to update the file or keep existing one
+  if (editForm.value.fileList.length === 0 && !editForm.value.existingFile) {
+    alert('请上传铃声文件或保留现有文件');
+    return;
+  }
+  
+  if (!editForm.value.recordId) {
+    alert('无法识别要编辑的记录');
+    return;
+  }
+  
+  isEditing.value = true; // Start loading
+  try {
+    const formData = new FormData();
+    formData.append('alarmName', editForm.value.alarmName);
+    formData.append('updater', userName.value);
+    
+    // If new file is selected, append it
+    if (editForm.value.fileList.length > 0) {
+      formData.append('alarmFile', editForm.value.fileList[0]);
+    } else {
+      // Keep existing file - append the existing file address
+      formData.append('keepExistingFile', 'true');
+      formData.append('existingFileAddress', editForm.value.existingFile || '');
+    }
+    
+    console.log('Sending edit form data:', {
+      recordId: editForm.value.recordId,
+      alarmName: editForm.value.alarmName,
+      updater: userName.value,
+      hasNewFile: editForm.value.fileList.length > 0,
+      existingFile: editForm.value.existingFile
+    });
+    
+    // Send PUT request to update the alarm
+    const response = await axios.put(`http://121.43.196.106:2829/api/alarm/${editForm.value.recordId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          editForm.value.uploadProgress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        }
+      },
+    });
+    
+    console.log('Update response:', response.data);
+    
+    if (response.data.success) {
+      alert('闹铃更新成功');
+      closeEditModal();
+      onRefresh(); // Refresh the data
+    } else {
+      alert('更新失败: ' + (response.data.error || '未知错误'));
+    }
+  } catch (error: any) {
+    console.error('Error updating alarm:', error);
+    alert('更新失败: ' + (error.response?.data?.error || error.message || '未知错误'));
+  } finally {
+    editForm.value.uploadProgress = 0;
+    isEditing.value = false; // End loading
+  }
 };
 
 const triggerEditFileUpload = () => editFileInput.value?.click();
@@ -435,18 +713,9 @@ const handleEditFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files[0]) {
     const file = target.files[0];
-    editForm.value.fileList = [{
-      name: file.name,
-      uid: Date.now().toString()
-    }];
-    // Simulate upload progress
+    editForm.value.fileList = [file]; // Store the actual File object
+    // Reset upload progress
     editForm.value.uploadProgress = 0;
-    const interval = setInterval(() => {
-      editForm.value.uploadProgress += 10;
-      if (editForm.value.uploadProgress >= 100) {
-        clearInterval(interval);
-      }
-    }, 200);
   }
 };
 
@@ -454,18 +723,9 @@ const handleEditFileDrop = (event: DragEvent) => {
   event.preventDefault();
   if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
     const file = event.dataTransfer.files[0];
-    editForm.value.fileList = [{
-      name: file.name,
-      uid: Date.now().toString()
-    }];
-    // Simulate upload progress
+    editForm.value.fileList = [file]; // Store the actual File object
+    // Reset upload progress
     editForm.value.uploadProgress = 0;
-    const interval = setInterval(() => {
-      editForm.value.uploadProgress += 10;
-      if (editForm.value.uploadProgress >= 100) {
-        clearInterval(interval);
-      }
-    }, 200);
   }
 };
 
@@ -476,6 +736,33 @@ const removeEditUploadFile = () => {
 
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  fetchData(); // Fetch data on mount
+  
+  // Add global debug function for testing API endpoints
+  (window as any).testAlarmAPI = async () => {
+    console.log('Testing alarm API endpoint...');
+    
+    try {
+      console.log('Testing endpoint: /api/alarm');
+      const response = await axios.get('http://121.43.196.106:2829/api/alarm?page=1&pageSize=10');
+      console.log(`✅ /api/alarm - Status: ${response.status}`);
+      console.log(`Response structure:`, response.data);
+      if (response.data.data) {
+        console.log(`Data array length: ${response.data.data.length}`);
+        if (response.data.data.length > 0) {
+          console.log(`Sample item:`, response.data.data[0]);
+        }
+      }
+    } catch (error: any) {
+      console.log(`❌ /api/alarm - Error: ${error.message}`);
+      if (error.response) {
+        console.log(`Status: ${error.response.status}`);
+        console.log(`Response:`, error.response.data);
+      }
+    }
+  };
+  
+  console.log('Debug function added: testAlarmAPI() - use this in console to test the /api/alarm endpoint');
 });
 
 defineExpose({ handleTableChange });
@@ -807,6 +1094,46 @@ defineExpose({ handleTableChange });
   height: 100%;
   background-color: #1890ff;
   transition: width 0.3s ease;
+}
+
+/* File info styles for create form */
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #fafafa;
+  border-radius: 4px;
+  border: 1px solid #f0f0f0;
+}
+
+.file-icon {
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.delete-icon {
+  cursor: pointer;
+  font-size: 16px;
+  color: #ff4d4f;
+  transition: color 0.3s;
+}
+
+.delete-icon:hover {
+  color: #ff7875;
+}
+
+.file-note {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Existing file info styling */
+.file-info:has(.file-note) {
+  background-color: #f0f8ff;
+  border: 1px solid #d6e4ff;
 }
 
 /* Column management panel styling */

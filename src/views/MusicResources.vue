@@ -177,6 +177,16 @@
               placeholder="请输入"
             >
           </div>
+          <!-- <div class="form-group">
+            <label>更新人</label>
+            <input 
+              type="text" 
+              :value="userName"
+              class="form-input" 
+              readonly
+              style="background-color: #f5f5f5;"
+            >
+          </div> -->
           <div class="form-group">
             <label>标签</label>
             <div class="tags-input">
@@ -284,6 +294,16 @@
               placeholder="请输入"
             >
           </div>
+          <!-- <div class="form-group">
+            <label>更新人</label>
+            <input 
+              type="text" 
+              :value="userName"
+              class="form-input" 
+              readonly
+              style="background-color: #f5f5f5;"
+            >
+          </div> -->
           <div class="form-group">
             <label>标签</label>
             <div class="tags-input">
@@ -372,6 +392,10 @@
               </span>
               <span v-else class="no-tags">-</span>
             </div>
+          </div>
+          <div class="form-group">
+            <label>更新人</label>
+            <div class="view-field">{{ viewForm.updater || '-' }}</div>
           </div>
           <div class="form-group">
             <label class="required-field"><span class="asterisk">*</span> 音频文件地址</label>
@@ -504,6 +528,11 @@ const fetchData = async () => {
         isPlaying: false // Initialize isPlaying to false
       }));
       console.log('Processed data length:', rawData.value.length);
+      // Log a sample item to see the structure
+      if (rawData.value.length > 0) {
+        console.log('Sample item:', rawData.value[0]);
+        console.log('Sample musicFileAddress:', rawData.value[0].musicFileAddress);
+      }
     } else {
       console.error('No data array in response:', response.data);
       rawData.value = [];
@@ -622,6 +651,7 @@ const handleView = (record: DataItem) => {
     singer: record.singer,
     musicType: record.musicType, // Convert string to array for display
     tags: record.tags ? record.tags.split(',').filter(tag => tag.trim()) : [],
+    updater: record.updater, // Add updater to viewForm
     musicFileAddress: record.musicFileAddress
   };
   showViewModal.value = true;
@@ -648,32 +678,46 @@ const handleDelete = (record: DataItem) => {
 
 const handleAudition = (record: DataItem) => {
   console.log('Audition clicked:', record);
+  console.log('Music file address:', record.musicFileAddress);
+  console.log('Music file address type:', typeof record.musicFileAddress);
   
   // Get or create the audio element for this record
   let audioElement = audioElements.value.get(record.id);
 
   if (!audioElement) {
-    // Construct the full URL for the audio file using the backend server
-    const audioUrl = constructApiUrl(record.musicFileAddress);
-    console.log('Audio URL:', audioUrl);
+    // Construct the full URL for the audio file
+    // If musicFileAddress is a full URL, use it directly
+    // If it's a relative path or filename, construct the full URL
+    let audioUrl;
+    if (record.musicFileAddress.startsWith('http://') || record.musicFileAddress.startsWith('https://')) {
+      audioUrl = record.musicFileAddress;
+    } else {
+      // Try different URL patterns
+      const possibleUrls = [
+        `http://121.43.196.106:2829${record.musicFileAddress.startsWith('/') ? '' : '/'}${record.musicFileAddress}`,
+        `http://121.43.196.106:2829/api/files/${record.musicFileAddress}`,
+        `http://121.43.196.106:2829/uploads/${record.musicFileAddress}`,
+        `http://121.43.196.106:2829/static/${record.musicFileAddress}`,
+        `http://121.43.196.106:2829/music/${record.musicFileAddress}`
+      ];
+      
+      console.log('Trying possible URLs:', possibleUrls);
+      audioUrl = possibleUrls[0]; // Start with the first one
+    }
     
-    audioElement = new Audio(audioUrl);
-    audioElements.value.set(record.id, audioElement);
+    console.log('Constructed Audio URL:', audioUrl);
+    console.log('Original musicFileAddress:', record.musicFileAddress);
     
-    // Add event listener for when audio ends
-    audioElement.addEventListener('ended', () => {
-      record.isPlaying = false;
-    });
-    
-    // Add event listener for when audio is paused
-    audioElement.addEventListener('pause', () => {
-      record.isPlaying = false;
-    });
+    // Create audio element directly and try to play
+    createAudioElement(audioUrl, record.id);
+    return; // Exit early
   }
 
   if (record.isPlaying) {
     // Currently playing, so stop it
-    audioElement.pause();
+    if (audioElement) {
+      audioElement.pause();
+    }
     record.isPlaying = false;
   } else {
     // Currently stopped, so play it
@@ -690,12 +734,105 @@ const handleAudition = (record: DataItem) => {
     });
     
     // Play the audio
+    if (audioElement) {
+      audioElement.play().catch(error => {
+        console.error('Error playing audio:', error);
+        // If the file doesn't exist, show a message
+        alert('音乐文件不存在或无法播放');
+        record.isPlaying = false; // Revert to false on error
+      });
+    }
+  }
+};
+
+// Helper function to create audio element after accessibility test
+const createAudioElement = (audioUrl: string, recordId: number) => {
+  const audioElement = new Audio(audioUrl);
+  audioElements.value.set(recordId, audioElement);
+  
+  // Add event listener for when audio ends
+  audioElement.addEventListener('ended', () => {
+    const record = rawData.value.find(item => item.id === recordId);
+    if (record) {
+      record.isPlaying = false;
+    }
+  });
+  
+  // Add event listener for when audio is paused
+  audioElement.addEventListener('pause', () => {
+    const record = rawData.value.find(item => item.id === recordId);
+    if (record) {
+      record.isPlaying = false;
+    }
+  });
+  
+  // Add error handling
+  audioElement.addEventListener('error', (e) => {
+    console.error('Audio error:', e);
+    console.error('Audio error details:', audioElement.error);
+    
+    // Try alternative URLs if the first one fails
+    const record = rawData.value.find(item => item.id === recordId);
+    if (record && record.musicFileAddress && !record.musicFileAddress.startsWith('http')) {
+      console.log('Trying alternative URLs for record:', recordId);
+      tryAlternativeUrls(record, recordId);
+    } else {
+      alert('音乐文件播放失败，请检查文件是否存在');
+      if (record) {
+        record.isPlaying = false;
+      }
+    }
+  });
+  
+  // Now try to play the audio
+  const record = rawData.value.find(item => item.id === recordId);
+  if (record) {
+    record.isPlaying = true;
     audioElement.play().catch(error => {
       console.error('Error playing audio:', error);
-      // If the file doesn't exist, show a message
-      alert('音乐文件不存在或无法播放');
-      record.isPlaying = false; // Revert to false on error
+      alert('音乐文件播放失败');
+      record.isPlaying = false;
     });
+  }
+};
+
+// Function to try alternative URLs if the first one fails
+const tryAlternativeUrls = (record: DataItem, recordId: number) => {
+  const alternativeUrls = [
+    `http://121.43.196.106:2829/api/files/${record.musicFileAddress}`,
+    `http://121.43.196.106:2829/uploads/${record.musicFileAddress}`,
+    `http://121.43.196.106:2829/static/${record.musicFileAddress}`,
+    `http://121.43.196.106:2829/music/${record.musicFileAddress}`,
+    `http://121.43.196.106:2829/public/${record.musicFileAddress}`
+  ];
+  
+  console.log('Trying alternative URLs:', alternativeUrls);
+  
+  // Try each alternative URL
+  for (let i = 0; i < alternativeUrls.length; i++) {
+    const url = alternativeUrls[i];
+    console.log(`Trying alternative URL ${i + 1}:`, url);
+    
+    const testAudio = new Audio(url);
+    testAudio.addEventListener('canplaythrough', () => {
+      console.log(`Alternative URL ${i + 1} works:`, url);
+      // Remove the old audio element
+      audioElements.value.delete(recordId);
+      // Create new audio element with working URL
+      createAudioElement(url, recordId);
+    });
+    
+    testAudio.addEventListener('error', () => {
+      console.log(`Alternative URL ${i + 1} failed:`, url);
+      if (i === alternativeUrls.length - 1) {
+        // All alternatives failed
+        alert('所有可能的文件路径都无法访问，请检查文件是否存在');
+        record.isPlaying = false;
+      }
+    });
+    
+    // Try to load the audio
+    testAudio.load();
   }
 };
 
@@ -717,6 +854,8 @@ const uploadProgress = ref(0);
 // Import auth store for username
 import { useAuthStore } from '../stores/auth';
 const authStore = useAuthStore();
+
+const userName = computed(() => authStore.user?.name || authStore.user?.username || '管理员');
 
 const resetCreateForm = () => {
   createForm.value = {
@@ -779,14 +918,14 @@ const handleCreateConfirm = async () => {
     formData.append('musicType', createForm.value.musicType);
     formData.append('tags', createForm.value.tags.join(','));
     formData.append('musicFile', createForm.value.musicFile);
-    formData.append('updater', authStore.username || '管理员');
+    formData.append('updater', userName.value);
     
     console.log('Sending form data:', {
       musicName: createForm.value.musicName,
       singer: createForm.value.singer,
       musicType: createForm.value.musicType,
       tags: createForm.value.tags,
-      updater: authStore.username || '管理员'
+      updater: userName.value
     });
     
     const response = await axios.post('http://121.43.196.106:2829/api/ipmusic', formData, {
@@ -803,6 +942,12 @@ const handleCreateConfirm = async () => {
     console.log('Create response:', response.data);
     
     if (response.data.success) {
+      console.log('Music created successfully');
+      console.log('Response data:', response.data);
+      if (response.data.data) {
+        console.log('Created music data:', response.data.data);
+        console.log('Music file address from response:', response.data.data.musicFileAddress);
+      }
       alert('音乐创建成功');
       showCreateModal.value = false;
       resetCreateForm();
@@ -908,7 +1053,7 @@ const handleEditConfirm = async () => {
     if (editForm.value.musicFile) {
       formData.append('musicFile', editForm.value.musicFile);
     }
-    formData.append('updater', authStore.user?.name || authStore.user?.username || '管理员');
+    formData.append('updater', userName.value);
 
     const response = await axios.put(`http://121.43.196.106:2829/api/ipmusic/${editForm.value.id}`, formData, {
       headers: {
@@ -995,6 +1140,7 @@ const viewForm = ref({
   singer: '',
   musicType: '',
   tags: [] as string[],
+  updater: '', // Add updater to viewForm
   musicFileAddress: ''
 });
 
@@ -1006,6 +1152,7 @@ const closeViewModal = () => {
     singer: '',
     musicType: '',
     tags: [],
+    updater: '',
     musicFileAddress: ''
   };
 };
@@ -1013,6 +1160,44 @@ const closeViewModal = () => {
 onMounted(() => {
   fetchData();
   selectedColumnKeys.value = updatedColumnConfigs.map(config => config.key);
+  
+  // Add global debug function for testing
+  (window as any).testMusicFile = (musicId: string) => {
+    const record = rawData.value.find(item => item.musicId === musicId || item.id.toString() === musicId);
+    if (record) {
+      console.log('Testing music file for record:', record);
+      console.log('Music file address:', record.musicFileAddress);
+      
+      const possibleUrls = [
+        `http://121.43.196.106:2829${record.musicFileAddress.startsWith('/') ? '' : '/'}${record.musicFileAddress}`,
+        `http://121.43.196.106:2829/api/files/${record.musicFileAddress}`,
+        `http://121.43.196.106:2829/uploads/${record.musicFileAddress}`,
+        `http://121.43.196.106:2829/static/${record.musicFileAddress}`,
+        `http://121.43.196.106:2829/music/${record.musicFileAddress}`,
+        `http://121.43.196.106:2829/public/${record.musicFileAddress}`
+      ];
+      
+      console.log('Testing URLs:', possibleUrls);
+      
+      possibleUrls.forEach((url, index) => {
+        fetch(url, { method: 'HEAD' })
+          .then(response => {
+            console.log(`URL ${index + 1} (${url}):`, response.status, response.statusText);
+            if (response.ok) {
+              console.log(`✅ URL ${index + 1} is accessible!`);
+            }
+          })
+          .catch(error => {
+            console.log(`❌ URL ${index + 1} (${url}):`, error.message);
+          });
+      });
+    } else {
+      console.error('Record not found for musicId:', musicId);
+      console.log('Available records:', rawData.value.map(r => ({ id: r.id, musicId: r.musicId, musicName: r.musicName })));
+    }
+  };
+  
+  console.log('Debug function added: testMusicFile(musicId) - use this in console to test file URLs');
 });
 
 defineExpose({

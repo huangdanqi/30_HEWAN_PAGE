@@ -155,19 +155,19 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Check for duplicate model name + voice ID combination
+    // Generate model_id and container_id first
+    const modelId = `MDL${Date.now()}`;
+    const containerId = voiceId || modelId;
+
+    // Check for duplicate model name + container ID combination
     const [existingResult] = await connection.execute(
-      'SELECT COUNT(*) as count FROM model_configuration WHERE modelName = ? AND voiceId = ?',
-      [modelName, voiceId || '']
+      'SELECT COUNT(*) as count FROM model_configuration WHERE modelName = ? AND containerId = ?',
+      [modelName, containerId]
     );
     
     if (existingResult[0].count > 0) {
-      return res.status(400).json({ error: 'Model name and voice ID combination already exists' });
+      return res.status(400).json({ error: 'Model name and container ID combination already exists' });
     }
-
-    // Generate model_id and container_id
-    const modelId = `MDL${Date.now()}`;
-    const containerId = voiceId || modelId;
 
     // Insert into database
     const insertQuery = `

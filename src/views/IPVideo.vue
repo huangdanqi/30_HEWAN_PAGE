@@ -207,9 +207,7 @@
             <label class="required-field"><span class="asterisk">*</span> IP名称</label>
             <select v-model="createForm.ipName" class="form-select">
               <option value="">请选择</option>
-              <option value="啵啵">啵啵</option>
-              <option value="蝴蝶">蝴蝶</option>
-              <option value="小熊">小熊</option>
+              <option v-for="name in ipNamesForForms" :key="name" :value="name">{{ name }}</option>
             </select>
           </div>
           <div class="form-group">
@@ -346,9 +344,7 @@
             <label class="required-field"><span class="asterisk">*</span> IP名称</label>
             <select v-model="editForm.ipName" class="form-select">
               <option value="">请选择</option>
-              <option value="啵啵">啵啵</option>
-              <option value="蝴蝶">蝴蝶</option>
-              <option value="小熊">小熊</option>
+              <option v-for="name in ipNamesForForms" :key="name" :value="name">{{ name }}</option>
             </select>
           </div>
           <div class="form-group">
@@ -657,6 +653,34 @@ const {
 const rawData = ref<DataItem[]>([]);
 const loading = ref(false);
 
+// IP names for dynamic dropdown in forms
+const ipNamesForForms = ref<string[]>([]);
+
+// Fetch IP names from IP Management API
+const fetchIpNamesForForms = async () => {
+  try {
+    const response = await axios.get(constructApiUrl('ip-management'));
+    if (response.data && response.data.data) {
+      // Extract unique IP names from the response
+      const uniqueIpNames = Array.from(new Set(
+        response.data.data
+          .map((item: any) => item.ipName)
+          .filter((name: any) => name && typeof name === 'string' && name.trim() !== '')
+      ));
+      ipNamesForForms.value = uniqueIpNames as string[];
+      console.log('Fetched IP names for forms:', ipNamesForForms.value);
+    }
+  } catch (error) {
+    console.error('Error fetching IP names for forms:', error);
+    // Fallback to default options if API fails
+    ipNamesForForms.value = [
+      '啵啵',
+      '蝴蝶',
+      '小熊'
+    ];
+  }
+};
+
 const fetchData = async () => {
   console.log('fetchData called');
   loading.value = true;
@@ -858,16 +882,18 @@ const pagination = computed(() => ({
 }));
 
 const onRefresh = () => {
-  loading.value = true;
+  console.log('Refresh button clicked!');
+  loading.value = true; // Show loading icon
   searchInputValue.value = '';
   currentPage.value = 1;
-  resetColumns();
+  resetColumns(); // Reset column order and visibility
   ipNameValue.value = { key: 'all', label: '全部', value: 'all' };
   sceneValue.value = { key: 'all', label: '全部', value: 'all' };
   weatherValue.value = { key: 'all', label: '全部', value: 'all' };
   emotionValue.value = { key: 'all', label: '全部', value: 'all' };
   timeValue.value = { key: 'all', label: '全部', value: 'all' };
-  fetchData();
+  fetchData(); // Fetch data after refresh
+  fetchIpNamesForForms(); // Refresh IP names for forms
 
   setTimeout(() => {
     loading.value = false;
@@ -1358,6 +1384,7 @@ const removeEditUploadedFile = () => {
 
 onMounted(() => {
   fetchData();
+  fetchIpNamesForForms(); // Fetch IP names for forms on mount
   selectedColumnKeys.value = updatedColumnConfigs.map(config => config.key);
 });
 
