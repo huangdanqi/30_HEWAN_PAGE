@@ -37,6 +37,7 @@
             </template>
           </a-input>
           <a-button type="primary" @click="showCreateModelModal = true">新建模型</a-button>
+          <!-- <a-button @click="forceRefreshData" :loading="loading">强制刷新</a-button> -->
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -87,6 +88,7 @@
     <!-- table area -->
     <div class="table-container">
       <a-table
+        :key="tableRefreshKey"
         :columns="columns"
         :data-source="paginatedData"
         :pagination="totalFilteredData === 0 ? false : pagination"
@@ -112,7 +114,7 @@
         </a-space>
       </template>
       <template v-else-if="column.key === 'updater'">
-        <span>33</span>
+        <span>{{ record.updater || '-' }}</span>
       </template>
     </template>
       </a-table>
@@ -124,6 +126,7 @@
       title="新建模型"
       :footer="null"
       width="600px"
+      @cancel="resetCreateForm"
     >
       <a-form layout="vertical">
         <!-- 1. 模型类型 (Model Type) -->
@@ -296,9 +299,9 @@
         </a-collapse>
 
         <!-- 12. 后台导入 (Backend Import) - Info text -->
-        <div style="margin-top: 16px; padding: 12px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #666;">
+        <!-- <div style="margin-top: 16px; padding: 12px; background-color: #f5f5f5; border-radius: 4px; font-size: 12px; color: #666;">
           音色复刻模型可通过外部服务接口导入
-        </div>
+        </div> -->
 
         <div style="display: flex; justify-content: flex-end; gap: 16px; margin-top: 24px;">
           <a-button @click="showCreateModelModal = false">取消</a-button>
@@ -313,6 +316,7 @@
       title="编辑模型"
       :footer="null"
       width="600px"
+      @cancel="resetEditForm"
     >
       <a-form layout="vertical">
         <a-form-item required>
@@ -339,8 +343,8 @@
           <a-input placeholder="请输入" v-model:value="editForm.modelName" />
         </a-form-item>
 
-        <!-- TTS specific fields -->
-        <template v-if="editForm.selectedModelType === 'TTS'">
+        <!-- Voice-specific fields for TTS, IP VCM, User VCM -->
+        <template v-if="['TTS', 'IP VCM', 'User VCM'].includes(editForm.selectedModelType)">
           <a-form-item required>
             <template #label>
               音色ID
@@ -383,7 +387,7 @@
           <template #label>
              计费单位
           </template>
-          <a-input placeholder="请输入" v-model:value="editForm.paymentUnit" />
+          <a-input placeholder="请输入" v-model:value="editForm.billingUnit" />
         </a-form-item>
 
         <a-form-item required v-if="editForm.accessType === 'api'">
@@ -532,12 +536,12 @@ interface ColumnConfig {
   sortDirections?: ('ascend' | 'descend')[];
   sortOrder?: 'ascend' | 'descend';
   defaultSortOrder?: 'ascend' | 'descend';
-  customCell?: (record: any) => { children: any };
+  customCell?: (record: any, index: number) => { children: any };
   className?: string;
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customCell: (record: any) => ({ children: (currentPage.value - 1) * pageSize.value + record.index + 1 }) },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
   { key: 'modelId', title: '模型 ID', dataIndex: 'modelId', width: 150, sorter: (a, b) => a.modelId.localeCompare(b.modelId), sortDirections: ['ascend', 'descend'] },
   { key: 'modelType', title: '模型类型', dataIndex: 'modelType', width: 120, sorter: (a, b) => a.modelType.localeCompare(b.modelType), sortDirections: ['ascend', 'descend'] },
   { key: 'modelName', title: '模型名称', dataIndex: 'modelName', width: 150, sorter: (a, b) => a.modelName.localeCompare(b.modelName), sortDirections: ['ascend', 'descend'] },
@@ -574,7 +578,18 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sorter: config.sorter,
     sortDirections: config.sortDirections,
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-          customCell: config.customCell || ((record: any) => ({ children: record[config.dataIndex] === undefined || record[config.dataIndex] === null || record[config.dataIndex] === '' ? '-' : record[config.dataIndex] })),
+    customCell: (record: any, index: number) => {
+      if (config.key === 'rowIndex') {
+        // Calculate row number based on pagination and index parameter
+        const rowNumber = (currentPage.value - 1) * pageSize.value + index + 1;
+        return { children: rowNumber };
+      }
+      const text = record[config.dataIndex];
+      if (text === undefined || text === null || text === '') {
+        return { children: '-' };
+      }
+      return { children: text };
+    },
     className: config.className,
   })) as ColumnsType;
 };
@@ -607,24 +622,46 @@ const columns = computed<ColumnsType>(() => {
 // Generate sample data based on the image
 const rawData = ref<DataItem[]>([]);
 const loading = ref(false);
+const tableRefreshKey = ref(0); // Key to force table refresh
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Fetch data from MySQL database
-const fetchData = async () => {
-  console.log('fetchData called');
+const fetchData = async (forceRefresh = false) => {
+  console.log('fetchData called, forceRefresh:', forceRefresh);
   loading.value = true;
   try {
     console.log('Calling model-configuration endpoint');
-    // Request all data without pagination parameters
-    const response = await axios.get(constructApiUrl('model-configuration?page=1&pageSize=1000'));
+    
+    // Add cache-busting parameter to ensure fresh data
+    const timestamp = Date.now();
+    const url = constructApiUrl(`model-configuration?page=1&pageSize=1000&_t=${timestamp}`);
+    
+    if (forceRefresh) {
+      console.log('Force refreshing data with timestamp:', timestamp);
+    }
+    
+    const response = await axios.get(url);
     console.log('Model configuration response:', response.data);
+    
     // Add key property to each item for table identification
     rawData.value = response.data.data.map((item: any) => ({
       ...item,
       key: item.id // Use id as key for table rows
     }));
+    
+    console.log('Updated rawData with', rawData.value.length, 'items');
+    console.log('Sample data item:', rawData.value[0]);
+    
+    // Debug: Check if updater field is present
+    if (rawData.value.length > 0) {
+      console.log('First item updater field:', rawData.value[0].updater);
+      console.log('All updater values:', rawData.value.map(item => item.updater));
+    }
+    
+    // Increment table refresh key to force re-render
+    tableRefreshKey.value++;
   } catch (error) {
     console.error('Error fetching data:', error);
   } finally {
@@ -698,6 +735,11 @@ const onRefresh = () => {
   setTimeout(() => {
     loading.value = false;
   }, 500);
+};
+
+const forceRefreshData = () => {
+  console.log('Force refresh button clicked!');
+  fetchData(true); // Force refresh with cache busting
 };
 
 const filteredData = computed(() => {
@@ -904,6 +946,7 @@ const removeCustomField = (index: number) => {
 
 // Edit form reactive variables
 const editForm = ref({
+  id: 0, // Add record ID field
   selectedModelType: '',
   modelName: '',
   containerId: '',
@@ -914,7 +957,6 @@ const editForm = ref({
   apiUrl: '',
   localModelFileDir: '',
   billingUnit: '',
-  paymentUnit: '',
   unitCost: '',
   activeCollapseKeys: ['auth', 'custom'] as string[],
   authFields: [{ fieldName: '', value: '' }],
@@ -943,6 +985,9 @@ const removeEditCustomField = (index: number) => {
 
 // Update handleEditClick to populate edit form
 const handleEditClick = (record: DataItem) => {
+  // Store the record ID for the API call
+  editForm.value.id = record.id;
+  
   // Populate edit form with record data
   editForm.value.selectedModelType = record.modelType;
   editForm.value.modelName = record.modelName;
@@ -953,12 +998,20 @@ const handleEditClick = (record: DataItem) => {
   editForm.value.billingUnit = record.billingUnit;
   editForm.value.unitCost = record.unitCost.toString();
   
+  // Populate voice fields for TTS, IP VCM, User VCM models
+  if (['TTS', 'IP VCM', 'User VCM'].includes(record.modelType)) {
+    editForm.value.voiceId = record.containerId || ''; // Use containerId as voiceId
+    editForm.value.voiceName = record.versionNumber || ''; // Use versionNumber as voiceName
+  } else {
+    editForm.value.voiceId = '';
+    editForm.value.voiceName = '';
+  }
+  
   // Determine access type based on data
   if (record.apiUrl && record.apiUrl !== '-') {
     editForm.value.accessType = 'api';
     editForm.value.activeCollapseKeys = ['auth', 'custom'];
   } else {
-    editForm.value.accessType = 'local';
     editForm.value.activeCollapseKeys = [];
   }
   
@@ -1102,9 +1155,9 @@ const handleConfirmCreate = async () => {
 
     console.log('Submitting form data:', JSON.stringify(formData, null, 2));
     console.log('Username being sent as updater:', formData.updater);
-    console.log('API URL:', 'http://121.43.196.106:2829/api/model-configuration');
+    console.log('API URL:', constructApiUrl('model-configuration'));
 
-    const response = await axios.post('http://121.43.196.106:2829/api/model-configuration', formData);
+    const response = await axios.post(constructApiUrl('model-configuration'), formData);
     
     console.log('=== CREATE MODEL SUCCESS ===');
     console.log('Response status:', response.status);
@@ -1114,7 +1167,11 @@ const handleConfirmCreate = async () => {
       message.success('新建模型成功！');
       showCreateModelModal.value = false;
       resetCreateForm();
-      fetchData(); // Refresh the data
+      
+      // Small delay to ensure database is updated, then force refresh
+      setTimeout(() => {
+        fetchData(true); // Force refresh the data to get updated updater field
+      }, 500);
     } else {
       message.error('创建失败: ' + (response.data.error || '未知错误'));
     }
@@ -1148,15 +1205,138 @@ const resetCreateForm = () => {
   customFields.value = [{ fieldName: '', value: '' }];
 };
 
+const resetEditForm = () => {
+  editForm.value.id = 0;
+  editForm.value.selectedModelType = '';
+  editForm.value.modelName = '';
+  editForm.value.containerId = '';
+  editForm.value.versionNumber = '';
+  editForm.value.voiceId = '';
+  editForm.value.voiceName = '';
+  editForm.value.accessType = 'api';
+  editForm.value.apiUrl = '';
+  editForm.value.localModelFileDir = '';
+  editForm.value.billingUnit = '';
+  editForm.value.unitCost = '';
+  editForm.value.activeCollapseKeys = ['auth', 'custom'];
+  editForm.value.authFields = [{ fieldName: '', value: '' }];
+  editForm.value.customFields = [{ fieldName: '', value: '' }];
+};
+
 // Watch for access type changes to control collapse state
 watch(accessType, (newValue) => {
   // Always show auth and custom sections for both local and API models
   activeCollapseKeys.value = ['auth', 'custom'];
 });
 
-const handleConfirmEdit = () => {
-  message.success('编辑模型成功！');
-  showEditModelModal.value = false;
+const handleConfirmEdit = async () => {
+  console.log('=== EDIT MODEL START ===');
+  console.log('Edit form data:', editForm.value);
+
+  // Validation
+  if (!editForm.value.selectedModelType) {
+    message.error('请选择模型类型');
+    return;
+  }
+
+  if (!editForm.value.modelName || editForm.value.modelName.trim() === '') {
+    message.error('请输入模型名称');
+    return;
+  }
+
+  if (editForm.value.modelName.length > 15) {
+    message.error('模型名称不能超过15个字符');
+    return;
+  }
+
+  // Validate access information
+  if (editForm.value.accessType === 'api') {
+    if (!editForm.value.apiUrl || editForm.value.apiUrl.trim() === '') {
+      message.error('请输入API地址');
+      return;
+    }
+  } else if (editForm.value.accessType === 'local') {
+    if (!editForm.value.localModelFileDir || editForm.value.localModelFileDir.trim() === '') {
+      message.error('请输入本地模型文件目录');
+      return;
+    }
+  }
+
+  // Validate voice fields for TTS, IP VCM, User VCM
+  if (['TTS', 'IP VCM', 'User VCM'].includes(editForm.value.selectedModelType)) {
+    if (!editForm.value.voiceId || editForm.value.voiceId.trim() === '') {
+      message.error('请输入音色ID');
+      return;
+    }
+    if (!editForm.value.voiceName || editForm.value.voiceName.trim() === '') {
+      message.error('请输入音色名称');
+      return;
+    }
+    if (editForm.value.voiceName.length > 15) {
+      message.error('音色名称不能超过15个字符');
+      return;
+    }
+  }
+  // For non-voice models, voiceId and voiceName are optional
+
+  try {
+    loading.value = true;
+    console.log('Validation passed, preparing to submit edit...');
+
+    // Get dynamic username from auth store (same as AppTopbar.vue)
+    const currentUsername = authStore.user?.name || authStore.user?.username || '管理员';
+    console.log('Current username from auth store:', currentUsername);
+
+    // Prepare data for submission - map to server expected fields
+    const formData = {
+      modelType: editForm.value.selectedModelType,
+      modelName: editForm.value.modelName,
+      voiceId: editForm.value.voiceId || '', // Send voiceId directly
+      voiceName: editForm.value.voiceName || '', // Send voiceName directly
+      accessType: editForm.value.accessType,
+      apiUrl: editForm.value.apiUrl,
+      localModelFileDir: editForm.value.localModelFileDir,
+      billingUnit: editForm.value.billingUnit,
+      unitCost: parseFloat(editForm.value.unitCost) || 0,
+      authFields: editForm.value.authFields,
+      customFields: editForm.value.customFields,
+      updater: currentUsername // Use dynamic username
+    };
+
+    console.log('Submitting edit form data:', JSON.stringify(formData, null, 2));
+    console.log('Username being sent as updater:', formData.updater);
+
+    // Get the record ID from the edit form
+    const recordId = editForm.value.id;
+    
+    // Call the edit API endpoint with the record ID
+    const response = await axios.put(`${constructApiUrl(`model-configuration/${recordId}`)}`, formData);
+    
+    console.log('=== EDIT MODEL SUCCESS ===');
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+
+    if (response.data.success) {
+      message.success('编辑模型成功！');
+      showEditModelModal.value = false;
+      
+      // Small delay to ensure database is updated, then force refresh
+      setTimeout(() => {
+        fetchData(true); // Force refresh the data to get updated updater field
+      }, 500);
+    } else {
+      message.error('编辑失败: ' + (response.data.error || '未知错误'));
+    }
+  } catch (error: any) {
+    console.log('=== EDIT MODEL ERROR ===');
+    console.error('Error editing model:', error);
+    console.error('Error response:', error.response);
+    console.error('Error message:', error.message);
+    message.error('编辑失败: ' + (error.response?.data?.error || error.message || '未知错误'));
+  } finally {
+    loading.value = false;
+    console.log('=== EDIT MODEL END ===');
+  }
 };
 
 onMounted(() => {

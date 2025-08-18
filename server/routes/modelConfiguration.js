@@ -238,6 +238,8 @@ router.put('/:id', async (req, res) => {
       modelName,
       containerId,
       versionNumber,
+      voiceId, // Accept both field names for backward compatibility
+      voiceName,
       apiUrl,
       localModelFileDir,
       billingUnit,
@@ -245,9 +247,20 @@ router.put('/:id', async (req, res) => {
       updater
     } = req.body;
 
+    // Use voiceId/voiceName if containerId/versionNumber are not provided
+    const finalContainerId = containerId || voiceId;
+    const finalVersionNumber = versionNumber || voiceName;
+
     // Validate required fields
-    if (!modelType || !modelName || !containerId || !versionNumber) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!modelType || !modelName) {
+      return res.status(400).json({ error: 'Missing required fields: modelType, modelName' });
+    }
+
+    // For voice models (TTS, IP VCM, User VCM), require voice fields
+    if (['TTS', 'IP VCM', 'User VCM'].includes(modelType)) {
+      if (!finalContainerId || !finalVersionNumber) {
+        return res.status(400).json({ error: 'Voice ID and Voice Name are required for TTS, IP VCM, and User VCM models' });
+      }
     }
 
     // Validate model name length
@@ -277,8 +290,8 @@ router.put('/:id', async (req, res) => {
     const updateParams = [
       modelType,
       modelName,
-      containerId,
-      versionNumber,
+      finalContainerId,
+      finalVersionNumber,
       apiUrl || null,
       localModelFileDir || null,
       billingUnit || 'h',

@@ -55,7 +55,15 @@
           </template>
         </a-input>
         <a-button type="primary" @click="handleCreateAgentClick">新建Agent</a-button>
-        <ReloadOutlined @click="onRefresh" />
+        <a-tooltip title="刷新Agent数据和模型配置数据">
+          <ReloadOutlined @click="onRefresh" />
+        </a-tooltip>
+        <a-tooltip title="仅刷新模型配置数据">
+          <a-button size="small" @click="fetchModelData">刷新模型</a-button>
+        </a-tooltip>
+        <a-tooltip title="测试模型数据获取">
+          <a-button size="small" type="dashed" @click="testModelDataFetch">测试数据</a-button>
+        </a-tooltip>
         <a-dropdown>
           <ColumnHeightOutlined @click.prevent />
           <template #overlay>
@@ -162,98 +170,99 @@
         layout="vertical"
         ref="createFormRef"
       >
+        <!-- 1. Agent名称 (必填) -->
         <a-form-item label="Agent名称" name="agentName" required>
-          <a-input v-model:value="createForm.agentName" placeholder="请输入" />
+          <a-input v-model:value="createForm.agentName" placeholder="请输入" :maxlength="15" show-count />
         </a-form-item>
 
-        <a-form-item label="VAD" name="vadName" required>
-          <a-select v-model:value="createForm.vadName" placeholder="请选择">
-            <a-select-option value="VAD类型">VAD类型</a-select-option>
-            <a-select-option value="静音检测">静音检测</a-select-option>
-            <a-select-option value="语音活动检测">语音活动检测</a-select-option>
+        <!-- 2. 智能体ID (非必填) -->
+        <a-form-item label="智能体ID" name="intelligentAgentId">
+          <a-input v-model:value="createForm.intelligentAgentId" placeholder="请输入" />
+        </a-form-item>
+
+        <!-- 3. API地址/文件目录 (必填) -->
+        <a-form-item label="API地址/文件目录" name="apiUrl" required>
+          <a-input v-model:value="createForm.apiUrl" placeholder="请输入" />
+        </a-form-item>
+
+        <!-- 4. API Key (非必填) -->
+        <a-form-item label="API Key" name="apiKey">
+          <a-input v-model:value="createForm.apiKey" placeholder="请输入" />
+        </a-form-item>
+
+        <!-- 5. VAD名称 (必选) -->
+        <a-form-item label="VAD名称" name="vadName" required>
+          <a-select v-model:value="createForm.vadName" placeholder="请选择" show-search>
+            <a-select-option v-for="vad in vadOptions" :key="vad" :value="vad">{{ vad }}</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="ASR" name="asrName" required>
-          <a-select v-model:value="createForm.asrName" placeholder="请选择">
-            <a-select-option value="蓝色语音ASR">蓝色语音ASR</a-select-option>
-            <a-select-option value="百度ASR">百度ASR</a-select-option>
-            <a-select-option value="讯飞ASR">讯飞ASR</a-select-option>
-            <a-select-option value="阿里ASR">阿里ASR</a-select-option>
+        <!-- 6. ASR名称 (必选) -->
+        <a-form-item label="ASR名称" name="asrName" required>
+          <a-select v-model:value="createForm.asrName" placeholder="请选择" show-search>
+            <a-select-option v-for="asr in asrOptions" :key="asr" :value="asr">{{ asr }}</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="意图识别" name="intelligentAgentName">
-          <a-select v-model:value="createForm.intelligentAgentName" placeholder="请选择">
-            <a-select-option value="16路意图识别">16路意图识别</a-select-option>
-            <a-select-option value="8路意图识别">8路意图识别</a-select-option>
-            <a-select-option value="4路意图识别">4路意图识别</a-select-option>
-            <a-select-option value="单路意图识别">单路意图识别</a-select-option>
+        <!-- 7. 智能体名称 (非必选) -->
+        <a-form-item label="智能体名称" name="intelligentAgentName">
+          <a-select v-model:value="createForm.intelligentAgentName" placeholder="请选择" show-search>
+            <a-select-option v-for="agent in intelligentAgentOptions" :key="agent" :value="agent">{{ agent }}</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="LLM" name="llmName">
-          <a-select v-model:value="createForm.llmName" placeholder="请选择">
-            <a-select-option value="Deep Seek R1">Deep Seek R1</a-select-option>
-            <a-select-option value="GPT-4">GPT-4</a-select-option>
-            <a-select-option value="Claude">Claude</a-select-option>
-            <a-select-option value="Gemini">Gemini</a-select-option>
-            <a-select-option value="文心一言">文心一言</a-select-option>
+        <!-- 8. LLM名称 (非必选) -->
+        <a-form-item label="LLM名称" name="llmName">
+          <a-select v-model:value="createForm.llmName" placeholder="请选择" show-search>
+            <a-select-option v-for="llm in llmOptions" :key="llm" :value="llm">{{ llm }}</a-select-option>
           </a-select>
         </a-form-item>
 
+        <!-- 9. Prompt (非必填) -->
         <a-form-item label="Prompt" name="prompt">
           <a-textarea v-model:value="createForm.prompt" placeholder="请输入" :rows="3" />
         </a-form-item>
 
-        <a-form-item label="Memory" name="memoryName">
-          <a-select v-model:value="createForm.memoryName" placeholder="请选择">
-            <a-select-option value="Memory 0">Memory 0</a-select-option>
-            <a-select-option value="Memory 1">Memory 1</a-select-option>
-            <a-select-option value="Memory 2">Memory 2</a-select-option>
-            <a-select-option value="Memory 3">Memory 3</a-select-option>
+        <!-- 10. Memory名称 (非必选) -->
+        <a-form-item label="Memory名称" name="memoryName">
+          <a-select v-model:value="createForm.memoryName" placeholder="请选择" show-search>
+            <a-select-option v-for="memory in memoryOptions" :key="memory" :value="memory">{{ memory }}</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="工具" name="tools">
-          <a-select v-model:value="createForm.tools" placeholder="请选择">
-            <a-select-option value="bing, RAG, ...">bing, RAG, ...</a-select-option>
-            <a-select-option value="bing, 搜索">bing, 搜索</a-select-option>
-            <a-select-option value="RAG, 知识库">RAG, 知识库</a-select-option>
-            <a-select-option value="bing, RAG, 搜索">bing, RAG, 搜索</a-select-option>
-          </a-select>
-        </a-form-item>
-
-        <a-form-item label="语音合成类型" name="speechSynthesisType" required>
+        <!-- 11. 语音合成模型 (必选) -->
+        <a-form-item label="语音合成模型" name="speechSynthesisType" required>
           <a-radio-group v-model:value="createForm.speechSynthesisType">
             <a-radio value="TTS">TTS</a-radio>
             <a-radio value="音色复刻">音色复刻</a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item v-if="createForm.speechSynthesisType === 'TTS'" label="TTS" name="ttsName" required>
-          <a-select v-model:value="createForm.ttsName" placeholder="请选择">
-            <a-select-option value="微软TTS">微软TTS</a-select-option>
-            <a-select-option value="阿里TTS">阿里TTS</a-select-option>
-            <a-select-option value="讯飞TTS">讯飞TTS</a-select-option>
+        <!-- 12. TTS名称 (必选) - Conditional for TTS -->
+        <a-form-item v-if="createForm.speechSynthesisType === 'TTS'" label="TTS名称" name="ttsName" required>
+          <a-select v-model:value="createForm.ttsName" placeholder="请选择" show-search>
+            <a-select-option v-for="tts in ttsOptions" :key="tts" :value="tts">{{ tts }}</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item v-if="createForm.speechSynthesisType === '音色复刻'" label="IP VCM" name="ipVcmName" required>
-          <a-select v-model:value="createForm.ipVcmName" placeholder="请选择">
-            <a-select-option value="蓝色意图识别">蓝色意图识别</a-select-option>
-            <a-select-option value="百度VCM">百度VCM</a-select-option>
-            <a-select-option value="讯飞VCM">讯飞VCM</a-select-option>
-            <a-select-option value="阿里VCM">阿里VCM</a-select-option>
+        <!-- 13. TTS音色选择 (必选) - Conditional for TTS -->
+        <a-form-item v-if="createForm.speechSynthesisType === 'TTS'" label="TTS音色选择" name="ttsVoiceSelection" required>
+          <a-select v-model:value="createForm.ttsVoiceSelection" placeholder="请选择" show-search>
+            <a-select-option v-for="voice in ttsVoiceOptions" :key="voice" :value="voice">{{ voice }}</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="角色选择" name="roleSelection" required>
-          <a-select v-model:value="createForm.roleSelection" placeholder="请选择">
-            <a-select-option value="小智">小智</a-select-option>
-            <a-select-option value="小爱">小爱</a-select-option>
-            <a-select-option value="小度">小度</a-select-option>
-            <a-select-option value="嘿嘿">嘿嘿</a-select-option>
+        <!-- 14. IP VCM名称 (必选) - Conditional for 音色复刻 -->
+        <a-form-item v-if="createForm.speechSynthesisType === '音色复刻'" label="IP VCM名称" name="ipVcmName" required>
+          <a-select v-model:value="createForm.ipVcmName" placeholder="请选择" show-search>
+            <a-select-option v-for="ipvcm in ipVcmOptions" :key="ipvcm" :value="ipvcm">{{ ipvcm }}</a-select-option>
+          </a-select>
+        </a-form-item>
+
+        <!-- 15. IP VCM音色选择 (必选) - Conditional for 音色复刻 -->
+        <a-form-item v-if="createForm.speechSynthesisType === '音色复刻'" label="IP VCM音色选择" name="ipVcmVoiceSelection" required>
+          <a-select v-model:value="createForm.ipVcmVoiceSelection" placeholder="请选择" show-search>
+            <a-select-option v-for="voice in ipVcmVoiceOptions" :key="voice" :value="voice">{{ voice }}</a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -402,6 +411,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined } from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 import draggable from 'vuedraggable';
 import { useRoute, useRouter } from 'vue-router';
 import { Empty } from 'ant-design-vue';
@@ -706,14 +716,213 @@ const createForm = ref({
   llmName: '',
   prompt: '',
   memoryName: '',
-  tools: '',
   speechSynthesisType: 'TTS',
   ttsName: '',
   ttsVoiceSelection: '',
   ipVcmName: '',
-  ipVcmVoiceSelection: '',
-  roleSelection: ''
+  ipVcmVoiceSelection: ''
 });
+
+// Model options arrays (dynamically populated from model configuration data)
+const vadOptions = ref<string[]>([]);
+const asrOptions = ref<string[]>([]);
+const intelligentAgentOptions = ref<string[]>([]);
+const llmOptions = ref<string[]>([]);
+const memoryOptions = ref<string[]>([]);
+const ttsOptions = ref<string[]>([]);
+const ttsVoiceOptions = ref<string[]>([]);
+const ipVcmOptions = ref<string[]>([]);
+const ipVcmVoiceOptions = ref<string[]>([]);
+
+// Function to populate options from model configuration data
+const populateOptionsFromModels = (models: any[]) => {
+  try {
+    console.log('=== populateOptionsFromModels START ===');
+    console.log('Populating options from', models.length, 'models');
+    console.log('Models received:', models);
+    
+    // Clear existing options
+    vadOptions.value = [];
+    asrOptions.value = [];
+    intelligentAgentOptions.value = [];
+    llmOptions.value = [];
+    memoryOptions.value = [];
+    ttsOptions.value = [];
+    ipVcmOptions.value = [];
+    
+    console.log('Cleared all options arrays');
+    
+    // Populate options based on model types
+    models.forEach((model, index) => {
+      console.log(`Processing Model ${index + 1}:`, { 
+        type: model.modelType, 
+        name: model.modelName,
+        fullModel: model 
+      });
+      
+      // Use case-insensitive comparison for model types
+      const modelType = model.modelType?.toLowerCase();
+      
+      if (modelType === 'vad') {
+        vadOptions.value.push(model.modelName);
+        console.log('✅ Added VAD option:', model.modelName);
+      } else if (modelType === 'asr') {
+        asrOptions.value.push(model.modelName);
+        console.log('✅ Added ASR option:', model.modelName);
+      } else if (modelType === '意图识别') {
+        intelligentAgentOptions.value.push(model.modelName);
+        console.log('✅ Added 意图识别 option:', model.modelName);
+      } else if (modelType === 'llm') {
+        llmOptions.value.push(model.modelName);
+        console.log('✅ Added LLM option:', model.modelName);
+      } else if (modelType === 'memory') {
+        memoryOptions.value.push(model.modelName);
+        console.log('✅ Added Memory option:', model.modelName);
+      } else if (modelType === 'tts') {
+        ttsOptions.value.push(model.modelName);
+        console.log('✅ Added TTS option:', model.modelName);
+      } else if (modelType === 'ip vcm' || modelType === 'user vcm' || modelType === 'system vcm') {
+        ipVcmOptions.value.push(model.modelName);
+        console.log('✅ Added VCM option:', model.modelName);
+      } else {
+        console.log('❌ No matching model type for:', model.modelType);
+      }
+    });
+    
+    console.log('After processing all models:');
+    console.log('- VAD options:', vadOptions.value);
+    console.log('- ASR options:', asrOptions.value);
+    console.log('- 意图识别 options:', intelligentAgentOptions.value);
+    console.log('- LLM options:', llmOptions.value);
+    console.log('- Memory options:', memoryOptions.value);
+    console.log('- TTS options:', ttsOptions.value);
+    console.log('- IP VCM options:', ipVcmOptions.value);
+    
+    // Add default options if no models found
+    if (vadOptions.value.length === 0) {
+      vadOptions.value = ['暂无VAD模型'];
+      console.log('⚠️ No VAD models found, added default');
+    }
+    if (asrOptions.value.length === 0) {
+      asrOptions.value = ['暂无ASR模型'];
+      console.log('⚠️ No ASR models found, added default');
+    }
+    if (intelligentAgentOptions.value.length === 0) {
+      intelligentAgentOptions.value = ['暂无意图识别模型'];
+      console.log('⚠️ No 意图识别 models found, added default');
+    }
+    if (llmOptions.value.length === 0) {
+      llmOptions.value = ['暂无LLM模型'];
+      console.log('⚠️ No LLM models found, added default');
+    }
+    if (memoryOptions.value.length === 0) {
+      memoryOptions.value = ['暂无Memory模型'];
+      console.log('⚠️ No Memory models found, added default');
+    }
+    if (ttsOptions.value.length === 0) {
+      ttsOptions.value = ['暂无TTS模型'];
+      console.log('⚠️ No TTS models found, added default');
+    }
+    if (ipVcmOptions.value.length === 0) {
+      ipVcmOptions.value = ['暂无VCM模型'];
+      console.log('⚠️ No VCM models found, added default');
+    }
+    
+    // Voice options remain static as they are configuration options
+    ttsVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
+    ipVcmVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
+    
+    console.log('Final options populated:', {
+      vad: vadOptions.value,
+      asr: asrOptions.value,
+      intelligentAgent: intelligentAgentOptions.value,
+      llm: llmOptions.value,
+      memory: memoryOptions.value,
+      tts: ttsOptions.value,
+      ipVcm: ipVcmOptions.value
+    });
+    console.log('=== populateOptionsFromModels END ===');
+  } catch (error) {
+    console.error('❌ Error populating options from models:', error);
+  }
+};
+
+// Function to fetch model configuration data
+const fetchModelData = async () => {
+  try {
+    console.log('=== fetchModelData START ===');
+    console.log('Fetching model configuration data...');
+    
+    const timestamp = Date.now();
+    const url = constructApiUrl(`model-configuration?page=1&pageSize=1000&_t=${timestamp}`);
+    console.log('API URL:', url);
+    console.log('Cache-busting timestamp:', timestamp);
+    
+    const response = await axios.get(url);
+    console.log('Raw API response:', response);
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+    
+    if (response.data.data && Array.isArray(response.data.data)) {
+      console.log('Model data fetched successfully:', response.data.data.length, 'models');
+      console.log('Sample model data:', response.data.data[0]);
+      console.log('All model types found:', response.data.data.map((m: any) => m.modelType));
+      console.log('Unique model types:', [...new Set(response.data.data.map((m: any) => m.modelType))]);
+      
+      populateOptionsFromModels(response.data.data);
+      message.success('模型配置数据已更新');
+    } else {
+      console.warn('Model data response structure unexpected:', response.data);
+      console.log('Response structure:', {
+        hasData: !!response.data.data,
+        dataIsArray: Array.isArray(response.data.data),
+        dataLength: response.data.data?.length,
+        fullResponse: response.data
+      });
+      populateOptionsFromModels([]);
+    }
+  } catch (error: any) {
+    console.error('=== fetchModelData ERROR ===');
+    console.error('Error fetching model data:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      config: error.config
+    });
+    message.error('获取模型配置数据失败');
+    // Set default options on error
+    populateOptionsFromModels([]);
+  } finally {
+    console.log('=== fetchModelData END ===');
+  }
+};
+
+// Test function to debug model data fetching
+const testModelDataFetch = async () => {
+  console.log('=== TEST MODEL DATA FETCH ===');
+  console.log('Current options before test:');
+  console.log('- vadOptions:', vadOptions.value);
+  console.log('- asrOptions:', asrOptions.value);
+  console.log('- intelligentAgentOptions:', intelligentAgentOptions.value);
+  console.log('- llmOptions:', llmOptions.value);
+  console.log('- memoryOptions:', memoryOptions.value);
+  console.log('- ttsOptions:', ttsOptions.value);
+  console.log('- ipVcmOptions:', ipVcmOptions.value);
+  
+  console.log('Calling fetchModelData...');
+  await fetchModelData();
+  
+  console.log('Options after test:');
+  console.log('- vadOptions:', vadOptions.value);
+  console.log('- asrOptions:', asrOptions.value);
+  console.log('- intelligentAgentOptions:', intelligentAgentOptions.value);
+  console.log('- llmOptions:', llmOptions.value);
+  console.log('- memoryOptions:', memoryOptions.value);
+  console.log('- ttsOptions:', ttsOptions.value);
+  console.log('- ipVcmOptions:', ipVcmOptions.value);
+  console.log('=== TEST END ===');
+};
 
 // Form validation rules
 const createFormRules = {
@@ -776,18 +985,15 @@ const handleCreateModalCancel = () => {
     llmName: '',
     prompt: '',
     memoryName: '',
-    tools: '',
     speechSynthesisType: 'TTS',
     ttsName: '',
     ttsVoiceSelection: '',
     ipVcmName: '',
-    ipVcmVoiceSelection: '',
-    roleSelection: ''
+    ipVcmVoiceSelection: ''
   };
 };
 
 const handleCreateAgent = async () => {
-  alert('确定 button clicked! Testing...');
   console.log('=== handleCreateAgent called ===');
   console.log('Form data:', createForm.value);
   
@@ -795,23 +1001,35 @@ const handleCreateAgent = async () => {
     await createFormRef.value?.validate();
     console.log('Form validation passed');
     
+    // Additional validation for conditional fields
+    if (createForm.value.speechSynthesisType === 'TTS') {
+      if (!createForm.value.ttsName) {
+        message.error('请选择TTS名称');
+        return;
+      }
+      if (!createForm.value.ttsVoiceSelection) {
+        message.error('请选择TTS音色');
+        return;
+      }
+    } else if (createForm.value.speechSynthesisType === '音色复刻') {
+      if (!createForm.value.ipVcmName) {
+        message.error('请选择IP VCM名称');
+        return;
+      }
+      if (!createForm.value.ipVcmVoiceSelection) {
+        message.error('请选择IP VCM音色');
+        return;
+      }
+    }
+    
     // Get dynamic username from auth store
     const dynamicUsername = authStore.user?.name || authStore.user?.username || 'admin';
     console.log('Dynamic username:', dynamicUsername);
     
-    // For now, just show success message without API call
-    console.log('Agent would be created successfully');
-    alert('Agent created successfully! (Test mode)');
-    showCreateAgentModal.value = false;
-    createFormRef.value?.resetFields();
-    
-    // TODO: Uncomment when API is working
-    /*
     // Check for duplicate agent name
     const isUnique = await checkAgentNameUniqueness(createForm.value.agentName);
     if (!isUnique) {
-      // Show error message for duplicate name
-      console.error('Agent名称已存在，请使用其他名称');
+      message.error('Agent名称已存在，请使用其他名称');
       return;
     }
     
@@ -829,7 +1047,6 @@ const handleCreateAgent = async () => {
       llm: createForm.value.llmName,
       prompt: createForm.value.prompt,
       memory: createForm.value.memoryName,
-      tools: createForm.value.tools || '',
       speechSynthesisType: createForm.value.speechSynthesisType,
       tts: createForm.value.speechSynthesisType === 'TTS' ? createForm.value.ttsName : '',
       ttsVoiceName: createForm.value.speechSynthesisType === 'TTS' ? createForm.value.ttsVoiceSelection : '',
@@ -844,25 +1061,25 @@ const handleCreateAgent = async () => {
     const response = await axios.post(`${API_BASE_URL}/agent-configuration`, agentData);
     
     if (response.data.success) {
-      console.log('Agent created successfully');
-    showCreateAgentModal.value = false;
-    createFormRef.value?.resetFields();
+      message.success('Agent创建成功！');
+      showCreateAgentModal.value = false;
+      createFormRef.value?.resetFields();
       // Refresh the table data
-      // fetchData();
+      fetchData();
     } else {
-      console.error('Failed to create agent:', response.data);
+      message.error('创建失败: ' + (response.data.error || '未知错误'));
     }
-    */
   } catch (error) {
     console.error('Form validation failed:', error);
+    message.error('表单验证失败，请检查输入');
   }
 };
 
 const handleCreateAgentClick = () => {
   console.log('Create Agent button clicked');
   showCreateAgentModal.value = true;
-  // Fetch model data when opening the modal
-  // fetchModelData(); // This function is no longer needed as data is fetched from MySQL
+  // Fetch latest model data when opening the modal to ensure options are up-to-date
+  fetchModelData();
 };
 
 const handleEditAgent = (record: DataItem) => {
@@ -890,6 +1107,8 @@ const handleEditAgent = (record: DataItem) => {
     ipVcmName: record.ipVcm || ''
   };
   showEditAgentModal.value = true;
+  // Fetch latest model data when opening the edit modal to ensure options are up-to-date
+  fetchModelData();
 };
 
 const handleEditModalCancel = () => {
@@ -1068,6 +1287,7 @@ const fetchData = async () => {
 onMounted(() => {
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
   fetchData(); // Fetch from MySQL
+  fetchModelData(); // Fetch model configuration data for dynamic options
 });
 
 // Add watcher to monitor data changes
@@ -1093,6 +1313,7 @@ const onRefresh = () => {
   agentRegionValue.value = { key: 'all', label: '全部', value: 'all' };
   agentModeValue.value = { key: 'all', label: '全部', value: 'all' };
   fetchData(); // Refresh data from MySQL
+  fetchModelData(); // Refresh model configuration data for dynamic options
 };
 
 const onSettingClick = () => { console.log('Setting clicked'); };
@@ -1401,4 +1622,6 @@ html, body {
   color: #666;
   font-size: 14px;
 }
+
+
 </style> 

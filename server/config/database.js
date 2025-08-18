@@ -39,8 +39,8 @@ if (password.startsWith("'") && password.endsWith("'")) {
 
 // Database connection pool
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306, // Add port configuration
+  host: process.env.DB_HOST || '121.43.196.106', // Use cloud server IP as default
+  port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER || 'root',
   password: password,
   database: process.env.DB_NAME || 'page_test',
@@ -50,10 +50,10 @@ const pool = mysql.createPool({
   dateStrings: true,
   timezone: '+00:00',
   connectionLimit: 10,
-  // Add these options for better compatibility
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: true
+  // Remove deprecated options that cause warnings
+  // acquireTimeout: 60000,
+  // timeout: 60000,
+  // reconnect: true
 });
 
 // Test the pool connection
