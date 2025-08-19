@@ -544,7 +544,16 @@ const handleSubmit = async () => {
     console.log('Request ID for response:', requestId);
     console.log('API response:', response.data);
     message.success(isEditMode.value ? '固件编辑成功!' : '固件发布成功!');
-    emits('submit', submitData);
+    
+    // Emit the API response data, not the form data
+    emits('submit', {
+      success: true,
+      data: response.data,
+      isEdit: isEditMode.value,
+      timestamp: new Date().toISOString(),
+      requestId: requestId
+    });
+    
     handleCancel();
   } catch (error: any) {
     console.error('Submit failed at:', new Date().toISOString());

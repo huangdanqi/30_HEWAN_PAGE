@@ -1155,37 +1155,11 @@ const handleReleaseModalClose = () => {
 
 const handleReleaseModalSubmit = async (data: any) => {
   try {
-    console.log('=== MODAL SUBMIT DATA RECEIVED ===');
-    console.log('Raw data from modal:', data);
+    console.log('=== RELEASE MODAL SUBMIT START ===');
+    console.log('Received data from modal:', data);
     
-    // Handle new firmware submission
-    if (!data.isEdit) {
-      const firmwareData = {
-        deviceModel: data.deviceModel,
-        releaseVersion: data.releaseVersion || data.releaseType, // Use Chinese value if available
-        versionNumber: data.versionNumber,
-        description: data.description || data.contentDescription,
-        fileAddress: data.fileAddress,
-        creator: data.creator || '管理员',
-      };
-      
-      console.log('Creating firmware with data:', firmwareData);
-      await createFirmware(firmwareData);
-    } else {
-      // Handle edit submission
-      if (data.originalRecord?.id) {
-        const updateData = {
-          deviceModel: data.deviceModel,
-          releaseVersion: data.releaseVersion || data.releaseType,
-          versionNumber: data.versionNumber,
-          description: data.description || data.contentDescription,
-          fileAddress: data.fileAddress,
-        };
-        
-        console.log('Updating firmware with data:', updateData);
-        await updateFirmware(data.originalRecord.id, updateData);
-      }
-    }
+    // The modal already handled the API call, so we just need to refresh the data
+    // No need to call createFirmware again - that would cause duplicate submissions
     
     showReleaseModal.value = false;
     editRecord.value = null;
