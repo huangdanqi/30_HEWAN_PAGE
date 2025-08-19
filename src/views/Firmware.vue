@@ -83,6 +83,9 @@
           <a-button @click="forceRefreshDropdown" style="margin-left: 8px;">强制刷新下拉框</a-button>
           <a-button @click="clearFirmwareData" style="margin-left: 8px;">清除固件数据</a-button> -->
           <a-button @click="testDownloadEndpoint" style="margin-left: 8px;">测试下载端点</a-button>
+          <a-button @click="showDataCount" style="margin-left: 8px;">显示数据统计</a-button>
+          <a-button @click="testFirmwareAPI" style="margin-left: 8px;">测试固件API</a-button>
+          <a-button @click="testVersionGeneration" style="margin-left: 8px;">测试版本生成</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -133,6 +136,7 @@
     <!-- table area -->
     <div class="table-container">
       <a-table
+        :key="`firmware-table-${rawData.length}-${Date.now()}`"
         :columns="columns"
         :data-source="filteredData"
         :pagination="filteredData.length === 0 ? false : pagination"
@@ -178,6 +182,8 @@
       :uniqueDeviceModels="uniqueDeviceModels"
       :deviceModelOptions="deviceModelOptions"
       :editRecord="editRecord"
+      :firmwareData="rawData"
+      :generatedVersion="nextVersionNumber"
       @update:visible="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
@@ -192,6 +198,19 @@
   </a-config-provider>
 </template>
 <script lang="ts" setup>
+/**
+ * Firmware Management Component
+ * 
+ * Default Sorting: 
+ * - Column: "更新时间" (Update Time)
+ * - Order: Descending (newest first)
+ * - Column Key: 'updateTime_8'
+ * 
+ * Data Loading:
+ * - Fetches all firmware records at once (no server-side pagination)
+ * - Uses client-side pagination for display
+ * - Default page size: 50 rows
+ */
 import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted, h, nextTick } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
@@ -252,7 +271,7 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'fileAddress', title: '文件地址', dataIndex: 'fileAddress', width: 320, sorter: (a: any, b: any) => (a.fileAddress || '').localeCompare(b.fileAddress || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'creator', title: '更新人', dataIndex: 'creator', width: 100, sorter: (a: any, b: any) => (a.creator || '').localeCompare(b.creator || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'releaseTime', title: '发布时间', dataIndex: 'releaseTime', width: 180, sorter: (a: any, b: any) => new Date(a.releaseTime).getTime() - new Date(b.releaseTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
+  { key: 'updateTime_8', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
   { key: 'operation', title: '操作', dataIndex: '', width: 280, fixed: 'right' },
 ];
 
@@ -327,37 +346,42 @@ const total = ref(0); // Add total count for server-side pagination
 const fetchFirmware = async () => {
   try {
     loading.value = true;
-    console.log('Fetching firmware with page:', currentPage.value, 'pageSize:', pageSize.value);
+    console.log('Fetching all firmware data...');
     
+    // Fetch all firmware data without pagination to show all 28+ rows
     const response = await axios.get(constructApiUrl('firmware'), {
       params: {
-        page: currentPage.value,
-        pageSize: pageSize.value
+        page: 1,
+        pageSize: 1000 // Get all firmware records (assuming less than 1000)
       }
     });
     
     if (response.data && response.data.data) {
-      // Server-side pagination response
+      // Server-side pagination response - get all data
       rawData.value = response.data.data.map((item: any, index: number) => ({
         ...item,
         key: index + 1
       }));
       
-      // Update pagination info from server
+      // Update total count from server
       if (response.data.pagination) {
-        currentPage.value = response.data.pagination.current;
-        pageSize.value = response.data.pagination.pageSize;
         total.value = response.data.pagination.total;
-        
-        console.log('Updated pagination - current:', currentPage.value, 'pageSize:', pageSize.value, 'total:', total.value);
+        console.log('Total firmware records from server:', total.value);
       }
-    } else {
-      // Fallback for old API format
+      
+      console.log('Fetched firmware data:', rawData.value.length, 'records');
+    } else if (response.data && Array.isArray(response.data)) {
+      // Direct array response
       rawData.value = response.data.map((item: any, index: number) => ({
         ...item,
         key: index + 1
       }));
       total.value = response.data.length;
+      console.log('Fetched firmware data (direct array):', rawData.value.length, 'records');
+    } else {
+      console.log('Unexpected API response format:', response.data);
+      rawData.value = [];
+      total.value = 0;
     }
   } catch (error) {
     console.error('Error fetching firmware:', error);
@@ -587,6 +611,99 @@ const testDownloadEndpoint = async () => {
   }
 };
 
+// Function to show data count statistics
+const showDataCount = () => {
+  console.log('=== DATA COUNT STATISTICS ===');
+  console.log('Raw data count:', rawData.value.length);
+  console.log('Filtered data count:', filteredData.value.length);
+  console.log('Total from server:', total.value);
+  console.log('Current page:', currentPage.value);
+  console.log('Page size:', pageSize.value);
+  
+  message.info(`数据统计: 原始数据 ${rawData.value.length} 条, 过滤后 ${filteredData.value.length} 条, 服务器总数 ${total.value} 条`);
+};
+
+// Function to test API directly
+const testFirmwareAPI = async () => {
+  try {
+    console.log('=== TESTING FIRMWARE API DIRECTLY ===');
+    const apiUrl = constructApiUrl('firmware');
+    console.log('Testing URL:', apiUrl);
+    
+    const response = await axios.get(apiUrl, {
+      params: {
+        page: 1,
+        pageSize: 1000
+      }
+    });
+    
+    console.log('API Response status:', response.status);
+    console.log('API Response data:', response.data);
+    console.log('Response data type:', typeof response.data);
+    
+    if (response.data && response.data.data) {
+      console.log('Data array length:', response.data.data.length);
+      console.log('Pagination info:', response.data.pagination);
+      console.log('First item:', response.data.data[0]);
+    } else if (response.data && Array.isArray(response.data)) {
+      console.log('Direct array length:', response.data.length);
+      console.log('First item:', response.data[0]);
+    }
+    
+    message.success(`API测试成功: ${response.data?.data?.length || response.data?.length || 0} 条记录`);
+    
+  } catch (error: any) {
+    console.error('API test failed:', error);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+      message.error(`API测试失败: ${error.response.status} - ${error.response.data?.error || '未知错误'}`);
+    } else {
+      message.error('API测试失败: 网络错误');
+    }
+  }
+};
+
+// Function to test version generation logic
+const testVersionGeneration = () => {
+  console.log('=== TESTING VERSION GENERATION ===');
+  console.log('Current deviceModelValue:', deviceModelValue.value);
+  console.log('Current releaseVersionValue:', releaseVersionValue.value);
+  console.log('Current nextVersionNumber:', nextVersionNumber.value);
+  
+  // Test with different scenarios
+  const testScenarios = [
+    { deviceModel: 'HWSZ001', releaseType: '主版本' },
+    { deviceModel: 'HWSZ001', releaseType: '子版本' },
+    { deviceModel: 'HWSZ001', releaseType: '修订版' },
+    { deviceModel: 'NEWMODEL', releaseType: '主版本' }, // New device model
+    { deviceModel: 'NEWMODEL', releaseType: '子版本' }, // New device model
+    { deviceModel: 'NEWMODEL', releaseType: '修订版' }  // New device model
+  ];
+  
+  testScenarios.forEach(scenario => {
+    console.log(`\n--- Testing: ${scenario.deviceModel} + ${scenario.releaseType} ---`);
+    
+    // Temporarily set values for testing
+    const originalDeviceModel = deviceModelValue.value;
+    const originalReleaseVersion = releaseVersionValue.value;
+    
+    deviceModelValue.value = { key: scenario.deviceModel, value: scenario.deviceModel, label: scenario.deviceModel };
+    releaseVersionValue.value = { key: scenario.releaseType, value: scenario.releaseType, label: scenario.releaseType };
+    
+    // Force recomputation
+    nextTick(() => {
+      console.log(`Generated version for ${scenario.deviceModel} + ${scenario.releaseType}:`, nextVersionNumber.value);
+    });
+    
+    // Restore original values
+    deviceModelValue.value = originalDeviceModel;
+    releaseVersionValue.value = originalReleaseVersion;
+  });
+  
+  message.info('版本生成测试完成，请查看控制台输出');
+};
+
 // Function to force refresh the dropdown
 const forceRefreshDropdown = () => {
   console.log('Force refreshing dropdown...');
@@ -620,11 +737,30 @@ const clearFirmwareData = () => {
 
 const createFirmware = async (firmwareData: Omit<DataItem, 'key' | 'id' | 'releaseTime' | 'updateTime'>) => {
   try {
+    console.log('=== CREATE FIRMWARE API CALL ===');
+    console.log('API URL:', constructApiUrl('firmware'));
+    console.log('Request data:', firmwareData);
+    console.log('Request data type:', typeof firmwareData);
+    
     const response = await axios.post(constructApiUrl('firmware'), firmwareData);
+    
+    console.log('API response:', response.data);
+    console.log('=== CREATE FIRMWARE SUCCESS ===');
+    
+    // Wait for data refresh to complete
+    console.log('Refreshing firmware data...');
     await fetchFirmware(); // Refresh data
+    
+    console.log('Data refresh completed, new data length:', rawData.value.length);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
+    console.error('=== CREATE FIRMWARE ERROR ===');
     console.error('Error creating firmware:', error);
+    if (error.response) {
+      console.error('Error response status:', error.response.status);
+      console.error('Error response data:', error.response.data);
+    }
+    console.error('=== END CREATE FIRMWARE ERROR ===');
     throw error;
   }
 };
@@ -721,13 +857,14 @@ const handleVersionNumberChange = (val: any) => {
 };
 
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(10); // Increased default page size to show more rows initially
 
 console.log('Initial deviceModelValue:', deviceModelValue.value);
 
+// Default sorting configuration - sorts by "更新时间" (Update Time) in descending order
 const sorterInfo = ref<any>({
-  columnKey: 'updateTime',
-  order: 'descend',
+  columnKey: 'updateTime_8', // Column key for "更新时间" column
+  order: 'descend', // Descending order (newest first)
 });
 
 // Create pagination handlers as separate functions
@@ -751,7 +888,7 @@ const pagination = computed(() => ({
   current: currentPage.value,
   pageSize: pageSize.value,
   showSizeChanger: true,
-  pageSizeOptions: ['10', '20', '50'],
+  pageSizeOptions: ['10', '20', '50', '100'], // Added 100 option for showing more rows
   showTotal: (total: number, range: [number, number]) => `第${range[0]}-${range[1]}条/共${total}条`,
   showQuickJumper: { goButton: '页' },
   onShowSizeChange: handlePageSizeChange,
@@ -762,12 +899,12 @@ const onRefresh = () => {
   console.log('Refresh button clicked!');
   searchInputValue.value = '';
   currentPage.value = 1;
-  pageSize.value = 10;
+  pageSize.value = 50; // Reset to default page size
   resetColumns(); // Reset column order and visibility
   
   // Clear sorting state
   sorterInfo.value = {
-    columnKey: 'updateTime',
+    columnKey: 'updateTime_8',
     order: 'descend',
   };
 
@@ -835,6 +972,12 @@ const filteredData = computed<DataItem[]>(() => {
     dataToFilter.sort((a, b) => {
       return new Date(b.updateTime).getTime() - new Date(a.updateTime).getTime(); // Descending order
     });
+    
+    // Update sorterInfo to reflect the default sorting
+    sorterInfo.value = {
+      columnKey: 'updateTime_8',
+      order: 'descend',
+    };
   }
 
   return dataToFilter;
@@ -886,7 +1029,7 @@ const handleTableChange = (
   } else {
     // When sorting is cleared, revert to default
     sorterInfo.value = {
-      columnKey: 'updateTime',
+      columnKey: 'updateTime_8',
       order: 'descend',
     };
     // No need to fetch firmware since we're using client-side filtering
@@ -986,32 +1129,65 @@ const handleReleaseModalClose = () => {
 
 const handleReleaseModalSubmit = async (data: any) => {
   try {
+    console.log('=== MODAL SUBMIT DATA RECEIVED ===');
+    console.log('Raw data from modal:', data);
+    
     // Handle new firmware submission
     if (!data.isEdit) {
-      await createFirmware({
+      const firmwareData = {
         deviceModel: data.deviceModel,
-        releaseVersion: data.releaseType,
+        releaseVersion: data.releaseVersion || data.releaseType, // Use Chinese value if available
         versionNumber: data.versionNumber,
-        description: data.contentDescription,
+        description: data.description || data.contentDescription,
         fileAddress: data.fileAddress,
-        creator: '当前用户', // This should come from user context
-      });
+        creator: data.creator || '管理员',
+      };
+      
+      console.log('Creating firmware with data:', firmwareData);
+      await createFirmware(firmwareData);
     } else {
       // Handle edit submission
       if (data.originalRecord?.id) {
-        await updateFirmware(data.originalRecord.id, {
+        const updateData = {
           deviceModel: data.deviceModel,
-          releaseVersion: data.releaseType,
+          releaseVersion: data.releaseVersion || data.releaseType,
           versionNumber: data.versionNumber,
-          description: data.contentDescription,
+          description: data.description || data.contentDescription,
           fileAddress: data.fileAddress,
-        });
+        };
+        
+        console.log('Updating firmware with data:', updateData);
+        await updateFirmware(data.originalRecord.id, updateData);
       }
     }
+    
     showReleaseModal.value = false;
     editRecord.value = null;
     message.success(data.isEdit ? '固件编辑成功!' : '固件发布成功!');
-    fetchFirmware(); // Refresh data
+    
+    // Force immediate refresh and re-render
+    console.log('Forcing immediate refresh...');
+    await fetchFirmware(); // Refresh data from API
+    
+    // Force reactive update and table re-render
+    nextTick(() => {
+      console.log('After nextTick - rawData length:', rawData.value.length);
+      console.log('After nextTick - filteredData length:', filteredData.value.length);
+      
+      // Force table re-render by triggering a reactive update
+      if (rawData.value.length > 0) {
+        console.log('Data refreshed successfully, forcing table update...');
+        
+        // Force re-computation of filtered data
+        const currentData = [...rawData.value];
+        rawData.value = [];
+        nextTick(() => {
+          rawData.value = currentData;
+          console.log('Table data force updated');
+        });
+      }
+    });
+    
   } catch (error) {
     console.error('Submit failed:', error);
     message.error('操作失败，请重试');
@@ -1088,13 +1264,30 @@ const handleDownloadClick = (record: DataItem) => {
 const nextVersionNumber = computed(() => {
   const deviceModel = deviceModelValue.value.value;
   const releaseType = releaseVersionValue.value.label;
+  
   if (!deviceModel || deviceModel === 'all' || !releaseType) return '';
-  const versions = rawData.value
-    .filter(item => item.deviceModel === deviceModel)
+  
+  // Get all versions for the selected device model
+  const deviceVersions = rawData.value.filter(item => item.deviceModel === deviceModel);
+  console.log('Selected deviceModel:', deviceModel);
+  console.log('All versions for this model:', deviceVersions.map(item => item.versionNumber));
+  
+  // If no versions exist for this device model, start from 1.0.0
+  if (deviceVersions.length === 0) {
+    console.log('No existing versions for this device model, starting from 1.0.0');
+    if (releaseType === '主版本') return 'V 1.0.0';
+    if (releaseType === '子版本') return 'V 1.1.0';
+    if (releaseType === '修订版') return 'V 1.0.1';
+    return '';
+  }
+  
+  // Parse existing version numbers
+  const versions = deviceVersions
     .map(item => item.versionNumber)
     .map(v => {
       const vStr = v.trim();
-      const match = vStr.match(/V\s*(\d+)\.(\d+)\.(\d+)/);
+      // Support multiple version formats: "V 1.0.0", "V1.0.0", "1.0.0", etc.
+      const match = vStr.match(/(?:V\s*)?(\d+)\.(\d+)\.(\d+)/);
       if (match) {
         return {
           x: parseInt(match[1]),
@@ -1105,26 +1298,43 @@ const nextVersionNumber = computed(() => {
       return null;
     })
     .filter(Boolean);
-  console.log('Selected deviceModel:', deviceModel);
-  console.log('All versions for this model:', rawData.value.filter(item => item.deviceModel === deviceModel).map(item => item.versionNumber));
+  
   console.log('Parsed versions:', versions);
+  
   if (versions.length === 0) {
+    // If parsing failed, start from 1.0.0
+    console.log('Failed to parse existing versions, starting from 1.0.0');
     if (releaseType === '主版本') return 'V 1.0.0';
     if (releaseType === '子版本') return 'V 1.1.0';
     if (releaseType === '修订版') return 'V 1.0.1';
     return '';
   }
+  
+  // Find the highest version numbers
   let maxX = Math.max(...versions.map(v => v!.x));
   let maxY = Math.max(...versions.filter(v => v!.x === maxX).map(v => v!.y));
   let maxZ = Math.max(...versions.filter(v => v!.x === maxX && v!.y === maxY).map(v => v!.z));
+  
+  console.log('Current max version:', { x: maxX, y: maxY, z: maxZ });
+  
+  // Generate next version based on release type
+  let nextVersion = '';
   if (releaseType === '主版本') {
-    return `V ${maxX + 1}.0.0`;
+    // Increment major version (X.0.0)
+    nextVersion = `V ${maxX + 1}.0.0`;
+    console.log('主版本 selected, incrementing major version to:', nextVersion);
   } else if (releaseType === '子版本') {
-    return `V ${maxX}.${maxY + 1}.0`;
+    // Increment minor version (X.Y.0)
+    nextVersion = `V ${maxX}.${maxY + 1}.0`;
+    console.log('子版本 selected, incrementing minor version to:', nextVersion);
   } else if (releaseType === '修订版') {
-    return `V ${maxX}.${maxY}.${maxZ + 1}`;
+    // Increment revision version (X.Y.Z)
+    nextVersion = `V ${maxX}.${maxY}.${maxZ + 1}`;
+    console.log('修订版 selected, incrementing revision version to:', nextVersion);
   }
-  return '';
+  
+  console.log('Generated next version:', nextVersion);
+  return nextVersion;
 });
 
 const customLocale = computed(() => ({

@@ -111,6 +111,7 @@
     <div class="steps-action">
                 <a-button @click="handleCancel">取消</a-button>
           <a-button @click="testUploadEndpoint" style="margin-left: 8px;">测试上传端点</a-button>
+          <a-button @click="testVersionGeneration" style="margin-left: 8px;">测试版本生成</a-button>
           <a-button v-if="currentStep > 0" style="margin-left: 8px" @click="prevStep">上一步</a-button>
       <a-button 
         v-if="currentStep < 1" 
@@ -150,6 +151,8 @@ const props = defineProps({
   uniqueDeviceModels: { type: Array as () => string[], default: () => [] },
   deviceModelOptions: { type: Array as () => Array<{ key: string; value: string; label: string }>, default: () => [] },
   editRecord: { type: Object, default: null }, // For edit mode
+  generatedVersion: { type: String, default: '' }, // Generated version from parent
+  firmwareData: { type: Array as () => any[], default: () => [] }, // Firmware data for version calculation
 });
 
 const emits = defineEmits(['update:visible', 'submit']);
@@ -207,21 +210,80 @@ const uploadData = computed(() => {
 const generatedVersion = computed(() => {
   if (!formState.deviceModel) return '';
   
-  // This should be calculated based on existing versions for the device model
-  // For now, using a simple increment logic
-  const baseVersion = '1.0.0';
-  const parts = baseVersion.split('.').map(Number);
-  
-  switch (formState.releaseType) {
-    case 'major':
-      return `${formState.deviceModel} V ${parts[0] + 1}.0.0`;
-    case 'minor':
-      return `${formState.deviceModel} V ${parts[0]}.${parts[1] + 1}.0`;
-    case 'revision':
-      return `${formState.deviceModel} V ${parts[0]}.${parts[1]}.${parts[2] + 1}`;
-    default:
-      return `${formState.deviceModel} V ${baseVersion}`;
+  // Use the version passed from parent component if available
+  if (props.generatedVersion) {
+    return props.generatedVersion;
   }
+  
+  // Fallback: calculate version based on firmware data
+  const deviceVersions = props.firmwareData.filter((item: any) => item.deviceModel === formState.deviceModel);
+  
+  // If no versions exist for this device model, start from 1.0.0
+  if (deviceVersions.length === 0) {
+    const releaseTypeMap = {
+      'major': '主版本',
+      'minor': '子版本', 
+      'revision': '修订版'
+    };
+    const releaseTypeLabel = releaseTypeMap[formState.releaseType as keyof typeof releaseTypeMap] || '主版本';
+    return `${formState.deviceModel} V 1.0.0 (${releaseTypeLabel})`;
+  }
+  
+  // Parse existing version numbers
+  const versions = deviceVersions
+    .map((item: any) => item.versionNumber)
+    .map((v: string) => {
+      const vStr = v.trim();
+      // Support multiple version formats: "V 1.0.0", "V1.0.0", "1.0.0", etc.
+      const match = vStr.match(/(?:V\s*)?(\d+)\.(\d+)\.(\d+)/);
+      if (match) {
+        return {
+          x: parseInt(match[1]),
+          y: parseInt(match[2]),
+          z: parseInt(match[3]),
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+  
+  if (versions.length === 0) {
+    // If parsing failed, start from 1.0.0
+    const releaseTypeMap = {
+      'major': '主版本',
+      'minor': '子版本', 
+      'revision': '修订版'
+    };
+    const releaseTypeLabel = releaseTypeMap[formState.releaseType as keyof typeof releaseTypeMap] || '主版本';
+    return `${formState.deviceModel} V 1.0.0 (${releaseTypeLabel})`;
+  }
+  
+  // Find the highest version numbers
+  let maxX = Math.max(...versions.map((v: any) => v.x));
+  let maxY = Math.max(...versions.filter((v: any) => v.x === maxX).map((v: any) => v.y));
+  let maxZ = Math.max(...versions.filter((v: any) => v.x === maxX && v.y === maxY).map((v: any) => v.z));
+  
+  // Generate next version based on release type
+  let nextVersion = '';
+  const releaseTypeMap = {
+    'major': '主版本',
+    'minor': '子版本', 
+    'revision': '修订版'
+  };
+  const releaseTypeLabel = releaseTypeMap[formState.releaseType as keyof typeof releaseTypeMap] || '主版本';
+  
+  if (formState.releaseType === 'major') {
+    // Increment major version (X.0.0)
+    nextVersion = `${formState.deviceModel} V ${maxX + 1}.0.0`;
+  } else if (formState.releaseType === 'minor') {
+    // Increment minor version (X.Y.0)
+    nextVersion = `${formState.deviceModel} V ${maxX}.${maxY + 1}.0`;
+  } else if (formState.releaseType === 'revision') {
+    // Increment revision version (X.Y.Z)
+    nextVersion = `${formState.deviceModel} V ${maxX}.${maxY}.${maxZ + 1}`;
+  }
+  
+  return `${nextVersion} (${releaseTypeLabel})`;
 });
 
 // Watch for edit record changes
@@ -242,6 +304,26 @@ watch(() => props.editRecord, (newRecord) => {
       }];
     }
   }
+}, { immediate: true });
+
+// Watch for version generation changes
+watch(() => generatedVersion.value, (newVersion) => {
+  console.log('=== VERSION GENERATION CHANGE ===');
+  console.log('Device Model:', formState.deviceModel);
+  console.log('Release Type:', formState.releaseType);
+  console.log('Generated Version:', newVersion);
+  console.log('Firmware Data Count:', props.firmwareData.length);
+  console.log('Device Versions:', props.firmwareData.filter((item: any) => item.deviceModel === formState.deviceModel));
+  console.log('=== END VERSION GENERATION CHANGE ===');
+}, { immediate: true });
+
+// Watch for form changes to trigger version recalculation
+watch([() => formState.deviceModel, () => formState.releaseType], ([newDeviceModel, newReleaseType]) => {
+  console.log('=== FORM CHANGE DETECTED ===');
+  console.log('Device Model changed to:', newDeviceModel);
+  console.log('Release Type changed to:', newReleaseType);
+  console.log('This will trigger version recalculation');
+  console.log('=== END FORM CHANGE ===');
 }, { immediate: true });
 
 // Navigation methods
@@ -360,6 +442,24 @@ const testUploadEndpoint = async () => {
   }
 };
 
+// Test version generation
+const testVersionGeneration = () => {
+  console.log('=== TESTING VERSION GENERATION IN MODAL ===');
+  console.log('Form state:', formState);
+  console.log('Generated version:', generatedVersion.value);
+  console.log('Props firmware data count:', props.firmwareData.length);
+  console.log('Props generated version:', props.generatedVersion);
+  
+  // Test with current form values
+  if (formState.deviceModel) {
+    const deviceVersions = props.firmwareData.filter((item: any) => item.deviceModel === formState.deviceModel);
+    console.log('Device versions for', formState.deviceModel, ':', deviceVersions);
+    console.log('Version numbers:', deviceVersions.map((item: any) => item.versionNumber));
+  }
+  
+  message.info('版本生成测试完成，请查看控制台输出');
+};
+
 // Submit method
 const handleSubmit = async () => {
   if (fileList.value.length === 0) {
@@ -399,11 +499,15 @@ const handleSubmit = async () => {
     
     const fileAddress = uploadedFile.url || uploadedFile.response?.url;
     
+    // Keep the full generated version format (like "q V 2.0.1 (修订版)")
+    const fullVersionNumber = generatedVersion.value;
+    
     const submitData = {
       deviceModel: formState.deviceModel,
-      releaseVersion: releaseVersionMap[formState.releaseType] || formState.releaseType,
+      releaseType: formState.releaseType, // Send the English value (major, minor, revision)
+      releaseVersion: releaseVersionMap[formState.releaseType] || formState.releaseType, // Send Chinese mapping
       description: formState.contentDescription, // Map to 'description' as backend expects
-      versionNumber: generatedVersion.value,
+      versionNumber: fullVersionNumber, // Keep the full format like "q V 2.0.1 (修订版)"
       fileAddress: fileAddress,
       creator: '管理员' // Add creator field that backend expects
     };

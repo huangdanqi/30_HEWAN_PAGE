@@ -205,14 +205,22 @@ router.get('/', async (req, res) => {
     const pageSize = parseInt(req.query.pageSize) || 10;
     const offset = (page - 1) * pageSize;
     
+    console.log('=== FIRMWARE GET REQUEST START ===');
+    console.log('Request query:', req.query);
+    console.log('Page:', page, 'PageSize:', pageSize, 'Offset:', offset);
+    
     // Get total count
     const [countResult] = await pool.execute('SELECT COUNT(*) as total FROM firmware');
     const total = countResult[0].total;
+    console.log('Total records in database:', total);
     
     // Get paginated data - use template literals to avoid parameter issues
     const [rows] = await pool.execute(
       `SELECT * FROM firmware ORDER BY release_time DESC LIMIT ${pageSize} OFFSET ${offset}`
     );
+    
+    console.log('Fetched rows count:', rows.length);
+    console.log('First row sample:', rows[0]);
     
     // Transform snake_case to camelCase for frontend
     const transformedRows = rows.map(row => ({
@@ -226,6 +234,14 @@ router.get('/', async (req, res) => {
       releaseTime: row.release_time,
       updateTime: row.update_time
     }));
+    
+    console.log('Transformed rows count:', transformedRows.length);
+    console.log('Response pagination:', {
+      current: page,
+      pageSize: pageSize,
+      total: total
+    });
+    console.log('=== FIRMWARE GET REQUEST END ===');
     
     res.json({
       data: transformedRows,
@@ -306,18 +322,64 @@ router.post('/', async (req, res) => {
     console.log('Content-Type:', req.headers['content-type']);
 
     // Map frontend field names to database column names
-    const mappedReleaseVersion = releaseType || releaseVersion || '主版本'; // Provide default
+    // Ensure we use the Chinese release version (主版本, 子版本, 修订版)
+    let mappedReleaseVersion = releaseVersion || releaseType || '主版本';
+    
+    // If releaseType is English, map it to Chinese
+    if (releaseType === 'major') {
+      mappedReleaseVersion = '主版本';
+    } else if (releaseType === 'minor') {
+      mappedReleaseVersion = '子版本';
+    } else if (releaseType === 'revision') {
+      mappedReleaseVersion = '修订版';
+    }
+    
     const mappedDescription = contentDescription || description || '固件更新'; // Provide default
 
     console.log('Mapped data:', {
       mappedReleaseVersion,
       mappedDescription
     });
+    
+    console.log('Final data to be saved:', {
+      deviceModel,
+      releaseVersion: mappedReleaseVersion,
+      versionNumber,
+      description: mappedDescription,
+      fileAddress: fileAddress || 'https://example.com/firmware.bin',
+      creator: creator || '管理员'
+    });
 
-    // Validate required fields
-    if (!deviceModel || !versionNumber) {
-      console.log('Validation failed - missing required fields');
-      return res.status(400).json({ error: 'Device model and version number are required' });
+    // Validate required fields with detailed error messages
+    const validationErrors = [];
+    
+    if (!deviceModel || deviceModel.trim() === '') {
+      validationErrors.push('Device model is required and cannot be empty');
+    }
+    
+    if (!versionNumber || versionNumber.trim() === '') {
+      validationErrors.push('Version number is required and cannot be empty');
+    }
+    
+    if (!fileAddress || fileAddress.trim() === '') {
+      validationErrors.push('File address is required and cannot be empty');
+    }
+    
+    if (validationErrors.length > 0) {
+      console.log('Validation failed:', validationErrors);
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        details: validationErrors,
+        receivedData: {
+          deviceModel,
+          versionNumber,
+          fileAddress,
+          releaseType,
+          releaseVersion,
+          description: contentDescription || description,
+          creator
+        }
+      });
     }
 
     // Check if file_address column exists, if not add it
