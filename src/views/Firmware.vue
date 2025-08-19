@@ -1301,28 +1301,33 @@ const nextVersionNumber = computed(() => {
   // If no versions exist for this device model, start from 1.0.0
   if (deviceVersions.length === 0) {
     console.log('No existing versions for this device model, starting from 1.0.0');
-    if (releaseType === '主版本') return `${deviceModel} V 1.0.0 (主版本)`;
-    if (releaseType === '子版本') return `${deviceModel} V 1.1.0 (子版本)`;
-    if (releaseType === '修订版') return `${deviceModel} V 1.0.1 (修订版)`;
+    if (releaseType === '主版本') return `${deviceModel} V 1.0.0`;
+    if (releaseType === '子版本') return `${deviceModel} V 1.1.0`;
+    if (releaseType === '修订版') return `${deviceModel} V 1.0.1`;
     return '';
   }
   
-  // Parse existing version numbers - handle formats like "t V 1.0.0 (主版本)"
+  // Parse existing version numbers - handle formats like "t V 1.0.0 (主版本)" or "t V 1.0.0"
   const versions = deviceVersions
     .map(item => item.versionNumber)
     .map(v => {
       const vStr = v.trim();
-      // Support multiple version formats: "t V 1.0.0 (主版本)", "V 1.0.0", "V1.0.0", "1.0.0", etc.
+      console.log('Parsing version string:', vStr);
+      // Support multiple version formats: "t V 1.0.0 (主版本)", "t V 1.0.0", "V 1.0.0", "V1.0.0", "1.0.0", etc.
       // Look for version numbers after the device model and "V"
       const match = vStr.match(/(?:.*?V\s*)?(\d+)\.(\d+)\.(\d+)/);
       if (match) {
-        return {
+        const result = {
           x: parseInt(match[1]),
           y: parseInt(match[2]),
           z: parseInt(match[3]),
         };
+        console.log('Successfully parsed version:', result, 'from string:', vStr);
+        return result;
+      } else {
+        console.log('Failed to parse version from string:', vStr);
+        return null;
       }
-      return null;
     })
     .filter(Boolean);
   
@@ -1331,9 +1336,9 @@ const nextVersionNumber = computed(() => {
   if (versions.length === 0) {
     // If parsing failed, start from 1.0.0
     console.log('Failed to parse existing versions, starting from 1.0.0');
-    if (releaseType === '主版本') return `${deviceModel} V 1.0.0 (主版本)`;
-    if (releaseType === '子版本') return `${deviceModel} V 1.1.0 (子版本)`;
-    if (releaseType === '修订版') return `${deviceModel} V 1.0.1 (修订版)`;
+    if (releaseType === '主版本') return `${deviceModel} V 1.0.0`;
+    if (releaseType === '子版本') return `${deviceModel} V 1.1.0`;
+    if (releaseType === '修订版') return `${deviceModel} V 1.0.1`;
     return '';
   }
   
@@ -1344,19 +1349,19 @@ const nextVersionNumber = computed(() => {
   
   console.log('Current max version:', { x: maxX, y: maxY, z: maxZ });
   
-  // Generate next version based on release type
+  // Generate next version based on release type - NO CHINESE LABELS
   let nextVersion = '';
   if (releaseType === '主版本') {
     // Increment major version (X.0.0)
-    nextVersion = `${deviceModel} V ${maxX + 1}.0.0 (主版本)`;
+    nextVersion = `${deviceModel} V ${maxX + 1}.0.0`;
     console.log('主版本 selected, incrementing major version to:', nextVersion);
   } else if (releaseType === '子版本') {
     // Increment minor version (X.Y.0)
-    nextVersion = `${deviceModel} V ${maxX}.${maxY + 1}.0 (子版本)`;
+    nextVersion = `${deviceModel} V ${maxX}.${maxY + 1}.0`;
     console.log('子版本 selected, incrementing minor version to:', nextVersion);
   } else if (releaseType === '修订版') {
     // Increment revision version (X.Y.Z)
-    nextVersion = `${deviceModel} V ${maxX}.${maxY}.${maxZ + 1} (修订版)`;
+    nextVersion = `${deviceModel} V ${maxX}.${maxY}.${maxZ + 1}`;
     console.log('修订版 selected, incrementing revision version to:', nextVersion);
   }
   

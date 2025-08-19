@@ -230,15 +230,15 @@ const generatedVersion = computed(() => {
       'revision': '修订版'
     };
     const releaseTypeLabel = releaseTypeMap[formState.releaseType as keyof typeof releaseTypeMap] || '主版本';
-    return `${formState.deviceModel} V 1.0.0 (${releaseTypeLabel})`;
+    return `${formState.deviceModel} V 1.0.0`;
   }
   
-  // Parse existing version numbers - handle formats like "t V 1.0.0 (主版本)"
+  // Parse existing version numbers - handle formats like "t V 1.0.0 (主版本)" or "t V 1.0.0"
   const versions = deviceVersions
     .map((item: any) => item.versionNumber)
     .map((v: string) => {
       const vStr = v.trim();
-      // Support multiple version formats: "t V 1.0.0 (主版本)", "V 1.0.0", "V1.0.0", "1.0.0", etc.
+      // Support multiple version formats: "t V 1.0.0 (主版本)", "t V 1.0.0", "V 1.0.0", "V1.0.0", "1.0.0", etc.
       // Look for version numbers after the device model and "V"
       const match = vStr.match(/(?:.*?V\s*)?(\d+)\.(\d+)\.(\d+)/);
       if (match) {
@@ -260,7 +260,7 @@ const generatedVersion = computed(() => {
       'revision': '修订版'
     };
     const releaseTypeLabel = releaseTypeMap[formState.releaseType as keyof typeof releaseTypeMap] || '主版本';
-    return `${formState.deviceModel} V 1.0.0 (${releaseTypeLabel})`;
+    return `${formState.deviceModel} V 1.0.0`;
   }
   
   // Find the highest version numbers
@@ -268,7 +268,7 @@ const generatedVersion = computed(() => {
   let maxY = Math.max(...versions.filter((v: any) => v.x === maxX).map((v: any) => v.y));
   let maxZ = Math.max(...versions.filter((v: any) => v.x === maxX && v.y === maxY).map((v: any) => v.z));
   
-  // Generate next version based on release type
+  // Generate next version based on release type - NO CHINESE LABELS
   let nextVersion = '';
   const releaseTypeMap = {
     'major': '主版本',
@@ -288,7 +288,7 @@ const generatedVersion = computed(() => {
     nextVersion = `${formState.deviceModel} V ${maxX}.${maxY}.${maxZ + 1}`;
   }
   
-  return `${nextVersion} (${releaseTypeLabel})`;
+  return nextVersion;
 });
 
 // Watch for edit record changes
