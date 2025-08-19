@@ -1258,27 +1258,44 @@ const handleEditModalClose = () => {
   editRecord.value = null;
 };
 
-// const handleEditModalSubmit = async (data: any) => {
-//   try {
-//     // Handle edit submission
-//     if (data.isEdit && data.originalRecord?.id) {
-//       await updateFirmware(data.originalRecord.id, {
-//         deviceModel: data.deviceModel,
-//         releaseVersion: data.releaseType,
-//         versionNumber: data.versionNumber,
-//         description: data.contentDescription,
-//         fileAddress: data.fileAddress,
-//       });
-//     }
-//     showEditModal.value = false;
-//     editRecord.value = null;
-//     message.success('固件编辑成功!');
-//     fetchFirmware(); // Refresh data
-//   } catch (error) {
-//     console.error('Edit failed:', error);
-//     message.error('编辑失败，请重试');
-//   }
-// };
+const handleEditModalSubmit = async (data: any) => {
+  try {
+    console.log('=== EDIT MODAL SUBMIT START ===');
+    console.log('Received edit data from modal:', data);
+    
+    // The modal already handled the API call, so we just need to refresh the data
+    showEditModal.value = false;
+    editRecord.value = null;
+    message.success('固件编辑成功!');
+    
+    // Force immediate refresh and re-render
+    console.log('Forcing immediate refresh after edit...');
+    await fetchFirmware(); // Refresh data from API
+    
+    // Force reactive update and table re-render
+    nextTick(() => {
+      console.log('After edit - rawData length:', rawData.value.length);
+      console.log('After edit - filteredData length:', filteredData.value.length);
+      
+      // Force table re-render by triggering a reactive update
+      if (rawData.value.length > 0) {
+        console.log('Edit data refreshed successfully, forcing table update...');
+        
+        // Force re-computation of filtered data
+        const currentData = [...rawData.value];
+        rawData.value = [];
+        nextTick(() => {
+          rawData.value = currentData;
+          console.log('Edit table data force updated');
+        });
+      }
+    });
+    
+  } catch (error) {
+    console.error('Edit submit failed:', error);
+    message.error('编辑失败，请重试');
+  }
+};
 
 const handleReleaseModalClose = () => {
   showReleaseModal.value = false;
