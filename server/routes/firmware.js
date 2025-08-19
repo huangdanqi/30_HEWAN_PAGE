@@ -373,7 +373,7 @@ router.post('/', async (req, res) => {
       versionNumber,
       description: mappedDescription,
       fileAddress: fileAddress || 'https://example.com/firmware.bin',
-      creator: creator || '管理员'
+      creator: creator
     });
     
     console.log('Database insert values:', [
@@ -382,7 +382,7 @@ router.post('/', async (req, res) => {
       versionNumber, 
       mappedDescription, 
       fileAddress || 'https://example.com/firmware.bin', 
-      creator || '管理员'
+      creator
     ]);
 
     // Validate required fields with detailed error messages
@@ -398,6 +398,10 @@ router.post('/', async (req, res) => {
     
     if (!fileAddress || fileAddress.trim() === '') {
       validationErrors.push('File address is required and cannot be empty');
+    }
+    
+    if (!creator || creator.trim() === '') {
+      validationErrors.push('Creator is required and cannot be empty');
     }
     
     if (validationErrors.length > 0) {
@@ -525,8 +529,12 @@ router.put('/:id', async (req, res) => {
     if (!deviceModel || !mappedReleaseVersion || !versionNumber) {
       return res.status(400).json({ error: 'Device model, release version, and version number are required' });
     }
+    
+    if (!creator || creator.trim() === '') {
+      return res.status(400).json({ error: 'Creator is required and cannot be empty' });
+    }
 
-    const updateValues = [deviceModel, mappedReleaseVersion, versionNumber, mappedDescription, fileAddress || 'https://example.com/firmware.bin', creator || '管理员', req.params.id];
+    const updateValues = [deviceModel, mappedReleaseVersion, versionNumber, mappedDescription, fileAddress || 'https://example.com/firmware.bin', creator, req.params.id];
     
     console.log('Database update values:', updateValues);
     console.log('SQL query: UPDATE firmware SET device_model = ?, release_version = ?, version_number = ?, description = ?, file_address = ?, creator = ? WHERE id = ?');

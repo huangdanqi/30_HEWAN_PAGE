@@ -90,6 +90,7 @@
           <a-button @click="checkTableData" style="margin-left: 8px;">检查表格数据</a-button>
           <a-button @click="updateExistingRecordsWithCurrentUsername" style="margin-left: 8px;">更新创建者信息</a-button>
           <a-button @click="testCurrentUsername" style="margin-left: 8px;">测试当前用户名</a-button>
+          <a-button @click="testFormSubmissionData" style="margin-left: 8px;">测试表单提交数据</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -1530,6 +1531,33 @@ const testCurrentUsername = () => {
   console.log('=== END TEST CURRENT USERNAME ===');
   
   message.info(`当前用户名: ${currentUsername.value} (类型: ${typeof currentUsername.value})`);
+};
+
+// Function to test form submission data
+const testFormSubmissionData = () => {
+  console.log('=== TEST FORM SUBMISSION DATA ===');
+  console.log('Current username computed:', currentUsername.value);
+  console.log('Auth store user:', authStore.user);
+  console.log('Auth store token:', authStore.token);
+  console.log('Is authenticated:', authStore.isAuthenticated());
+  
+  // Test what would be sent in a form submission
+  const testData = {
+    deviceModel: 'TEST_DEVICE',
+    releaseType: 'major',
+    versionNumber: 'TEST V 1.0.0',
+    description: 'Test description',
+    fileAddress: 'https://example.com/test.bin',
+    creator: currentUsername.value
+  };
+  
+  console.log('Test form data that would be sent:', testData);
+  console.log('Creator field value:', testData.creator);
+  console.log('Creator field type:', typeof testData.creator);
+  console.log('Creator field length:', testData.creator ? testData.creator.length : 'undefined');
+  console.log('=== END TEST FORM SUBMISSION DATA ===');
+  
+  message.info(`测试表单数据:\n设备型号: ${testData.deviceModel}\n创建者: ${testData.creator}\n类型: ${typeof testData.creator}`);
 };
 </script>
 <style scoped>
