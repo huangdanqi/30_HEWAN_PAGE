@@ -110,8 +110,12 @@
     <!-- Action Buttons -->
     <div class="steps-action">
                 <a-button @click="handleCancel">取消</a-button>
-          <a-button @click="testUploadEndpoint" style="margin-left: 8px;">测试上传端点</a-button>
-          <a-button @click="testVersionGeneration" style="margin-left: 8px;">测试版本生成</a-button>
+          <a-button @click="testVersionGeneration" style="margin-left: 8px;">
+          测试版本生成
+        </a-button>
+        <a-button @click="testUploadEndpoint" style="margin-left: 8px;">
+          测试上传端点
+        </a-button>
           <a-button v-if="currentStep > 0" style="margin-left: 8px" @click="prevStep">上一步</a-button>
       <a-button 
         v-if="currentStep < 1" 
@@ -229,13 +233,14 @@ const generatedVersion = computed(() => {
     return `${formState.deviceModel} V 1.0.0 (${releaseTypeLabel})`;
   }
   
-  // Parse existing version numbers
+  // Parse existing version numbers - handle formats like "t V 1.0.0 (主版本)"
   const versions = deviceVersions
     .map((item: any) => item.versionNumber)
     .map((v: string) => {
       const vStr = v.trim();
-      // Support multiple version formats: "V 1.0.0", "V1.0.0", "1.0.0", etc.
-      const match = vStr.match(/(?:V\s*)?(\d+)\.(\d+)\.(\d+)/);
+      // Support multiple version formats: "t V 1.0.0 (主版本)", "V 1.0.0", "V1.0.0", "1.0.0", etc.
+      // Look for version numbers after the device model and "V"
+      const match = vStr.match(/(?:.*?V\s*)?(\d+)\.(\d+)\.(\d+)/);
       if (match) {
         return {
           x: parseInt(match[1]),

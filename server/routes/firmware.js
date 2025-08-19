@@ -292,8 +292,18 @@ router.get('/:id', async (req, res) => {
 // Create new firmware record
 router.post('/', async (req, res) => {
   console.log('=== FIRMWARE CREATE REQUEST START ===');
-  console.log('Request body:', req.body);
-  console.log('Request headers:', req.headers);
+  console.log('Received data:', {
+    deviceModel,
+    releaseType,
+    releaseVersion,
+    versionNumber,
+    contentDescription,
+    description,
+    fileAddress,
+    creator
+  });
+  console.log('Raw request body:', req.body);
+  console.log('Content-Type:', req.get('Content-Type'));
   
   try {
     const {
@@ -322,10 +332,10 @@ router.post('/', async (req, res) => {
     console.log('Content-Type:', req.headers['content-type']);
 
     // Map frontend field names to database column names
-    // Ensure we use the Chinese release version (主版本, 子版本, 修订版)
     let mappedReleaseVersion = releaseVersion || releaseType || '主版本';
+    let mappedDescription = contentDescription || description || '';
     
-    // If releaseType is English, map it to Chinese
+    // Explicitly map English releaseType to Chinese releaseVersion
     if (releaseType === 'major') {
       mappedReleaseVersion = '主版本';
     } else if (releaseType === 'minor') {
@@ -334,13 +344,34 @@ router.post('/', async (req, res) => {
       mappedReleaseVersion = '修订版';
     }
     
-    const mappedDescription = contentDescription || description || '固件更新'; // Provide default
-
     console.log('Mapped data:', {
+      deviceModel,
       mappedReleaseVersion,
-      mappedDescription
+      versionNumber,
+      mappedDescription,
+      fileAddress,
+      creator
     });
     
+    // Check for existing firmware with same device model and version number
+    console.log('Checking for existing firmware...');
+    try {
+      const [existingRows] = await pool.execute(
+        'SELECT id, device_model, version_number FROM firmware WHERE device_model = ? AND version_number = ?',
+        [deviceModel, versionNumber]
+      );
+      console.log('Existing firmware check result:', existingRows);
+      if (existingRows.length > 0) {
+        console.log('Duplicate found:', existingRows[0]);
+        return res.status(400).json({ 
+          error: 'Firmware version already exists for this device model',
+          existingRecord: existingRows[0]
+        });
+      }
+    } catch (checkError) {
+      console.error('Error checking for existing firmware:', checkError);
+    }
+
     console.log('Final data to be saved:', {
       deviceModel,
       releaseVersion: mappedReleaseVersion,
