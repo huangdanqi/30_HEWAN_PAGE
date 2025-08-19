@@ -184,12 +184,13 @@
       :editRecord="editRecord"
       :firmwareData="rawData"
       :generatedVersion="nextVersionNumber"
+      :currentUsername="currentUsername"
       @update:visible="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
     
     <!-- Debug info -->
-    <div style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+    <!-- <div style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
       <strong>Debug Info:</strong><br>
       Device Model: {{ deviceModelValue?.value || 'None' }}<br>
       Release Type: {{ releaseVersionValue?.label || 'None' }}<br>
@@ -198,7 +199,7 @@
       <br><br>
       <a-button @click="testVersionGeneration" size="small">测试版本生成</a-button>
       <a-button @click="showRawData" size="small" style="margin-left: 8px;">显示原始数据</a-button>
-    </div>
+    </div> -->
 
     <FirmwareEditModal
       :visible="showEditModal"
@@ -223,15 +224,15 @@
  * - Uses client-side pagination for display
  * - Default page size: 50 rows
  */
+import { ref, computed, onMounted, nextTick, watch, h } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { message } from 'ant-design-vue';
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, h, nextTick } from 'vue';
-import zh_CN from 'ant-design-vue/es/locale/zh_CN';
-import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import FirmwareReleaseModal from '@/components/FirmwareReleaseModal.vue';
 import FirmwareEditModal from '@/components/FirmwareEditModal.vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth'; // Import auth store
 import { Empty } from 'ant-design-vue';
 import axios from 'axios';
 import { 
@@ -241,9 +242,16 @@ import {
   type ColumnDefinition 
 } from '../utils/tableConfig';
 import { constructApiUrl } from '../utils/api';
+import { zh_CN } from 'ant-design-vue/es/locale';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore(); // Use auth store
+
+// Get current username from auth store
+const currentUsername = computed(() => {
+  return authStore.user?.name || authStore.user?.username || '管理员';
+});
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -349,7 +357,7 @@ const columns = computed<ColumnsType>(() => {
   });
 });
 
-// Replace static data with reactive data
+// Reactive data
 const rawData = ref<DataItem[]>([]);
 const loading = ref(false);
 const total = ref(0); // Add total count for server-side pagination

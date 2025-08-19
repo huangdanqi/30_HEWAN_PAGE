@@ -157,6 +157,7 @@ const props = defineProps({
   editRecord: { type: Object, default: null }, // For edit mode
   generatedVersion: { type: String, default: '' }, // Generated version from parent
   firmwareData: { type: Array as () => any[], default: () => [] }, // Firmware data for version calculation
+  currentUsername: { type: String, default: '管理员' }, // Current username from auth store
 });
 
 const emits = defineEmits(['update:visible', 'submit']);
@@ -519,7 +520,7 @@ const handleSubmit = async () => {
       description: formState.contentDescription, // Map to 'description' as backend expects
       versionNumber: fullVersionNumber, // Keep the full format like "q V 2.0.1"
       fileAddress: fileAddress,
-      creator: '管理员' // Add creator field that backend expects
+      creator: props.currentUsername // Add creator field that backend expects
     };
     
     console.log('=== SUBMIT DEBUG INFO ===');
