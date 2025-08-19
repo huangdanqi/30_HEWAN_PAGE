@@ -467,35 +467,40 @@ const testVersionGeneration = () => {
 
 // Submit method
 const handleSubmit = async () => {
-  if (fileList.value.length === 0) {
-    message.error('请上传固件文件');
-    return;
-  }
-  
-  // Check if file upload was successful
-  const uploadedFile = fileList.value[0];
-  console.log('Checking uploaded file:', uploadedFile);
-  
-  if (!uploadedFile.url && !uploadedFile.response?.url) {
-    console.error('File upload incomplete:', uploadedFile);
-    message.error('文件上传未完成，请等待上传完成后再提交');
-    return;
-  }
-  
-  // Additional validation
-  if (!formState.deviceModel) {
-    message.error('请选择设备型号');
-    return;
-  }
-  
-  if (!formState.contentDescription) {
-    message.error('请输入内容描述');
+  if (loading.value) {
+    console.log('Form submission already in progress, ignoring duplicate submit');
     return;
   }
   
   loading.value = true;
+  const requestId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  console.log('=== SUBMIT START ===');
+  console.log('Submit timestamp:', new Date().toISOString());
+  console.log('Request ID:', requestId);
+  
   try {
-    // Map releaseType to Chinese release version
+    // Validate form
+    if (!formState.deviceModel) {
+      message.error('请选择设备型号');
+      return;
+    }
+    
+    if (!formState.contentDescription) {
+      message.error('请输入内容描述');
+      return;
+    }
+    
+    if (fileList.value.length === 0) {
+      message.error('请选择要上传的文件');
+      return;
+    }
+    
+    const uploadedFile = fileList.value[0];
+    if (!uploadedFile.url && !uploadedFile.response?.url) {
+      message.error('文件上传未完成，请等待上传完成后再提交');
+      return;
+    }
+    
     const releaseVersionMap: Record<string, string> = {
       'major': '主版本',
       'minor': '子版本',
@@ -504,7 +509,7 @@ const handleSubmit = async () => {
     
     const fileAddress = uploadedFile.url || uploadedFile.response?.url;
     
-    // Keep the full generated version format (like "q V 2.0.1 (修订版)")
+    // Keep the full generated version format (like "q V 2.0.1")
     const fullVersionNumber = generatedVersion.value;
     
     const submitData = {
@@ -512,12 +517,13 @@ const handleSubmit = async () => {
       releaseType: formState.releaseType, // Send the English value (major, minor, revision)
       releaseVersion: releaseVersionMap[formState.releaseType] || formState.releaseType, // Send Chinese mapping
       description: formState.contentDescription, // Map to 'description' as backend expects
-      versionNumber: fullVersionNumber, // Keep the full format like "q V 2.0.1 (修订版)"
+      versionNumber: fullVersionNumber, // Keep the full format like "q V 2.0.1"
       fileAddress: fileAddress,
       creator: '管理员' // Add creator field that backend expects
     };
     
     console.log('=== SUBMIT DEBUG INFO ===');
+    console.log('Submit timestamp:', new Date().toISOString());
     console.log('File list:', fileList.value);
     console.log('Uploaded file:', uploadedFile);
     console.log('File URL:', uploadedFile.url);
@@ -530,13 +536,19 @@ const handleSubmit = async () => {
     console.log('=== END SUBMIT DEBUG ===');
     
     // Call API to save firmware
+    console.log('Making API call to:', constructApiUrl('firmware'));
+    console.log('Request ID for this call:', requestId);
     const response = await axios.post(constructApiUrl('firmware'), submitData);
     
+    console.log('API response received at:', new Date().toISOString());
+    console.log('Request ID for response:', requestId);
     console.log('API response:', response.data);
     message.success(isEditMode.value ? '固件编辑成功!' : '固件发布成功!');
     emits('submit', submitData);
     handleCancel();
   } catch (error: any) {
+    console.error('Submit failed at:', new Date().toISOString());
+    console.error('Request ID for failed submit:', requestId);
     console.error('Submit failed:', error);
     if (error.response) {
       console.error('Error response:', error.response.data);
@@ -547,6 +559,8 @@ const handleSubmit = async () => {
     }
   } finally {
     loading.value = false;
+    console.log('=== SUBMIT END ===');
+    console.log('Request ID completed:', requestId);
   }
 };
 
