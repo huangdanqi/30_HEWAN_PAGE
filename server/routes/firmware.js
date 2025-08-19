@@ -292,16 +292,6 @@ router.get('/:id', async (req, res) => {
 // Create new firmware record
 router.post('/', async (req, res) => {
   console.log('=== FIRMWARE CREATE REQUEST START ===');
-  console.log('Received data:', {
-    deviceModel,
-    releaseType,
-    releaseVersion,
-    versionNumber,
-    contentDescription,
-    description,
-    fileAddress,
-    creator
-  });
   console.log('Raw request body:', req.body);
   console.log('Content-Type:', req.get('Content-Type'));
   
@@ -317,7 +307,7 @@ router.post('/', async (req, res) => {
       creator
     } = req.body;
 
-    console.log('Received firmware data:', {
+    console.log('Received data:', {
       deviceModel,
       releaseType,
       releaseVersion,
@@ -328,9 +318,6 @@ router.post('/', async (req, res) => {
       creator
     });
     
-    console.log('Request body raw:', req.body);
-    console.log('Content-Type:', req.headers['content-type']);
-
     // Map frontend field names to database column names
     let mappedReleaseVersion = releaseVersion || releaseType || '主版本';
     let mappedDescription = contentDescription || description || '';
