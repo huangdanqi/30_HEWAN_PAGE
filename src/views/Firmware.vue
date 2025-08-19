@@ -89,6 +89,7 @@
           <a-button @click="setTestUsername" style="margin-left: 8px;">设置测试用户名</a-button>
           <a-button @click="checkTableData" style="margin-left: 8px;">检查表格数据</a-button>
           <a-button @click="updateExistingRecordsWithCurrentUsername" style="margin-left: 8px;">更新创建者信息</a-button>
+          <a-button @click="testCurrentUsername" style="margin-left: 8px;">测试当前用户名</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -1515,6 +1516,20 @@ const handleDeleteRecord = async (record: DataItem) => {
   } catch (error) {
     console.error('Error deleting record:', error);
   }
+};
+
+// Function to test current username value
+const testCurrentUsername = () => {
+  console.log('=== TEST CURRENT USERNAME ===');
+  console.log('Auth store user:', authStore.user);
+  console.log('Auth store token:', authStore.token);
+  console.log('Is authenticated:', authStore.isAuthenticated());
+  console.log('Computed currentUsername:', currentUsername.value);
+  console.log('Type of currentUsername:', typeof currentUsername.value);
+  console.log('Length of currentUsername:', currentUsername.value ? currentUsername.value.length : 'undefined');
+  console.log('=== END TEST CURRENT USERNAME ===');
+  
+  message.info(`当前用户名: ${currentUsername.value} (类型: ${typeof currentUsername.value})`);
 };
 </script>
 <style scoped>

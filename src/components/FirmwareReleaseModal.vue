@@ -122,12 +122,9 @@
     <!-- Action Buttons -->
     <div class="steps-action">
                 <a-button @click="handleCancel">取消</a-button>
-          <a-button @click="testVersionGeneration" style="margin-left: 8px;">
-          测试版本生成
-        </a-button>
-        <a-button @click="testUploadEndpoint" style="margin-left: 8px;">
-          测试上传端点
-        </a-button>
+          <a-button @click="testUploadEndpoint" style="margin-right: 8px;">测试上传端点</a-button>
+          <a-button @click="testVersionGeneration" style="margin-right: 8px;">测试版本生成</a-button>
+          <a-button @click="testFormSubmission" style="margin-right: 8px;">测试表单提交</a-button>
           <a-button v-if="currentStep > 0" style="margin-left: 8px" @click="prevStep">上一步</a-button>
       <a-button 
         v-if="currentStep < 1" 
@@ -476,6 +473,41 @@ const testVersionGeneration = () => {
   }
   
   message.info('版本生成测试完成，请查看控制台输出');
+};
+
+// Test function to check what's being sent
+const testFormSubmission = () => {
+  console.log('=== TEST FORM SUBMISSION ===');
+  console.log('Form state:', formState);
+  console.log('Current username from props:', props.currentUsername);
+  console.log('Type of currentUsername:', typeof props.currentUsername);
+  console.log('File list:', fileList.value);
+  const uploadedFile = fileList.value[0];
+  console.log('Uploaded file:', uploadedFile);
+  
+  const releaseVersionMap: Record<string, string> = {
+    'major': '主版本',
+    'minor': '子版本',
+    'revision': '修订版'
+  };
+  
+  const fileAddress = uploadedFile.url || uploadedFile.response?.url;
+  
+  const testSubmitData = {
+    deviceModel: formState.deviceModel,
+    releaseType: formState.releaseType,
+    releaseVersion: releaseVersionMap[formState.releaseType] || formState.releaseType,
+    description: formState.contentDescription,
+    versionNumber: generatedVersion.value,
+    fileAddress: fileAddress,
+    creator: props.currentUsername
+  };
+  
+  console.log('Test submit data:', testSubmitData);
+  console.log('Creator field in test data:', testSubmitData.creator);
+  console.log('=== END TEST FORM SUBMISSION ===');
+  
+  message.info(`测试提交数据:\n设备型号: ${testSubmitData.deviceModel}\n创建者: ${testSubmitData.creator}`);
 };
 
 // Submit method
