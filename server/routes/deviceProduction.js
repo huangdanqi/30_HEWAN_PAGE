@@ -107,7 +107,7 @@ router.post('/', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO device_production (production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO device_production (production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
       [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity]
     );
 
@@ -142,7 +142,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'UPDATE device_production SET production_device_id = ?, device_model = ?, production_batch = ?, manufacturer = ?, firmware_version = ?, burn_firmware = ?, unit_price = ?, quantity = ? WHERE id = ?',
+      'UPDATE device_production SET production_device_id = ?, device_model = ?, production_batch = ?, manufacturer = ?, firmware_version = ?, burn_firmware = ?, unit_price = ?, quantity = ?, update_time = NOW() WHERE id = ?',
       [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, req.params.id]
     );
 

@@ -1223,6 +1223,7 @@ const editBatchForm = ref({
   unitPrice: 0,
   quantity: 0
 });
+const currentEditingRecord = ref<DataItem | null>(null);
 
 const editBatchFormRules = {
   deviceModel: [{ required: true, message: '请选择设备型号', trigger: 'change' }],
@@ -1249,7 +1250,8 @@ const handleEditBatchModalCancel = () => {
     unitPrice: 0,
     quantity: 0
   };
-  // Reset API data
+  // Reset stored record and API data
+  currentEditingRecord.value = null;
   deviceModelsFromAPI.value = [];
   firmwareVersionsFromAPI.value = [];
   console.log('Modal closed, form reset');
@@ -1259,16 +1261,74 @@ const handleEditBatchModalConfirm = async () => {
   try {
     await editBatchFormRef.value?.validate();
     console.log('Edit batch form data:', editBatchForm.value);
-    // Here you would typically send the data to your API
+    
+    // Get the record ID from the stored editing record
+    if (!currentEditingRecord.value || !currentEditingRecord.value.id) {
+      message.error('无法找到要更新的记录');
+      return;
+    }
+    
+    const currentRecord = currentEditingRecord.value;
+    
+    // Prepare data for API update
+    const updateData = {
+      productionDeviceId: currentRecord.productionDeviceId,
+      deviceModel: editBatchForm.value.deviceModel,
+      productionBatch: editBatchForm.value.productionBatch,
+      manufacturer: editBatchForm.value.manufacturer,
+      firmwareVersion: editBatchForm.value.burnFirmware,
+      burnFirmware: editBatchForm.value.burnFirmware,
+      unitPrice: Number(editBatchForm.value.unitPrice || 0),
+      quantity: Number(editBatchForm.value.quantity || 0),
+      updater: '管理员'
+    };
+    
+    // Send update to API
+    await updateDeviceProduction(currentRecord.id!, updateData);
+    
+    message.success('设备更新成功！');
     showEditBatchModal.value = false;
     editBatchFormRef.value?.resetFields();
-  } catch (error) {
+    
+    // Reset form data and stored record
+    editBatchForm.value = {
+      deviceModel: '',
+      productionBatch: '',
+      manufacturer: '',
+      burnFirmware: '',
+      unitPrice: 0,
+      quantity: 0
+    };
+    currentEditingRecord.value = null;
+    
+    // Refresh the data
+    await fetchDeviceProduction();
+    
+  } catch (error: unknown) {
     console.error('Form validation failed:', error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errorResponse = error as any;
+      if (errorResponse.response?.data?.error) {
+        message.error(errorResponse.response.data.error);
+      } else if (errorResponse.message) {
+        message.error(errorResponse.message);
+      } else {
+        message.error('更新设备失败，请重试');
+      }
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      const errorObj = error as { message: string };
+      message.error(errorObj.message);
+    } else {
+      message.error('更新设备失败，请重试');
+    }
   }
 };
 
 const handleEditBatch = async (record: DataItem) => {
   console.log('Edit batch clicked for record:', record);
+  
+  // Store the current record being edited
+  currentEditingRecord.value = record;
   
   // Pre-fill the form with data from the selected row
   editBatchForm.value = {
