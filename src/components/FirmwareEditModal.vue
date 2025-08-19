@@ -376,7 +376,7 @@ const handleUploadChange = (info: UploadChangeParam) => {
       console.log('File response:', file.response);
       // Handle successful response
       if (file.response && file.response.success) {
-        file.url = file.response.url;
+      file.url = file.response.url;
         file.status = 'done';
         file.percent = 100;
         console.log('File upload successful, URL:', file.response.url);
@@ -471,7 +471,7 @@ const handleSubmit = async () => {
       console.error('Error status:', error.response.status);
       message.error(`编辑失败: ${error.response.data?.error || '未知错误'}`);
     } else {
-      message.error('操作失败，请重试');
+    message.error('操作失败，请重试');
     }
   } finally {
     loading.value = false;

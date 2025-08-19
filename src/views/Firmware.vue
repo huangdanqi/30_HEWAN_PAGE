@@ -1241,27 +1241,27 @@ const handleEditModalClose = () => {
   editRecord.value = null;
 };
 
-const handleEditModalSubmit = async (data: any) => {
-  try {
-    // Handle edit submission
-    if (data.isEdit && data.originalRecord?.id) {
-      await updateFirmware(data.originalRecord.id, {
-        deviceModel: data.deviceModel,
-        releaseVersion: data.releaseType,
-        versionNumber: data.versionNumber,
-        description: data.contentDescription,
-        fileAddress: data.fileAddress,
-      });
-    }
-    showEditModal.value = false;
-    editRecord.value = null;
-    message.success('固件编辑成功!');
-    fetchFirmware(); // Refresh data
-  } catch (error) {
-    console.error('Edit failed:', error);
-    message.error('编辑失败，请重试');
-  }
-};
+// const handleEditModalSubmit = async (data: any) => {
+//   try {
+//     // Handle edit submission
+//     if (data.isEdit && data.originalRecord?.id) {
+//       await updateFirmware(data.originalRecord.id, {
+//         deviceModel: data.deviceModel,
+//         releaseVersion: data.releaseType,
+//         versionNumber: data.versionNumber,
+//         description: data.contentDescription,
+//         fileAddress: data.fileAddress,
+//       });
+//     }
+//     showEditModal.value = false;
+//     editRecord.value = null;
+//     message.success('固件编辑成功!');
+//     fetchFirmware(); // Refresh data
+//   } catch (error) {
+//     console.error('Edit failed:', error);
+//     message.error('编辑失败，请重试');
+//   }
+// };
 
 const handleReleaseModalClose = () => {
   showReleaseModal.value = false;

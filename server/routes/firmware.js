@@ -546,13 +546,17 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Creator is required and cannot be empty' });
     }
 
-    const updateValues = [deviceModel, mappedReleaseVersion, versionNumber, mappedDescription, fileAddress || 'https://example.com/firmware.bin', creator, req.params.id];
+    const updateValues = [deviceModel, mappedReleaseVersion, versionNumber, mappedDescription, fileAddress || 'https://example.com/firmware.bin', creator, new Date(), req.params.id];
     
     console.log('Database update values:', updateValues);
-    console.log('SQL query: UPDATE firmware SET device_model = ?, release_version = ?, version_number = ?, description = ?, file_address = ?, creator = ? WHERE id = ?');
+    console.log('SQL query: UPDATE firmware SET device_model = ?, release_version = ?, version_number = ?, description = ?, file_address = ?, creator = ?, update_time = ? WHERE id = ?');
+    console.log('Creator value being updated:', creator);
+    console.log('Creator type:', typeof creator);
+    console.log('Creator length:', creator ? creator.length : 'undefined');
+    console.log('Update time being set:', new Date());
 
     const [result] = await pool.execute(
-      'UPDATE firmware SET device_model = ?, release_version = ?, version_number = ?, description = ?, file_address = ?, creator = ? WHERE id = ?',
+      'UPDATE firmware SET device_model = ?, release_version = ?, version_number = ?, description = ?, file_address = ?, creator = ?, update_time = ? WHERE id = ?',
       updateValues
     );
 
