@@ -32,6 +32,7 @@ router.get('/', async (req, res) => {
       quantity: row.quantity,
       totalPrice: parseFloat(row.total_price),
       updater: row.updater,
+      creator: row.creator,
       createTime: row.create_time,
       updateTime: row.update_time
     }));
@@ -75,6 +76,7 @@ router.get('/:id', async (req, res) => {
       quantity: row.quantity,
       totalPrice: parseFloat(row.total_price),
       updater: row.updater,
+      creator: row.creator,
       createTime: row.create_time,
       updateTime: row.update_time
     };
@@ -98,7 +100,8 @@ router.post('/', async (req, res) => {
       burn_firmware,
       unit_price,
       quantity,
-      updater
+      updater,
+      creator
     } = req.body;
 
     // Validate required fields
@@ -107,8 +110,8 @@ router.post('/', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO device_production (production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-      [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity]
+      'INSERT INTO device_production (production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, creator, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+      [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, creator]
     );
 
     res.status(201).json({
@@ -133,7 +136,8 @@ router.put('/:id', async (req, res) => {
       burn_firmware,
       unit_price,
       quantity,
-      updater
+      updater,
+      creator
     } = req.body;
 
     // Validate required fields
@@ -142,8 +146,8 @@ router.put('/:id', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'UPDATE device_production SET production_device_id = ?, device_model = ?, production_batch = ?, manufacturer = ?, firmware_version = ?, burn_firmware = ?, unit_price = ?, quantity = ?, update_time = NOW() WHERE id = ?',
-      [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, req.params.id]
+      'UPDATE device_production SET production_device_id = ?, device_model = ?, production_batch = ?, manufacturer = ?, firmware_version = ?, burn_firmware = ?, unit_price = ?, quantity = ?, creator = ?, update_time = NOW() WHERE id = ?',
+      [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, creator, req.params.id]
     );
 
     if (result.affectedRows === 0) {

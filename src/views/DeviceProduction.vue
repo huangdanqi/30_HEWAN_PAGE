@@ -113,7 +113,7 @@
         :showSorterTooltip="false"
       >
       <template #bodyCell="{ column, record }">
-      <template v-if="column.key === 'operation_12'">
+      <template v-if="column.key === 'operation_13'">
         <a-space class="action-cell" direction="horizontal">
           <a class="view-link" @click="$emit('view-record', record)">查看</a>
           <a-divider type="vertical" />
@@ -377,10 +377,17 @@ import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} 
 import draggable from 'vuedraggable';
 import { useRoute, useRouter } from 'vue-router';
 import { constructApiUrl } from '../utils/api';
+import { useAuthStore } from '../stores/auth';
 import axios from 'axios';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
+
+// Get current username from auth store
+const currentUsername = computed(() => {
+  return authStore.user?.name || authStore.user?.username || '管理员';
+});
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -406,6 +413,7 @@ interface DataItem {
   quantity: number; // 数量 (个)
   totalPrice: number; // 总价 (元)
   updater?: string; // 更新人
+  creator?: string; // 创建人
   createTime?: string; // 创建时间
   updateTime?: string; // 更新时间
 }
@@ -435,10 +443,11 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'unitPrice_6', title: '单价 (元)', dataIndex: 'unitPrice', width: 120, sorter: (a, b) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
   { key: 'quantity_7', title: '数量 (个)', dataIndex: 'quantity', width: 120, sorter: (a, b) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
   { key: 'totalPrice_8', title: '总价 (元)', dataIndex: 'totalPrice', width: 120, sorter: (a, b) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'updater_9', title: '更新人', dataIndex: 'updater', width: 120, sorter: (a, b) => a.updater.localeCompare(b.updater), sortDirections: ['ascend', 'descend'] },
-  { key: 'createTime_10', title: '创建时间', dataIndex: 'createTime', width: 180, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime_11', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a, b) => new Date(b.updateTime).getTime() - new Date(a.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation_12', title: '操作', dataIndex: '', width: 330, fixed: 'right' },
+  { key: 'creator_9', title: '创建人', dataIndex: 'creator', width: 120, sorter: (a, b) => (a.creator || '').localeCompare(b.creator || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'updater_10', title: '更新人', dataIndex: 'updater', width: 120, sorter: (a, b) => (a.updater || '').localeCompare(b.updater || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'createTime_11', title: '创建时间', dataIndex: 'createTime', width: 180, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'updateTime_12', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a, b) => new Date(b.updateTime).getTime() - new Date(a.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'operation_13', title: '操作', dataIndex: '', width: 330, fixed: 'right' },
 ];
 
 // Store column order and visibility separately
@@ -578,7 +587,8 @@ const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key'
       burn_firmware: deviceProductionData.burnFirmware,
       unit_price: typeof deviceProductionData.unitPrice === 'number' ? deviceProductionData.unitPrice : parseFloat(String(deviceProductionData.unitPrice || 0)),
       quantity: typeof deviceProductionData.quantity === 'number' ? deviceProductionData.quantity : parseInt(String(deviceProductionData.quantity || 0), 10),
-      updater: deviceProductionData.updater
+      updater: deviceProductionData.updater,
+      creator: deviceProductionData.creator
     };
     console.log('POST /device-production payload:', payload);
     const response = await axios.post('http://121.43.196.106:2829/api/device-production', payload);
@@ -601,7 +611,8 @@ const updateDeviceProduction = async (id: number, deviceProductionData: Partial<
       burn_firmware: deviceProductionData.burnFirmware,
       unit_price: typeof deviceProductionData.unitPrice === 'number' ? deviceProductionData.unitPrice : (deviceProductionData.unitPrice != null ? parseFloat(String(deviceProductionData.unitPrice)) : undefined),
       quantity: typeof deviceProductionData.quantity === 'number' ? deviceProductionData.quantity : (deviceProductionData.quantity != null ? parseInt(String(deviceProductionData.quantity), 10) : undefined),
-      updater: deviceProductionData.updater
+      updater: deviceProductionData.updater,
+      creator: deviceProductionData.creator
     };
     console.log('PUT /device-production payload:', payload);
     const response = await axios.put(`http://121.43.196.106:2829/api/device-production/${id}`, payload);
@@ -1170,7 +1181,8 @@ const handleCreateBatchModalConfirm = async () => {
       burnFirmware: createBatchForm.value.burnFirmware,
       unitPrice: Number(createBatchForm.value.unitPrice || 0),
       quantity: Number(createBatchForm.value.quantity || 0),
-      updater: '管理员'
+      updater: currentUsername.value,
+      creator: currentUsername.value
     };
     
     // Send data to API
@@ -1280,7 +1292,8 @@ const handleEditBatchModalConfirm = async () => {
       burnFirmware: editBatchForm.value.burnFirmware,
       unitPrice: Number(editBatchForm.value.unitPrice || 0),
       quantity: Number(editBatchForm.value.quantity || 0),
-      updater: '管理员'
+      updater: currentUsername.value,
+      creator: currentRecord.creator || currentUsername.value
     };
     
     // Send update to API
