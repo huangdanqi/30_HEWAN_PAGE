@@ -523,6 +523,9 @@ const handleSubmit = async () => {
     console.log('File URL:', uploadedFile.url);
     console.log('File response:', uploadedFile.response);
     console.log('File address being sent:', fileAddress);
+    console.log('Generated version from parent:', props.generatedVersion);
+    console.log('Local generated version:', generatedVersion.value);
+    console.log('Form state:', formState);
     console.log('Submitting firmware data:', submitData);
     console.log('=== END SUBMIT DEBUG ===');
     

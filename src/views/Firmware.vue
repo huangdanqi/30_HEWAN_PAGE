@@ -187,6 +187,18 @@
       @update:visible="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
+    
+    <!-- Debug info -->
+    <div style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+      <strong>Debug Info:</strong><br>
+      Device Model: {{ deviceModelValue?.value || 'None' }}<br>
+      Release Type: {{ releaseVersionValue?.label || 'None' }}<br>
+      Generated Version: {{ nextVersionNumber || 'None' }}<br>
+      Raw Data Count: {{ rawData.length }}
+      <br><br>
+      <a-button @click="testVersionGeneration" size="small">测试版本生成</a-button>
+      <a-button @click="showRawData" size="small" style="margin-left: 8px;">显示原始数据</a-button>
+    </div>
 
     <FirmwareEditModal
       :visible="showEditModal"
@@ -702,6 +714,20 @@ const testVersionGeneration = () => {
   });
   
   message.info('版本生成测试完成，请查看控制台输出');
+};
+
+// Function to show raw data for debugging
+const showRawData = () => {
+  console.log('=== RAW DATA DEBUG ===');
+  console.log('Raw data length:', rawData.value.length);
+  console.log('Raw data:', rawData.value);
+  
+  // Show device model "t" specific data
+  const deviceTData = rawData.value.filter(item => item.deviceModel === 't');
+  console.log('Device "t" data:', deviceTData);
+  console.log('Device "t" versions:', deviceTData.map(item => item.versionNumber));
+  
+  message.info(`原始数据: ${rawData.value.length} 条, 设备"t": ${deviceTData.length} 条`);
 };
 
 // Function to force refresh the dropdown
