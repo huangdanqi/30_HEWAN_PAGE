@@ -41,11 +41,23 @@
           <a-form-item label="内容描述" name="contentDescription">
             <a-textarea
               v-model:value="formState.contentDescription"
-              placeholder="请输入本次发布的功能变化"
+              placeholder="请输入固件内容描述"
               :rows="4"
               :maxlength="2000"
               show-count
             />
+          </a-form-item>
+          
+          <!-- Display current username -->
+          <a-form-item label="更新人">
+            <a-input
+              :value="props.currentUsername"
+              disabled
+              placeholder="当前用户"
+            />
+            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+              将使用当前登录用户作为更新人
+            </div>
           </a-form-item>
         </a-form>
       </div>
