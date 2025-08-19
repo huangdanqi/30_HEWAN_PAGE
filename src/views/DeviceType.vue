@@ -230,23 +230,28 @@ import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
-import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
-import draggable from 'vuedraggable';
-import { useRoute } from 'vue-router';
-import { useRouter } from 'vue-router';
-import { Empty } from 'ant-design-vue';
 import axios from 'axios';
+import { constructApiUrl } from '../utils/api';
+import { message } from 'ant-design-vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useAuthStore } from '../stores/auth'; // Import the auth store
+import draggable from 'vuedraggable';
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  ColumnHeightOutlined,
+  SettingOutlined
+} from '@ant-design/icons-vue';
 import { 
   createColumnConfigs, 
   useTableColumns, 
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
-import { constructApiUrl } from '../utils/api';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore(); // Get the auth store instance
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -428,7 +433,12 @@ const fetchDeviceTypes = async () => {
 
 const createDeviceType = async (deviceTypeData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post('http://121.43.196.106:2829/api/device-type', deviceTypeData);
+    console.log('Creating device type with data:', deviceTypeData);
+    console.log('API URL:', constructApiUrl('device-type'));
+    
+    const response = await axios.post(constructApiUrl('device-type'), deviceTypeData);
+    console.log('Create response:', response.data);
+    
     await fetchDeviceTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -439,7 +449,13 @@ const createDeviceType = async (deviceTypeData: Omit<DataItem, 'key' | 'id' | 'c
 
 const updateDeviceType = async (id: number, deviceTypeData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`http://121.43.196.106:2829/api/device-type/${id}`, deviceTypeData);
+    console.log('Updating device type with ID:', id);
+    console.log('Update data:', deviceTypeData);
+    console.log('API URL:', constructApiUrl(`device-type/${id}`));
+    
+    const response = await axios.put(constructApiUrl(`device-type/${id}`), deviceTypeData);
+    console.log('Update response:', response.data);
+    
     await fetchDeviceTypes(); // Refresh data
     return response.data;
   } catch (error) {
@@ -462,7 +478,7 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sorterInfo = ref<any>({
-  columnKey: 'updateTime',
+  columnKey: 'updateTime_8',
   order: 'descend',
 });
 
@@ -582,7 +598,7 @@ const handleTableChange = (
   } else {
     // When sorting is cleared, revert to default
     sorterInfo.value = {
-      columnKey: 'updateTime',
+      columnKey: 'updateTime_8',
       order: 'descend',
     };
     fetchDeviceTypes(); // Fetch fresh data when sorting is cleared
@@ -695,6 +711,25 @@ const validateUniqueDeviceModelName = (rule: any, value: string) => {
   return Promise.resolve();
 };
 
+// Custom validator for unique device model name (for edit form - excludes current record)
+const validateUniqueDeviceModelNameEdit = (rule: any, value: string) => {
+  if (!value) {
+    return Promise.resolve();
+  }
+  
+  // Check if the name already exists in the current data, excluding the current record being edited
+  const existingDevice = rawData.value.find(item => 
+    item.deviceModelName.toLowerCase() === value.toLowerCase() && 
+    item.id !== editDeviceTypeForm.value.id
+  );
+  
+  if (existingDevice) {
+    return Promise.reject('设备型号名称已存在，请使用其他名称');
+  }
+  
+  return Promise.resolve();
+};
+
 const createDeviceTypeFormRules = {
   deviceModelName: [
     { required: true, message: '请输入设备型号名称', trigger: 'blur' },
@@ -735,20 +770,48 @@ const handleCreateDeviceTypeModalConfirm = async () => {
       introduction: createDeviceTypeForm.value.introduction,
       enable4G: createDeviceTypeForm.value.enable4G,
       latestFirmwareVersion: createDeviceTypeForm.value.latestFirmwareVersion,
-      updater: '33' // Default updater
+      updater: authStore.user?.name || authStore.user?.username || '管理员' // Use username from auth store
     };
     
     await createDeviceType(deviceTypeData);
+    message.success('设备型号创建成功');
     showCreateDeviceTypeModal.value = false;
     createDeviceTypeFormRef.value?.resetFields();
-  } catch (error) {
+    
+    // Reset form data
+    createDeviceTypeForm.value = {
+      deviceModelName: '',
+      introduction: '',
+      enable4G: '是',
+      latestFirmwareVersion: ''
+    };
+  } catch (error: any) {
     console.error('Form validation or API call failed:', error);
+    
+    // Show user-friendly error message
+    if (error.response) {
+      if (error.response.status === 400) {
+        message.error('请求数据格式错误，请检查输入');
+      } else if (error.response.status === 409) {
+        message.error('设备型号名称已存在，请使用其他名称');
+      } else if (error.response.status === 500) {
+        message.error('服务器内部错误，请稍后重试');
+      } else {
+        message.error(`创建失败：${error.response.data?.message || '未知错误'}`);
+      }
+    } else if (error.request) {
+      message.error('网络连接失败，请检查网络连接');
+    } else {
+      message.error('创建过程中发生未知错误');
+    }
   }
 };
 
 // Edit device type modal state variables
 const showEditDeviceTypeModal = ref(false);
 const editDeviceTypeForm = ref({
+  id: 0, // Add ID field to store the record ID
+  deviceModelId: '', // Add deviceModelId field
   deviceModelName: '',
   introduction: '',
   enable4G: '是',
@@ -783,7 +846,7 @@ const editDeviceTypeFormRules = {
   deviceModelName: [
     { required: true, message: '请输入设备型号名称', trigger: 'blur' },
     { max: 10, message: '设备型号名称不能超过10个字符', trigger: 'blur' },
-    { validator: validateUniqueDeviceModelName, trigger: 'blur' }
+    { validator: validateUniqueDeviceModelNameEdit, trigger: 'blur' }
   ],
   introduction: [
     { required: true, message: '请输入介绍', trigger: 'blur' },
@@ -800,6 +863,8 @@ const handleEditDeviceTypeModalCancel = () => {
   editDeviceTypeFormRef.value?.resetFields();
   // Reset form data
   editDeviceTypeForm.value = {
+    id: 0, // Reset ID as well
+    deviceModelId: '', // Reset deviceModelId as well
     deviceModelName: '',
     introduction: '',
     enable4G: '是',
@@ -812,31 +877,60 @@ const handleEditDeviceTypeModalConfirm = async () => {
     await editDeviceTypeFormRef.value?.validate();
     console.log('Edit device type form data:', editDeviceTypeForm.value);
     
-    // Find the record to update
-    const recordToUpdate = rawData.value.find(item => 
-      item.deviceModelName === editDeviceTypeForm.value.deviceModelName
-    );
-    
-    if (recordToUpdate && recordToUpdate.id) {
-      const updateData = {
-        deviceModelName: editDeviceTypeForm.value.deviceModelName,
-        introduction: editDeviceTypeForm.value.introduction,
-        enable4G: editDeviceTypeForm.value.enable4G,
-        latestFirmwareVersion: editDeviceTypeForm.value.latestFirmwareVersion
-      };
-      
-      await updateDeviceType(recordToUpdate.id, updateData);
-      showEditDeviceTypeModal.value = false;
-      editDeviceTypeFormRef.value?.resetFields();
+    // Check if we have a valid ID
+    if (!editDeviceTypeForm.value.id) {
+      message.error('无法找到要更新的记录ID');
+      return;
     }
-  } catch (error) {
+    
+    const updateData = {
+      deviceModelId: editDeviceTypeForm.value.deviceModelId, // Use deviceModelId from form
+      deviceModelName: editDeviceTypeForm.value.deviceModelName,
+      introduction: editDeviceTypeForm.value.introduction,
+      enable4G: editDeviceTypeForm.value.enable4G,
+      latestFirmwareVersion: editDeviceTypeForm.value.latestFirmwareVersion,
+      updater: authStore.user?.name || authStore.user?.username || '管理员' // Use username from auth store
+    };
+    
+    await updateDeviceType(editDeviceTypeForm.value.id, updateData);
+    message.success('设备型号更新成功');
+    showEditDeviceTypeModal.value = false;
+    editDeviceTypeFormRef.value?.resetFields();
+    
+    // Reset form data
+    editDeviceTypeForm.value = {
+      id: 0,
+      deviceModelId: '',
+      deviceModelName: '',
+      introduction: '',
+      enable4G: '是',
+      latestFirmwareVersion: ''
+    };
+  } catch (error: any) {
     console.error('Form validation or API call failed:', error);
+    
+    // Show user-friendly error message
+    if (error.response) {
+      if (error.response.status === 404) {
+        message.error('要更新的记录不存在');
+      } else if (error.response.status === 500) {
+        message.error('服务器内部错误，请稍后重试');
+      } else {
+        message.error(`更新失败：${error.response.data?.message || '未知错误'}`);
+      }
+    } else if (error.request) {
+      message.error('网络连接失败，请检查网络连接');
+    } else {
+      message.error('更新过程中发生未知错误');
+    }
   }
 };
 
 const handleEditDeviceType = (record: DataItem) => {
   console.log('Edit device type:', record);
   editDeviceTypeForm.value = {
+    id: record.id || 0, // Store the record ID
+    deviceModelId: record.deviceModelId || 'hjhwn832nj2f', // Store the deviceModelId
     deviceModelName: record.deviceModelName,
     introduction: record.introduction,
     enable4G: record.enable4G,
@@ -858,9 +952,25 @@ const handleDeleteRecord = async (record: DataItem) => {
   try {
     if (record.id) {
       await deleteDeviceType(record.id);
+      message.success('设备型号删除成功');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting record:', error);
+    
+    // Show user-friendly error message
+    if (error.response) {
+      if (error.response.status === 404) {
+        message.error('要删除的记录不存在');
+      } else if (error.response.status === 500) {
+        message.error('服务器内部错误，请稍后重试');
+      } else {
+        message.error(`删除失败：${error.response.data?.message || '未知错误'}`);
+      }
+    } else if (error.request) {
+      message.error('网络连接失败，请检查网络连接');
+    } else {
+      message.error('删除过程中发生未知错误');
+    }
   }
 };
 

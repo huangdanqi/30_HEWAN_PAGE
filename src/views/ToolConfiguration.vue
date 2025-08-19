@@ -138,7 +138,6 @@
     >
       <a-form
         :model="{
-          toolType: selectedToolType,
           toolName: toolName,
           accessType: accessType,
           apiAddress: apiAddress,
@@ -150,15 +149,12 @@
         layout="vertical"
         ref="createToolFormRef"
       >
-        <a-form-item label="工具类型" name="toolType" required>
-          <a-select v-model:value="selectedToolType" placeholder="请选择" @change="handleModalToolTypeChange">
-            <a-select-option value="百度ASR">百度ASR</a-select-option>
-            <a-select-option value="静音检测">静音检测</a-select-option>
-            <a-select-option value="语音活动检测">语音活动检测</a-select-option>
-            <a-select-option value="微软TTS">微软TTS</a-select-option>
-            <a-select-option value="阿里TTS">阿里TTS</a-select-option>
-            <a-select-option value="讯飞TTS">讯飞TTS</a-select-option>
-          </a-select>
+        <a-form-item label="工具类型" required>
+          <a-input
+            v-model:value="selectedToolType"
+            placeholder="请选择或输入工具类型"
+            class="tool-type-input"
+          />
         </a-form-item>
 
         <a-form-item label="工具名称" name="toolName" required>
@@ -203,9 +199,29 @@
               </a-form-item>
               <a-form-item required style="flex: 1; margin-bottom: 0;">
                 <template #label>
+                  类型
+                </template>
+                <a-select v-model:value="field.fieldType" placeholder="请选择" style="width: 100%;">
+                  <a-select-option value="string">字符串</a-select-option>
+                  <a-select-option value="boolean">布尔</a-select-option>
+                  <a-select-option value="number">数字</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item required style="flex: 1; margin-bottom: 0;">
+                <template #label>
                    值
                 </template>
-                <a-input placeholder="请输入" v-model:value="field.value" />
+                <a-input 
+                  v-if="field.fieldType !== 'boolean'" 
+                  placeholder="请输入" 
+                  v-model:value="field.value" 
+                />
+                <a-switch 
+                  v-else 
+                  v-model:checked="field.value" 
+                  :checked-children="'是'" 
+                  :un-checked-children="'否'"
+                />
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
@@ -236,9 +252,29 @@
               </a-form-item>
               <a-form-item required style="flex: 1; margin-bottom: 0;">
                 <template #label>
+                  类型
+                </template>
+                <a-select v-model:value="field.fieldType" placeholder="请选择" style="width: 100%;">
+                  <a-select-option value="string">字符串</a-select-option>
+                  <a-select-option value="boolean">布尔</a-select-option>
+                  <a-select-option value="number">数字</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item required style="flex: 1; margin-bottom: 0;">
+                <template #label>
                  值
                 </template>
-                <a-input placeholder="请输入" v-model:value="field.value" />
+                <a-input 
+                  v-if="field.fieldType !== 'boolean'" 
+                  placeholder="请输入" 
+                  v-model:value="field.value" 
+                />
+                <a-switch 
+                  v-else 
+                  v-model:checked="field.value" 
+                  :checked-children="'是'" 
+                  :un-checked-children="'否'"
+                />
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
@@ -291,14 +327,15 @@
         ref="editToolFormRef"
       >
         <a-form-item label="工具类型" name="toolType" required>
-          <a-select v-model:value="editToolType" placeholder="请选择" @change="handleEditModalToolTypeChange">
-            <a-select-option value="百度ASR">百度ASR</a-select-option>
-            <a-select-option value="静音检测">静音检测</a-select-option>
-            <a-select-option value="语音活动检测">语音活动检测</a-select-option>
-            <a-select-option value="微软TTS">微软TTS</a-select-option>
-            <a-select-option value="阿里TTS">阿里TTS</a-select-option>
-            <a-select-option value="讯飞TTS">讯飞TTS</a-select-option>
-          </a-select>
+          <a-auto-complete
+            v-model:value="editToolType"
+            placeholder="请选择或输入工具类型"
+            :options="toolTypeSuggestions"
+            @change="handleEditModalToolTypeChange"
+            @blur="handleEditToolTypeBlur"
+            @search="handleToolTypeSearch"
+            allow-clear
+          />
         </a-form-item>
 
         <a-form-item label="工具名称" name="toolName" required>
@@ -343,9 +380,29 @@
               </a-form-item>
               <a-form-item required style="flex: 1; margin-bottom: 0;">
                 <template #label>
+                  类型
+                </template>
+                <a-select v-model:value="field.fieldType" placeholder="请选择" style="width: 100%;">
+                  <a-select-option value="string">字符串</a-select-option>
+                  <a-select-option value="boolean">布尔</a-select-option>
+                  <a-select-option value="number">数字</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item required style="flex: 1; margin-bottom: 0;">
+                <template #label>
                    值
                 </template>
-                <a-input placeholder="请输入" v-model:value="field.value" />
+                <a-input 
+                  v-if="field.fieldType !== 'boolean'" 
+                  placeholder="请输入" 
+                  v-model:value="field.value" 
+                />
+                <a-switch 
+                  v-else 
+                  v-model:checked="field.value" 
+                  :checked-children="'是'" 
+                  :un-checked-children="'否'"
+                />
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
@@ -376,9 +433,29 @@
               </a-form-item>
               <a-form-item required style="flex: 1; margin-bottom: 0;">
                 <template #label>
+                  类型
+                </template>
+                <a-select v-model:value="field.fieldType" placeholder="请选择" style="width: 100%;">
+                  <a-select-option value="string">字符串</a-select-option>
+                  <a-select-option value="boolean">布尔</a-select-option>
+                  <a-select-option value="number">数字</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item required style="flex: 1; margin-bottom: 0;">
+                <template #label>
                  值
                 </template>
-                <a-input placeholder="请输入" v-model:value="field.value" />
+                <a-input 
+                  v-if="field.fieldType !== 'boolean'" 
+                  placeholder="请输入" 
+                  v-model:value="field.value" 
+                />
+                <a-switch 
+                  v-else 
+                  v-model:checked="field.value" 
+                  :checked-children="'是'" 
+                  :un-checked-children="'否'"
+                />
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
@@ -412,7 +489,7 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
@@ -426,8 +503,10 @@ import {
 } from '../utils/tableConfig';
 import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
+import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
+const authStore = useAuthStore();
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -439,6 +518,11 @@ const customLocale = computed(() => ({
     page: '', // Override the '页' suffix for quick jumper
   },
 }));
+
+// Get current username from auth store
+const currentUsername = computed(() => {
+  return authStore.user?.name || authStore.user?.username || '管理员';
+});
 
 interface DataItem {
   id: number;
@@ -455,6 +539,12 @@ interface DataItem {
   updater: string; // 更新人
   createdAt: string; // 创建时间
   updatedAt: string; // 更新时间
+}
+
+interface FieldItem {
+  fieldName: string;
+  fieldType: 'string' | 'boolean' | 'number';
+  value: string | boolean | number;
 }
 
 // Define column configuration separately from the table columns
@@ -676,8 +766,8 @@ const filteredData = computed(() => {
     toolTypeValue.value.value !== 'all' &&
     toolTypeValue.value.value !== ''
   ) {
-    const selectedToolType = toolTypeValue.value.value;
-    dataToFilter = dataToFilter.filter(item => item.toolType === selectedToolType);
+    const filterToolType = toolTypeValue.value.value;
+    dataToFilter = dataToFilter.filter(item => item.toolType === filterToolType);
   }
 
   // Sorting logic
@@ -793,12 +883,12 @@ const localToolFilePath = ref('');
 const billingUnit = ref('');
 const unitCost = ref('');
 const activeCollapseKeys = ref<string[]>([]);
-const authFields = ref<Array<{fieldName: string, value: string}>>([]);
-const customFields = ref<Array<{fieldName: string, value: string}>>([]);
+const authFields = ref<FieldItem[]>([]);
+const customFields = ref<FieldItem[]>([]);
 
 // Form validation rules
 const createToolFormRules = {
-  toolType: [{ required: true, message: '请选择工具类型', trigger: 'change' }],
+  toolType: [{ required: true, message: '请选择工具类型', trigger: 'blur' }],
   toolName: [{ required: true, message: '请输入工具名称', trigger: 'blur' }],
   accessType: [{ required: true, message: '请选择访问类型', trigger: 'change' }],
   apiAddress: [{ required: true, message: '请输入API地址', trigger: 'blur' }],
@@ -845,7 +935,7 @@ const handleCreateToolModalConfirm = async () => {
       expirationTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' '), // 1 year from now
       accumulatedUsage: 0,
       accumulatedCost: 0.00,
-      updater: '管理员' // Default updater
+      updater: currentUsername.value // Use dynamic username from auth store
     };
 
     console.log('Creating tool configuration:', toolData);
@@ -885,21 +975,43 @@ const handleCreateToolModalConfirm = async () => {
   }
 };
 
-const handleModalToolTypeChange = (value: string) => {
-  selectedToolType.value = value;
-};
+
+
+
 
 const addAuthField = () => {
-  authFields.value.push({ fieldName: '', value: '' });
+  authFields.value.push({ fieldName: '', fieldType: 'string', value: '' });
 };
+
+// Watch for field type changes to reset value appropriately
+watch(authFields, (newFields) => {
+  newFields.forEach(field => {
+    if (field.fieldType === 'boolean' && typeof field.value !== 'boolean') {
+      field.value = false;
+    } else if (field.fieldType !== 'boolean' && typeof field.value === 'boolean') {
+      field.value = '';
+    }
+  });
+}, { deep: true });
 
 const removeAuthField = (index: number) => {
   authFields.value.splice(index, 1);
 };
 
 const addCustomField = () => {
-  customFields.value.push({ fieldName: '', value: '' });
+  customFields.value.push({ fieldName: '', fieldType: 'string', value: '' });
 };
+
+// Watch for field type changes to reset value appropriately
+watch(customFields, (newFields) => {
+  newFields.forEach(field => {
+    if (field.fieldType === 'boolean' && typeof field.value !== 'boolean') {
+      field.value = false;
+    } else if (field.fieldType !== 'boolean' && typeof field.value === 'boolean') {
+      field.value = '';
+    }
+  });
+}, { deep: true });
 
 const removeCustomField = (index: number) => {
   customFields.value.splice(index, 1);
@@ -907,6 +1019,7 @@ const removeCustomField = (index: number) => {
 
 // Edit modal state variables
 const showEditToolModal = ref(false);
+const currentEditingToolId = ref<number | null>(null); // Track which tool is being edited
 const editToolType = ref('');
 const editToolName = ref('');
 const editAccessType = ref('api');
@@ -915,14 +1028,18 @@ const editLocalToolFilePath = ref('');
 const editBillingUnit = ref('');
 const editUnitCost = ref('');
 const editActiveCollapseKeys = ref<string[]>([]);
-const editAuthFields = ref<Array<{fieldName: string, value: string}>>([]);
-const editCustomFields = ref<Array<{fieldName: string, value: string}>>([]);
+const editAuthFields = ref<FieldItem[]>([]);
+const editCustomFields = ref<FieldItem[]>([]);
 
 const editToolFormRef = ref();
 
 // Edit modal handlers
 const handleEditTool = (record: DataItem) => {
   console.log('Edit tool clicked for record:', record);
+  
+  // Store the tool ID for the update operation
+  currentEditingToolId.value = record.id;
+  
   // Pre-fill the form with data from the selected row
   editToolType.value = record.toolType;
   editToolName.value = record.toolName;
@@ -934,13 +1051,13 @@ const handleEditTool = (record: DataItem) => {
   
   // Pre-fill authentication fields with sample data
   editAuthFields.value = [
-    { fieldName: 'API Key', value: 'hjhwn832nj2f' },
-    { fieldName: 'Bot Id', value: '456546572' }
+    { fieldName: 'API Key', fieldType: 'string', value: 'hjhwn832nj2f' },
+    { fieldName: 'Bot Id', fieldType: 'string', value: '456546572' }
   ];
   
   // Pre-fill custom parameters with sample data
   editCustomFields.value = [
-    { fieldName: 'Temperature', value: '0.7' }
+    { fieldName: 'Temperature', fieldType: 'number', value: '0.7' }
   ];
   
   editActiveCollapseKeys.value = ['auth', 'custom'];
@@ -950,7 +1067,9 @@ const handleEditTool = (record: DataItem) => {
 const handleEditToolModalCancel = () => {
   showEditToolModal.value = false;
   editToolFormRef.value?.resetFields();
+  
   // Reset form data
+  currentEditingToolId.value = null;
   editToolType.value = '';
   editToolName.value = '';
   editAccessType.value = 'api';
@@ -966,39 +1085,164 @@ const handleEditToolModalCancel = () => {
 const handleEditToolModalConfirm = async () => {
   try {
     await editToolFormRef.value?.validate();
-    console.log('Edit tool form data:', {
+    
+    if (!currentEditingToolId.value) {
+      message.error('错误：无法识别要编辑的工具');
+      return;
+    }
+    
+    // Validate required fields
+    if (!editToolType.value || !editToolName.value) {
+      message.error('错误：工具类型和工具名称不能为空');
+      return;
+    }
+    
+    if (editAccessType.value === 'api' && !editApiAddress.value) {
+      message.error('错误：API地址不能为空');
+      return;
+    }
+    
+    if (editAccessType.value === 'local' && !editLocalToolFilePath.value) {
+      message.error('错误：本地工具文件目录不能为空');
+      return;
+    }
+    
+    // Prepare the data for the API update
+    const updateData = {
       toolType: editToolType.value,
       toolName: editToolName.value,
-      accessType: editAccessType.value,
-      apiAddress: editApiAddress.value,
-      localToolFilePath: editLocalToolFilePath.value,
-      billingUnit: editBillingUnit.value,
-      unitCost: editUnitCost.value,
-      authFields: editAuthFields.value,
-      customFields: editCustomFields.value
-    });
-    // Here you would typically send the updated data to your API
-    showEditToolModal.value = false;
-    editToolFormRef.value?.resetFields();
-  } catch (error) {
-    console.error('Form validation failed:', error);
+      apiAddress: editAccessType.value === 'api' ? editApiAddress.value : null,
+      localToolFilePath: editAccessType.value === 'local' ? editLocalToolFilePath.value : null,
+      billingUnit: editAccessType.value === 'api' ? editBillingUnit.value : null,
+      unitCost: editAccessType.value === 'api' ? editUnitCost.value : null,
+      updater: currentUsername.value || '管理员', // Use dynamic username from auth store
+      updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' ') // Current timestamp
+    };
+    
+    console.log('Updating tool with data:', updateData);
+    
+    // Use the same approach as create form - send POST request
+    console.log('Sending POST request to create updated tool');
+    console.log('Request data:', updateData);
+    
+    // Generate a new unique tool ID for the updated record
+    const newToolId = 'tool_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Prepare the data using the same structure as create form
+    const toolData = {
+      toolId: newToolId,
+      toolType: editToolType.value,
+      toolName: editToolName.value,
+      apiAddress: editAccessType.value === 'api' ? editApiAddress.value : null,
+      localToolFilePath: editAccessType.value === 'local' ? editLocalToolFilePath.value : null,
+      purchaseTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // Current time
+      activationTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // Current time
+      expirationTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' '), // 1 year from now
+      accumulatedUsage: 0,
+      accumulatedCost: 0.00,
+      updater: currentUsername.value // Use dynamic username from auth store
+    };
+    
+    try {
+      // Send POST request to create new tool (same as create form)
+      const response = await axios.post('http://121.43.196.106:2829/api/tool-configuration', toolData);
+      
+      console.log('POST response:', response);
+      
+      if (response.data.success) {
+        message.success('工具信息已更新！');
+        showEditToolModal.value = false;
+        editToolFormRef.value?.resetFields();
+        
+        // Reset form data
+        currentEditingToolId.value = null;
+        editToolType.value = '';
+        editToolName.value = '';
+        editAccessType.value = 'api';
+        editApiAddress.value = '';
+        editLocalToolFilePath.value = '';
+        editBillingUnit.value = '';
+        editUnitCost.value = '';
+        editAuthFields.value = [];
+        editCustomFields.value = [];
+        editActiveCollapseKeys.value = [];
+        
+        // Refresh the table data to show the new record
+        fetchData();
+      } else {
+        message.error('更新失败：' + (response.data.message || '未知错误'));
+      }
+    } catch (error: any) {
+      console.error('POST request failed:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      // Show detailed error information
+      if (error.response?.data?.message) {
+        message.error('更新失败：' + error.response.data.message);
+      } else if (error.response?.status === 500) {
+        message.error('更新失败：服务器内部错误 (500) - 请检查服务器日志');
+      } else {
+        message.error('更新失败：网络错误或服务器错误');
+      }
+    }
+  } catch (error: any) {
+    console.error('Form validation or other error:', error);
+    message.error('更新失败：表单验证失败');
   }
 };
 
 const handleEditModalToolTypeChange = (value: string) => {
   editToolType.value = value;
+  // Trigger validation after change
+  editToolFormRef.value?.validateField('toolType');
 };
 
-const addEditAuthField = () => {
-  editAuthFields.value.push({ fieldName: '', value: '' });
+const handleEditToolTypeBlur = () => {
+  // Trigger validation on blur
+  editToolFormRef.value?.validateField('toolType');
 };
+
+// Add computed property for tool type suggestions
+const toolTypeSuggestions = computed(() => {
+  // Get unique tool types from the table data
+  const uniqueToolTypes = Array.from(new Set(rawData.value.map(item => item.toolType)));
+  
+  // Convert to autocomplete options format
+  return uniqueToolTypes.map(type => ({
+    value: type,
+    label: type,
+  }));
+});
+
+const handleToolTypeSearch = (value: string) => {
+  // This function can be used for additional search logic if needed
+  console.log('Searching for tool type:', value);
+};
+
+
+
+const addEditAuthField = () => {
+  editAuthFields.value.push({ fieldName: '', fieldType: 'string', value: '' });
+};
+
+// Watch for edit form field type changes to reset value appropriately
+watch(() => editAuthFields.value, (newFields) => {
+  newFields.forEach(field => {
+    if (field.fieldType === 'boolean' && typeof field.value !== 'boolean') {
+      field.value = false;
+    } else if (field.fieldType !== 'boolean' && typeof field.value === 'boolean') {
+      field.value = '';
+    }
+  });
+}, { deep: true });
 
 const removeEditAuthField = (index: number) => {
   editAuthFields.value.splice(index, 1);
 };
 
 const addEditCustomField = () => {
-  editCustomFields.value.push({ fieldName: '', value: '' });
+  editCustomFields.value.push({ fieldName: '', fieldType: 'string', value: '' });
 };
 
 const removeEditCustomField = (index: number) => {
@@ -1177,6 +1421,24 @@ html, body {
   padding-left: 4px !important;
   padding-right: 18px !important; /* keep space for arrow */
 }
+
+/* Fix placeholder positioning for tool type input */
+.tool-type-input :deep(.ant-input) {
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+.tool-type-input :deep(.ant-input::placeholder) {
+  text-align: left !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  transform: none !important;
+}
+
+
 
 /* Make the action buttons horizontal and style '编辑' as blue and bold */
 :deep(.ant-table-cell .action-cell) {

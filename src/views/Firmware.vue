@@ -9,7 +9,7 @@
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
 
-        <div class="select-container device-model-select" style="margin-left: 10px;">
+        <!-- <div class="select-container device-model-select" style="margin-left: 10px;">
           <span class="select-always-placeholder">设备型号:</span>
           <a-tooltip :title="deviceModelValue.label">
             <a-select
@@ -18,13 +18,18 @@
               :options="deviceModelOptions"
               @change="handleDeviceModelChange"
               :allowClear="true"
-              label-in-value
               class="device-model-select"
+              placeholder="请选择设备型号"
+              :key="`dropdown-${deviceModelOptions.length}-${Date.now()}`"
             >
-              <a-select-option value="all">全部</a-select-option>
             </a-select>
           </a-tooltip>
-        </div>
+        
+          <div style="font-size: 10px; color: #666; margin-top: 2px;">
+            Options count: {{ deviceModelOptions.length }} | 
+            Current: {{ deviceModelValue.label }}
+          </div>
+        </div> -->
         <div class="select-container release-version-select" style="margin-left: 10px;">
           <span class="select-always-placeholder">发布版本:</span>
           <a-tooltip :title="releaseVersionValue.label">
@@ -36,8 +41,8 @@
               :allowClear="true"
               label-in-value
               class="release-version-select"
+              placeholder="请选择发布版本"
             >
-              <a-select-option value="all">全部</a-select-option>
             </a-select>
           </a-tooltip>
           <span v-if="nextVersionNumber" style="color: red; font-weight: bold; margin-left: 10px;">{{ nextVersionNumber }}</span>
@@ -53,8 +58,8 @@
               :allowClear="true"
               label-in-value
               class="version-number-select"
+              placeholder="请选择版本号"
             >
-              <a-select-option value="all">全部</a-select-option>
             </a-select>
           </a-tooltip>
         </div>
@@ -72,6 +77,12 @@
             </template>
           </a-input>
           <a-button type="primary" @click="handleVersionRelease">版本发布</a-button>
+          <!-- <a-button @click="fetchDeviceModelOptions" style="margin-left: 8px;">测试设备型号API</a-button>
+          <a-button @click="setTestData" style="margin-left: 8px;">设置测试数据</a-button>
+          <a-button @click="testDirectAPI" style="margin-left: 8px;">直接测试API</a-button>
+          <a-button @click="forceRefreshDropdown" style="margin-left: 8px;">强制刷新下拉框</a-button>
+          <a-button @click="clearFirmwareData" style="margin-left: 8px;">清除固件数据</a-button> -->
+          <a-button @click="testDownloadEndpoint" style="margin-left: 8px;">测试下载端点</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -165,6 +176,7 @@
     <FirmwareReleaseModal
       :visible="showReleaseModal"
       :uniqueDeviceModels="uniqueDeviceModels"
+      :deviceModelOptions="deviceModelOptions"
       :editRecord="editRecord"
       @update:visible="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
@@ -181,7 +193,7 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, h } from 'vue';
+import { ref, computed, onMounted, h, nextTick } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
@@ -364,9 +376,251 @@ const fetchFirmware = async () => {
   }
 };
 
+// Fetch device model options from DeviceType API
+const deviceModelOptionsData = ref<Array<{ value: string; label: string; key: string }>>([]);
+
+// Add some test data as fallback
+const testDeviceModelOptions = [
+  { key: 'HWZ001', value: 'HWZ001', label: 'HWZ001' },
+  { key: 'HWZ002', value: 'HWZ002', label: 'HWZ002' },
+  { key: 'HWZ003', value: 'HWZ003', label: 'HWZ003' },
+  { key: 'HWZ004', value: 'HWZ004', label: 'HWZ004' }
+];
+
+const fetchDeviceModelOptions = async () => {
+  try {
+    console.log('=== START: Fetching device model options ===');
+    const apiUrl = constructApiUrl('device-type');
+    console.log('API URL:', apiUrl);
+    
+    // Test if the API is accessible
+    console.log('Making request to:', apiUrl);
+    
+    // Try with parameters first (this is the standard way)
+    console.log('Testing GET request with parameters...');
+    const response = await axios.get(apiUrl, {
+      params: {
+        page: 1,
+        pageSize: 1000 // Get all device types
+      }
+    });
+    
+    console.log('DeviceType API Response status:', response.status);
+    console.log('DeviceType API Response data:', response.data);
+    console.log('Response data type:', typeof response.data);
+    
+    if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      console.log('Found data array with length:', response.data.data.length);
+      console.log('First item sample:', response.data.data[0]);
+      
+      // Transform the data to match the expected format
+      const options = response.data.data.map((item: any) => {
+        console.log('Processing item:', item);
+        return {
+          key: item.deviceModelName,
+          value: item.deviceModelName,
+          label: item.deviceModelName
+        };
+      });
+      
+      deviceModelOptionsData.value = options;
+      console.log('✅ Device model options loaded successfully:', options);
+      console.log('✅ deviceModelOptionsData.value after update:', deviceModelOptionsData.value);
+      
+      // Clear any firmware fallback data to ensure API data takes priority
+      if (rawData.value.length > 0 && rawData.value.some(item => item.deviceModel && item.deviceModel.startsWith('HWSZ'))) {
+        console.log('🔄 Clearing firmware fallback data to prioritize API data');
+        rawData.value = [];
+      }
+      
+    } else if (response.data && Array.isArray(response.data)) {
+      console.log('Found direct array response with length:', response.data.length);
+      console.log('First item sample:', response.data[0]);
+      
+      // Fallback for old API format
+      const options = response.data.map((item: any) => {
+        console.log('Processing item (fallback):', item);
+        return {
+          key: item.deviceModelName,
+          value: item.deviceModelName,
+          label: item.deviceModelName
+        };
+      });
+      
+      deviceModelOptionsData.value = options;
+      console.log('✅ Device model options loaded (fallback):', options);
+      console.log('✅ deviceModelOptionsData.value after update (fallback):', deviceModelOptionsData.value);
+      
+    } else {
+      console.log('❌ Unexpected API response format:', response.data);
+      console.log('Response data keys:', Object.keys(response.data || {}));
+      
+      // Try to extract data from different possible locations
+      if (response.data && response.data.rows) {
+        console.log('Found response.data.rows, trying that...');
+        const options = response.data.rows.map((item: any) => ({
+          key: item.deviceModelName,
+          value: item.deviceModelName,
+          label: item.deviceModelName
+        }));
+        deviceModelOptionsData.value = options;
+        console.log('✅ Used response.data.rows:', options);
+      } else if (response.data && response.data.result) {
+        console.log('Found response.data.result, trying that...');
+        const options = response.data.result.map((item: any) => ({
+          key: item.deviceModelName,
+          value: item.deviceModelName,
+          label: item.deviceModelName
+        }));
+        deviceModelOptionsData.value = options;
+        console.log('✅ Used response.data.result:', options);
+      }
+    }
+    
+    console.log('=== END: Fetching device model options ===');
+    
+  } catch (error: any) {
+    console.error('❌ Error fetching device model options:', error);
+    if (error.response) {
+      console.error('Error response status:', error.response.status);
+      console.error('Error response data:', error.response.data);
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+    } else {
+      console.error('Error message:', error.message);
+    }
+    
+    // Try to use test data as fallback
+    console.log('🔄 Using test data as fallback...');
+    deviceModelOptionsData.value = testDeviceModelOptions;
+    console.log('✅ Set fallback test data:', deviceModelOptionsData.value);
+  }
+};
+
+// Function to manually set test data for debugging
+const setTestData = () => {
+  deviceModelOptionsData.value = testDeviceModelOptions;
+  console.log('Set test data manually:', deviceModelOptionsData.value);
+  
+  // Force a re-render by triggering a reactive update
+  nextTick(() => {
+    console.log('After nextTick - deviceModelOptions.value:', deviceModelOptions.value);
+  });
+};
+
+// Function to test API directly without processing
+const testDirectAPI = async () => {
+  try {
+    console.log('=== DIRECT API TEST ===');
+    const apiUrl = constructApiUrl('device-type');
+    console.log('Testing URL:', apiUrl);
+    
+    const response = await axios.get(apiUrl);
+    console.log('Direct response:', response);
+    console.log('Response data:', response.data);
+    console.log('Response status:', response.status);
+    
+    // Try to access different possible data locations
+    if (response.data) {
+      console.log('Available keys in response.data:', Object.keys(response.data));
+      if (response.data.data) {
+        console.log('response.data.data:', response.data.data);
+        console.log('response.data.data type:', typeof response.data.data);
+        if (Array.isArray(response.data.data)) {
+          console.log('response.data.data is array with length:', response.data.data.length);
+          if (response.data.data.length > 0) {
+            console.log('First item:', response.data.data[0]);
+            console.log('First item keys:', Object.keys(response.data.data[0]));
+          }
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('Direct API test failed:', error);
+  }
+};
+
+// Function to test download endpoint
+const testDownloadEndpoint = async () => {
+  try {
+    console.log('=== TESTING DOWNLOAD ENDPOINT ===');
+    
+    // Test with a sample filename from the firmware directory
+    const testFilename = 'test_1754461301245.xlsx';
+    const downloadUrl = constructApiUrl(`firmware/download/${testFilename}`);
+    
+    console.log('Testing download URL:', downloadUrl);
+    
+    // Test if the endpoint responds
+    const response = await axios.get(downloadUrl, { responseType: 'blob' });
+    console.log('Download endpoint response:', response);
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    
+    if (response.status === 200) {
+      // Create a test download
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `test_download_${testFilename}`;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      window.URL.revokeObjectURL(url);
+      message.success('下载端点测试成功！文件已下载');
+    }
+    
+  } catch (error: any) {
+    console.error('Download endpoint test failed:', error);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+      message.error(`下载端点测试失败: ${error.response.status} - ${error.response.data?.error || '未知错误'}`);
+    } else {
+      message.error('下载端点测试失败: 网络错误');
+    }
+  }
+};
+
+// Function to force refresh the dropdown
+const forceRefreshDropdown = () => {
+  console.log('Force refreshing dropdown...');
+  console.log('Current deviceModelOptionsData.value:', deviceModelOptionsData.value);
+  console.log('Current deviceModelOptions.value:', deviceModelOptions.value);
+  
+  // Force a reactive update by reassigning the array
+  deviceModelOptionsData.value = [...deviceModelOptionsData.value];
+  
+  nextTick(() => {
+    console.log('After force refresh - deviceModelOptions.value:', deviceModelOptions.value);
+    console.log('Dropdown should now show these options:', deviceModelOptions.value);
+  });
+};
+
+// Function to clear firmware data and force use of API data
+const clearFirmwareData = () => {
+  console.log('Clearing firmware data...');
+  console.log('Before clear - rawData.value:', rawData.value);
+  console.log('Before clear - deviceModelOptionsData.value:', deviceModelOptionsData.value);
+  
+  // Clear firmware data
+  rawData.value = [];
+  
+  // Force re-computation of deviceModelOptions
+  nextTick(() => {
+    console.log('After clear - deviceModelOptions.value:', deviceModelOptions.value);
+    console.log('Dropdown should now use API data only');
+  });
+};
+
 const createFirmware = async (firmwareData: Omit<DataItem, 'key' | 'id' | 'releaseTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post('http://121.43.196.106:2829/api/firmware', firmwareData);
+    const response = await axios.post(constructApiUrl('firmware'), firmwareData);
     await fetchFirmware(); // Refresh data
     return response.data;
   } catch (error) {
@@ -377,7 +631,7 @@ const createFirmware = async (firmwareData: Omit<DataItem, 'key' | 'id' | 'relea
 
 const updateFirmware = async (id: number, firmwareData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`http://121.43.196.106:2829/api/firmware/${id}`, firmwareData);
+    const response = await axios.put(constructApiUrl(`firmware/${id}`), firmwareData);
     await fetchFirmware(); // Refresh data
     return response.data;
   } catch (error) {
@@ -402,8 +656,30 @@ const releaseVersionValue = ref({ key: 'all', label: '全部', value: 'all' });
 const versionNumberValue = ref({ key: 'all', label: '全部', value: 'all' });
 
 const deviceModelOptions = computed(() => {
+  console.log('🔄 deviceModelOptions computed called');
+  console.log('deviceModelOptionsData.value:', deviceModelOptionsData.value);
+  console.log('deviceModelOptionsData.value.length:', deviceModelOptionsData.value.length);
+  console.log('rawData.value:', rawData.value);
+  
+  // ALWAYS prioritize API data over firmware fallback data
+  if (deviceModelOptionsData.value.length > 0) {
+    const result = [{ key: 'all', value: 'all', label: '全部' }, ...deviceModelOptionsData.value];
+    console.log('✅ deviceModelOptions computed - using API data, result:', result);
+    return result;
+  }
+  
+  // Fallback to test data if API hasn't been fetched yet
+  if (testDeviceModelOptions.length > 0) {
+    const testResult = [{ key: 'all', value: 'all', label: '全部' }, ...testDeviceModelOptions];
+    console.log('✅ deviceModelOptions computed - using test data, result:', testResult);
+    return testResult;
+  }
+  
+  // Only use firmware data as last resort if nothing else is available
   const unique = Array.from(new Set(rawData.value.map(item => item.deviceModel)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
+  const fallbackResult = [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
+  console.log('⚠️ deviceModelOptions computed - using firmware fallback data (last resort), result:', fallbackResult);
+  return fallbackResult;
 });
 
 const releaseVersionOptions = computed(() => {
@@ -417,9 +693,19 @@ const versionNumberOptions = computed(() => {
 });
 
 const handleDeviceModelChange = (val: any) => {
-  deviceModelValue.value = !val || !val.value || val.value === 'all'
-    ? { key: 'all', label: '全部', value: 'all' }
-    : val;
+  console.log('handleDeviceModelChange called with:', val);
+  if (!val || val === 'all') {
+    deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
+  } else {
+    // Find the option object from deviceModelOptions
+    const option = deviceModelOptions.value.find(opt => opt.value === val);
+    if (option) {
+      deviceModelValue.value = option;
+    } else {
+      deviceModelValue.value = { key: val, label: val, value: val };
+    }
+  }
+  console.log('deviceModelValue updated to:', deviceModelValue.value);
 };
 
 const handleReleaseVersionChange = (val: any) => {
@@ -491,6 +777,7 @@ const onRefresh = () => {
   versionNumberValue.value = { key: 'all', label: '全部', value: 'all' };
 
   fetchFirmware(); // Fetch fresh data from API
+  fetchDeviceModelOptions(); // Refresh device model options
 };
 
 const filteredData = computed<DataItem[]>(() => {
@@ -646,7 +933,15 @@ const handleColumnVisibilityChange = (key: string, checked: boolean) => {
 const showReleaseModal = ref(false);
 const showEditModal = ref(false);
 const editRecord = ref<any>(null);
-const uniqueDeviceModels = computed(() => Array.from(new Set(rawData.value.map(item => item.deviceModel))));
+const uniqueDeviceModels = computed(() => {
+  // Use dynamic device model options from DeviceType API if available
+  if (deviceModelOptionsData.value.length > 0) {
+    return deviceModelOptionsData.value.map(option => option.value);
+  }
+  
+  // Fallback to firmware data if API data not available
+  return Array.from(new Set(rawData.value.map(item => item.deviceModel)));
+});
 
 const handleVersionRelease = () => {
   showReleaseModal.value = true;
@@ -733,31 +1028,60 @@ const handleViewClick = (record: DataItem) => {
 const handleDownloadClick = (record: DataItem) => {
   // Download firmware file
   if (record.fileAddress) {
-    // Check if it's a relative path (starts with /firmware/)
-    if (record.fileAddress.startsWith('/firmware/')) {
-      // Use the download endpoint
-      const downloadUrl = constructApiUrl(`firmware/download/${record.fileAddress.split('/').pop()}`);
+    console.log('Downloading firmware:', record);
+    console.log('File address:', record.fileAddress);
+    
+    try {
+      let downloadUrl: string;
+      let filename: string;
+      
+      // Check if it's a relative path (starts with /firmware/)
+      if (record.fileAddress.startsWith('/firmware/')) {
+        // Extract filename from the path
+        const pathParts = record.fileAddress.split('/');
+        const uploadedFilename = pathParts[pathParts.length - 1];
+        
+        // Use the download endpoint
+        downloadUrl = constructApiUrl(`firmware/download/${uploadedFilename}`);
+        filename = `${record.deviceModel}_${record.versionNumber}_${uploadedFilename}`;
+        
+        console.log('Using download endpoint:', downloadUrl);
+        console.log('Extracted filename:', uploadedFilename);
+        console.log('Final filename:', filename);
+      } else if (record.fileAddress.startsWith('http')) {
+        // Handle external URLs
+        downloadUrl = record.fileAddress;
+        filename = `${record.deviceModel}_${record.versionNumber}.bin`;
+        console.log('Using external URL:', downloadUrl);
+      } else {
+        // Handle other cases (like default URLs)
+        downloadUrl = record.fileAddress;
+        filename = `${record.deviceModel}_${record.versionNumber}.bin`;
+        console.log('Using default URL:', downloadUrl);
+      }
+      
+      // Create download link
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = `${record.deviceModel}_${record.versionNumber}.bin`;
+      link.download = filename;
       link.target = '_blank';
+      link.style.display = 'none';
+      
+      // Add to DOM, click, and remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
       message.success(`开始下载固件: ${record.deviceModel} - ${record.versionNumber}`);
-    } else {
-      // Handle external URLs
-      const link = document.createElement('a');
-      link.href = record.fileAddress;
-      link.download = `${record.deviceModel}_${record.versionNumber}.bin`;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      message.success(`开始下载固件: ${record.deviceModel} - ${record.versionNumber}`);
+      console.log('Download initiated successfully');
+      
+    } catch (error) {
+      console.error('Download failed:', error);
+      message.error('下载失败，请重试');
     }
   } else {
     message.error('固件文件地址不存在');
+    console.error('No file address for record:', record);
   }
 };
 
@@ -812,7 +1136,7 @@ const customLocale = computed(() => ({
 }));
 
 // Handle search parameter from URL
-onMounted(() => {
+onMounted(async () => {
   // Handle search parameter from URL
   if (route.query.search) {
     searchInputValue.value = route.query.search as string;
@@ -841,7 +1165,12 @@ onMounted(() => {
     console.log('Navigated from DeviceType with add action');
   }
   
-  fetchFirmware(); // Fetch data on component mount
+  // Fetch device model options first, then firmware data
+  await fetchDeviceModelOptions();
+  await fetchFirmware();
+  
+  console.log('Component mounted - deviceModelOptionsData.value:', deviceModelOptionsData.value);
+  console.log('Component mounted - deviceModelOptions.value:', deviceModelOptions.value);
 });
 
 defineExpose({

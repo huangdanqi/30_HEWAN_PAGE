@@ -175,11 +175,27 @@ router.get('/download/:filename', (req, res) => {
   const filename = req.params.filename;
   const filePath = path.join(uploadDir, filename);
   
+  console.log('=== DOWNLOAD REQUEST START ===');
+  console.log('Requested filename:', filename);
+  console.log('Full file path:', filePath);
+  console.log('Upload directory:', uploadDir);
+  console.log('File exists:', fs.existsSync(filePath));
+  
   if (fs.existsSync(filePath)) {
-    res.download(filePath);
+    console.log('File found, initiating download...');
+    res.download(filePath, filename, (err) => {
+      if (err) {
+        console.error('Download error:', err);
+        res.status(500).json({ error: '下载失败', details: err.message });
+      } else {
+        console.log('Download completed successfully');
+      }
+    });
   } else {
-    res.status(404).json({ error: '文件不存在' });
+    console.log('File not found, returning 404');
+    res.status(404).json({ error: '文件不存在', requestedFile: filename, uploadDir: uploadDir });
   }
+  console.log('=== DOWNLOAD REQUEST END ===');
 });
 
 // Get all firmware records
@@ -285,10 +301,13 @@ router.post('/', async (req, res) => {
       fileAddress,
       creator
     });
+    
+    console.log('Request body raw:', req.body);
+    console.log('Content-Type:', req.headers['content-type']);
 
     // Map frontend field names to database column names
-    const mappedReleaseVersion = releaseType || releaseVersion;
-    const mappedDescription = contentDescription || description;
+    const mappedReleaseVersion = releaseType || releaseVersion || '主版本'; // Provide default
+    const mappedDescription = contentDescription || description || '固件更新'; // Provide default
 
     console.log('Mapped data:', {
       mappedReleaseVersion,
@@ -296,9 +315,9 @@ router.post('/', async (req, res) => {
     });
 
     // Validate required fields
-    if (!deviceModel || !mappedReleaseVersion || !versionNumber) {
+    if (!deviceModel || !versionNumber) {
       console.log('Validation failed - missing required fields');
-      return res.status(400).json({ error: 'Device model, release version, and version number are required' });
+      return res.status(400).json({ error: 'Device model and version number are required' });
     }
 
     // Check if file_address column exists, if not add it

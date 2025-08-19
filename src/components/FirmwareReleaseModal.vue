@@ -22,10 +22,8 @@
               v-model:value="formState.deviceModel"
               placeholder="请选择设备型号"
               :disabled="isEditMode && isRestricted"
+              :options="deviceModelOptions.length > 0 ? deviceModelOptions : uniqueDeviceModels.map(model => ({ key: model, value: model, label: model }))"
             >
-              <a-select-option v-for="model in uniqueDeviceModels" :key="model" :value="model">
-                {{ model }}
-              </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -111,8 +109,9 @@
 
     <!-- Action Buttons -->
     <div class="steps-action">
-      <a-button @click="handleCancel">取消</a-button>
-      <a-button v-if="currentStep > 0" style="margin-left: 8px" @click="prevStep">上一步</a-button>
+                <a-button @click="handleCancel">取消</a-button>
+          <a-button @click="testUploadEndpoint" style="margin-left: 8px;">测试上传端点</a-button>
+          <a-button v-if="currentStep > 0" style="margin-left: 8px" @click="prevStep">上一步</a-button>
       <a-button 
         v-if="currentStep < 1" 
         type="primary" 
@@ -143,11 +142,13 @@ import type { UploadChangeParam, UploadProps } from 'ant-design-vue';
 import { InboxOutlined, DeleteOutlined, PaperClipOutlined } from '@ant-design/icons-vue';
 import type { FormInstance } from 'ant-design-vue';
 import axios from 'axios';
+import { constructApiUrl } from '../utils/api';
 
 // Define component props
 const props = defineProps({
   visible: { type: Boolean, default: false },
   uniqueDeviceModels: { type: Array as () => string[], default: () => [] },
+  deviceModelOptions: { type: Array as () => Array<{ key: string; value: string; label: string }>, default: () => [] },
   editRecord: { type: Object, default: null }, // For edit mode
 });
 
@@ -183,8 +184,8 @@ const isRestricted = computed(() => {
 
 // Upload configuration
 const uploadAction = computed(() => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
-  const url = `${baseUrl}/api/firmware/upload`;
+  // Use constructApiUrl to avoid double /api/ issue
+  const url = constructApiUrl('firmware/upload');
   console.log('Upload action URL:', url);
   return url;
 });
@@ -299,16 +300,16 @@ const handleUploadChange = (info: UploadChangeParam) => {
     if (file.response) {
       console.log('File response:', file.response);
       // Handle successful response
-      if (file.response.success) {
+      if (file.response && file.response.success) {
         file.url = file.response.url;
         file.status = 'done';
         file.percent = 100;
-        console.log('File upload successful');
+        console.log('File upload successful, URL:', file.response.url);
       } else {
         // Handle error response
         file.status = 'error';
-        file.error = file.response.error || '上传失败';
-        console.log('File upload failed:', file.error);
+        file.error = file.response?.error || '上传失败';
+        console.log('File upload failed:', file.response?.error);
       }
     }
     return file;
@@ -335,10 +336,55 @@ const removeFile = (uid: string) => {
   fileList.value = fileList.value.filter(file => file.uid !== uid);
 };
 
+// Test upload endpoint
+const testUploadEndpoint = async () => {
+  try {
+    console.log('Testing upload endpoint...');
+    const response = await axios.get(constructApiUrl('firmware/test'));
+    console.log('Upload endpoint test response:', response.data);
+    message.success('上传端点测试成功');
+    
+    // Also test the upload endpoint directly
+    console.log('Testing upload endpoint with POST...');
+    const uploadTestResponse = await axios.post(constructApiUrl('firmware/upload'), {}, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    console.log('Upload endpoint POST test response:', uploadTestResponse.data);
+  } catch (error: any) {
+    console.error('Upload endpoint test failed:', error);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+    }
+    message.error('上传端点测试失败');
+  }
+};
+
 // Submit method
 const handleSubmit = async () => {
   if (fileList.value.length === 0) {
     message.error('请上传固件文件');
+    return;
+  }
+  
+  // Check if file upload was successful
+  const uploadedFile = fileList.value[0];
+  console.log('Checking uploaded file:', uploadedFile);
+  
+  if (!uploadedFile.url && !uploadedFile.response?.url) {
+    console.error('File upload incomplete:', uploadedFile);
+    message.error('文件上传未完成，请等待上传完成后再提交');
+    return;
+  }
+  
+  // Additional validation
+  if (!formState.deviceModel) {
+    message.error('请选择设备型号');
+    return;
+  }
+  
+  if (!formState.contentDescription) {
+    message.error('请输入内容描述');
     return;
   }
   
@@ -351,25 +397,42 @@ const handleSubmit = async () => {
       'revision': '修订版'
     };
     
+    const fileAddress = uploadedFile.url || uploadedFile.response?.url;
+    
     const submitData = {
       deviceModel: formState.deviceModel,
       releaseVersion: releaseVersionMap[formState.releaseType] || formState.releaseType,
-      contentDescription: formState.contentDescription,
+      description: formState.contentDescription, // Map to 'description' as backend expects
       versionNumber: generatedVersion.value,
-      fileAddress: fileList.value[0].url || fileList.value[0].response?.url,
-      isEdit: isEditMode.value,
-      originalRecord: props.editRecord
+      fileAddress: fileAddress,
+      creator: '管理员' // Add creator field that backend expects
     };
     
-    // Call API to save firmware
-    const response = await axios.post('/api/firmware', submitData);
+    console.log('=== SUBMIT DEBUG INFO ===');
+    console.log('File list:', fileList.value);
+    console.log('Uploaded file:', uploadedFile);
+    console.log('File URL:', uploadedFile.url);
+    console.log('File response:', uploadedFile.response);
+    console.log('File address being sent:', fileAddress);
+    console.log('Submitting firmware data:', submitData);
+    console.log('=== END SUBMIT DEBUG ===');
     
+    // Call API to save firmware
+    const response = await axios.post(constructApiUrl('firmware'), submitData);
+    
+    console.log('API response:', response.data);
     message.success(isEditMode.value ? '固件编辑成功!' : '固件发布成功!');
     emits('submit', submitData);
     handleCancel();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Submit failed:', error);
-    message.error('操作失败，请重试');
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+      message.error(`提交失败: ${error.response.data?.error || '未知错误'}`);
+    } else {
+      message.error('操作失败，请重试');
+    }
   } finally {
     loading.value = false;
   }

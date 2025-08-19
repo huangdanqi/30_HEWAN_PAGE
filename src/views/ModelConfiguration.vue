@@ -35,6 +35,17 @@
             <template #prefix>
               <SearchOutlined />
             </template>
+            <template #suffix>
+              <a-button 
+                v-if="searchInputValue" 
+                type="text" 
+                size="small" 
+                @click="clearSearch"
+                style="margin-right: -8px;"
+              >
+                ✕
+              </a-button>
+            </template>
           </a-input>
           <a-button type="primary" @click="showCreateModelModal = true">新建模型</a-button>
           <!-- <a-button @click="forceRefreshData" :loading="loading">强制刷新</a-button> -->
@@ -118,6 +129,16 @@
       </template>
     </template>
       </a-table>
+      
+      <!-- No data message -->
+      <!-- <div v-if="showNoDataMessage" class="no-data-message">
+        <a-empty 
+          :description="noDataMessage"
+          :image="Empty.PRESENTED_IMAGE_SIMPLE"
+        >
+          <a-button type="primary" @click="clearSearch">清除搜索</a-button>
+        </a-empty>
+      </div> -->
     </div>
 
     <!-- Create Modal -->
@@ -240,9 +261,29 @@
               </a-form-item>
               <a-form-item style="flex: 1; margin-bottom: 0;">
                 <template #label>
+                  类型
+                </template>
+                <a-select v-model:value="field.fieldType" placeholder="请选择" style="width: 100%;">
+                  <a-select-option value="string">字符串</a-select-option>
+                  <a-select-option value="boolean">布尔</a-select-option>
+                  <a-select-option value="number">数字</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item style="flex: 1; margin-bottom: 0;">
+                <template #label>
                   值
                 </template>
-                <a-input placeholder="请输入" v-model:value="field.value" />
+                <a-input 
+                  v-if="field.fieldType !== 'boolean'" 
+                  placeholder="请输入" 
+                  v-model:value="field.value" 
+                />
+                <a-switch 
+                  v-else 
+                  v-model:checked="field.value" 
+                  :checked-children="'是'" 
+                  :un-checked-children="'否'"
+                />
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
@@ -274,9 +315,29 @@
               </a-form-item>
               <a-form-item style="flex: 1; margin-bottom: 0;">
                 <template #label>
+                  类型
+                </template>
+                <a-select v-model:value="field.fieldType" placeholder="请选择" style="width: 100%;">
+                  <a-select-option value="string">字符串</a-select-option>
+                  <a-select-option value="boolean">布尔</a-select-option>
+                  <a-select-option value="number">数字</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item style="flex: 1; margin-bottom: 0;">
+                <template #label>
                  值
                 </template>
-                <a-input placeholder="请输入" v-model:value="field.value" />
+                <a-input 
+                  v-if="field.fieldType !== 'boolean'" 
+                  placeholder="请输入" 
+                  v-model:value="field.value" 
+                />
+                <a-switch 
+                  v-else 
+                  v-model:checked="field.value" 
+                  :checked-children="'是'" 
+                  :un-checked-children="'否'"
+                />
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
@@ -412,9 +473,29 @@
               </a-form-item>
               <a-form-item required style="flex: 1; margin-bottom: 0;">
                 <template #label>
+                  类型
+                </template>
+                <a-select v-model:value="field.fieldType" placeholder="请选择" style="width: 100%;">
+                  <a-select-option value="string">字符串</a-select-option>
+                  <a-select-option value="boolean">布尔</a-select-option>
+                  <a-select-option value="number">数字</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item required style="flex: 1; margin-bottom: 0;">
+                <template #label>
                    值
                 </template>
-                <a-input placeholder="请输入" v-model:value="field.value" />
+                <a-input 
+                  v-if="field.fieldType !== 'boolean'" 
+                  placeholder="请输入" 
+                  v-model:value="field.value" 
+                />
+                <a-switch 
+                  v-else 
+                  v-model:checked="field.value" 
+                  :checked-children="'是'" 
+                  :un-checked-children="'否'"
+                />
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
@@ -445,9 +526,29 @@
               </a-form-item>
               <a-form-item required style="flex: 1; margin-bottom: 0;">
                 <template #label>
+                  类型
+                </template>
+                <a-select v-model:value="field.fieldType" placeholder="请选择" style="width: 100%;">
+                  <a-select-option value="string">字符串</a-select-option>
+                  <a-select-option value="boolean">布尔</a-select-option>
+                  <a-select-option value="number">数字</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item required style="flex: 1; margin-bottom: 0;">
+                <template #label>
                  值
                 </template>
-                <a-input placeholder="请输入" v-model:value="field.value" />
+                <a-input 
+                  v-if="field.fieldType !== 'boolean'" 
+                  placeholder="请输入" 
+                  v-model:value="field.value" 
+                />
+                <a-switch 
+                  v-else 
+                  v-model:checked="field.value" 
+                  :checked-children="'是'" 
+                  :un-checked-children="'否'"
+                />
               </a-form-item>
               <div style="display: flex; gap: 4px; margin-top: 24px;">
                 <PlusOutlined 
@@ -486,7 +587,8 @@ import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, PlusOutlined, MinusCircleOutlined, MinusOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import axios from 'axios'; // Added axios import
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { Empty } from 'ant-design-vue';
 import { 
   createColumnConfigs, 
   useTableColumns, 
@@ -494,6 +596,9 @@ import {
   type ColumnDefinition 
 } from '../utils/tableConfig';
 import { constructApiUrl } from '../utils/api';
+
+const route = useRoute();
+const router = useRouter();
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -525,6 +630,12 @@ interface DataItem {
   updateTime: string;
 }
 
+interface FieldItem {
+  fieldName: string;
+  fieldType: 'string' | 'boolean' | 'number';
+  value: string | boolean | number;
+}
+
 // Define column configuration separately from the table columns
 interface ColumnConfig {
   key: string;
@@ -536,7 +647,7 @@ interface ColumnConfig {
   sortDirections?: ('ascend' | 'descend')[];
   sortOrder?: 'ascend' | 'descend';
   defaultSortOrder?: 'ascend' | 'descend';
-  customCell?: (record: any, index: number) => { children: any };
+  customRender?: ({ index }: { index: number }) => any;
   className?: string;
 }
 
@@ -578,17 +689,13 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sorter: config.sorter,
     sortDirections: config.sortDirections,
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    customCell: (record: any, index: number) => {
+    customRender: ({ index, text }) => {
       if (config.key === 'rowIndex') {
-        // Calculate row number based on pagination and index parameter
-        const rowNumber = (currentPage.value - 1) * pageSize.value + index + 1;
-        return { children: rowNumber };
+        // Calculate row number based on pagination and index parameter (same as Account.vue)
+        return (currentPage.value - 1) * pageSize.value + index + 1;
       }
-      const text = record[config.dataIndex];
-      if (text === undefined || text === null || text === '') {
-        return { children: '-' };
-      }
-      return { children: text };
+      // Handle undefined/null/empty text for other columns (same as Account.vue)
+      return text === undefined || text === null || text === '' ? '-' : text;
     },
     className: config.className,
   })) as ColumnsType;
@@ -822,6 +929,19 @@ const totalFilteredData = computed(() => {
   }
 });
 
+// Computed property to show no data message
+const showNoDataMessage = computed(() => {
+  return searchInputValue.value && filteredData.value.length === 0;
+});
+
+// Computed property for no data message
+const noDataMessage = computed(() => {
+  if (searchInputValue.value && filteredData.value.length === 0) {
+    return `未找到包含 "${searchInputValue.value}" 的数据`;
+  }
+  return '';
+});
+
 // Computed property for paginated data
 const paginatedData = computed(() => {
   try {
@@ -919,26 +1039,54 @@ const tableSize = ref('middle');
 const showCreateModelModal = ref(false);
 const showEditModelModal = ref(false);
 
+// Function to clear search
+const clearSearch = () => {
+  searchInputValue.value = '';
+  currentPage.value = 1; // Reset to first page when clearing search
+};
+
 const handleMenuClick = ({ key }: { key: string }) => {
   tableSize.value = key;
 };
 
 // Arrays to manage field pairs
-const authFields = ref([{ fieldName: '', value: '' }]);
-const customFields = ref([{ fieldName: '', value: '' }]);
+const authFields = ref<FieldItem[]>([{ fieldName: '', fieldType: 'string', value: '' }]);
+const customFields = ref<FieldItem[]>([{ fieldName: '', fieldType: 'string', value: '' }]);
 
 // Functions to handle field pairs
 const addAuthField = () => {
-  authFields.value.push({ fieldName: '', value: '' });
+  authFields.value.push({ fieldName: '', fieldType: 'string', value: '' });
 };
+
+// Watch for field type changes to reset value appropriately
+watch(authFields, (newFields) => {
+  newFields.forEach(field => {
+    if (field.fieldType === 'boolean' && typeof field.value !== 'boolean') {
+      field.value = false;
+    } else if (field.fieldType !== 'boolean' && typeof field.value === 'boolean') {
+      field.value = '';
+    }
+  });
+}, { deep: true });
 
 const removeAuthField = (index: number) => {
   authFields.value.splice(index, 1);
 };
 
 const addCustomField = () => {
-  customFields.value.push({ fieldName: '', value: '' });
+  customFields.value.push({ fieldName: '', fieldType: 'string', value: '' });
 };
+
+// Watch for field type changes to reset value appropriately
+watch(customFields, (newFields) => {
+  newFields.forEach(field => {
+    if (field.fieldType === 'boolean' && typeof field.value !== 'boolean') {
+      field.value = false;
+    } else if (field.fieldType !== 'boolean' && typeof field.value === 'boolean') {
+      field.value = '';
+    }
+  });
+}, { deep: true });
 
 const removeCustomField = (index: number) => {
   customFields.value.splice(index, 1);
@@ -959,8 +1107,8 @@ const editForm = ref({
   billingUnit: '',
   unitCost: '',
   activeCollapseKeys: ['auth', 'custom'] as string[],
-  authFields: [{ fieldName: '', value: '' }],
-  customFields: [{ fieldName: '', value: '' }],
+  authFields: [{ fieldName: '', fieldType: 'string', value: '' }] as FieldItem[],
+  customFields: [{ fieldName: '', fieldType: 'string', value: '' }] as FieldItem[],
 });
 
 const handleEditModelTypeChange = (val: any) => {
@@ -968,16 +1116,38 @@ const handleEditModelTypeChange = (val: any) => {
 };
 
 const addEditAuthField = () => {
-  editForm.value.authFields.push({ fieldName: '', value: '' });
+  editForm.value.authFields.push({ fieldName: '', fieldType: 'string', value: '' });
 };
+
+// Watch for edit form field type changes to reset value appropriately
+watch(() => editForm.value.authFields, (newFields) => {
+  newFields.forEach(field => {
+    if (field.fieldType === 'boolean' && typeof field.value !== 'boolean') {
+      field.value = false;
+    } else if (field.fieldType !== 'boolean' && typeof field.value === 'boolean') {
+      field.value = '';
+    }
+  });
+}, { deep: true });
 
 const removeEditAuthField = (index: number) => {
   editForm.value.authFields.splice(index, 1);
 };
 
 const addEditCustomField = () => {
-  editForm.value.customFields.push({ fieldName: '', value: '' });
+  editForm.value.customFields.push({ fieldName: '', fieldType: 'string', value: '' });
 };
+
+// Watch for edit form custom field type changes to reset value appropriately
+watch(() => editForm.value.customFields, (newFields) => {
+  newFields.forEach(field => {
+    if (field.fieldType === 'boolean' && typeof field.value !== 'boolean') {
+      field.value = false;
+    } else if (field.fieldType !== 'boolean' && typeof field.value === 'boolean') {
+      field.value = '';
+    }
+  });
+}, { deep: true });
 
 const removeEditCustomField = (index: number) => {
   editForm.value.customFields.splice(index, 1);
@@ -1024,6 +1194,21 @@ watch(() => editForm.value.accessType, (newValue) => {
     editForm.value.activeCollapseKeys = ['auth', 'custom'];
   } else {
     editForm.value.activeCollapseKeys = [];
+  }
+});
+
+// Watch for route query changes to update search input
+watch(() => route.query.search, (newSearch) => {
+  if (newSearch) {
+    searchInputValue.value = newSearch as string;
+    console.log('Search parameter updated from route:', newSearch);
+  }
+});
+
+// Watch for search input changes to reset pagination
+watch(searchInputValue, (newValue) => {
+  if (newValue !== undefined) {
+    currentPage.value = 1; // Reset to first page when search changes
   }
 });
 
@@ -1106,10 +1291,15 @@ const handleConfirmCreate = async () => {
   // Validate auth fields
   for (let i = 0; i < authFields.value.length; i++) {
     const field = authFields.value[i];
-    if (field.fieldName && field.value) {
+    if (field.fieldName && field.value !== undefined && field.value !== '') {
       // If both field name and value are provided, they should be valid
-      if (!field.fieldName.trim() || !field.value.trim()) {
-        message.error('认证信息字段名和值不能为空');
+      if (!field.fieldName.trim()) {
+        message.error('认证信息字段名不能为空');
+        return;
+      }
+      // For boolean fields, value can be false (which is valid)
+      if (field.fieldType !== 'boolean' && (!field.value || field.value.toString().trim() === '')) {
+        message.error('认证信息字段值不能为空');
         return;
       }
     }
@@ -1119,14 +1309,30 @@ const handleConfirmCreate = async () => {
   // Validate custom fields
   for (let i = 0; i < customFields.value.length; i++) {
     const field = customFields.value[i];
-    if (field.fieldName && field.value) {
+    if (field.fieldName && field.value !== undefined && field.value !== '') {
       // If both field name and value are provided, they should be valid
-      if (!field.fieldName.trim() || !field.value.trim()) {
-        message.error('自定义参数字段名和值不能为空');
+      if (!field.fieldName.trim()) {
+        message.error('自定义参数字段名不能为空');
+        return;
+      }
+      // For boolean fields, value can be false (which is valid)
+      if (field.fieldType !== 'boolean' && (!field.value || field.value.toString().trim() === '')) {
+        message.error('自定义参数字段值不能为空');
         return;
       }
     }
     // If either field name or value is empty, that's fine (optional fields)
+  }
+
+  // Check for duplicate modelType + modelName combination
+  const existingModel = rawData.value.find(item => 
+    item.modelType === selectedModelType.value && 
+    item.modelName === modelName.value
+  );
+  
+  if (existingModel) {
+    message.error(`模型类型 "${selectedModelType.value}" 下已存在名为 "${modelName.value}" 的模型，请使用不同的名称`);
+    return;
   }
 
   try {
@@ -1201,8 +1407,8 @@ const resetCreateForm = () => {
   billingUnit.value = '';
   unitCost.value = '';
   activeCollapseKeys.value = [];
-  authFields.value = [{ fieldName: '', value: '' }];
-  customFields.value = [{ fieldName: '', value: '' }];
+  authFields.value = [{ fieldName: '', fieldType: 'string', value: '' }] as FieldItem[];
+  customFields.value = [{ fieldName: '', fieldType: 'string', value: '' }] as FieldItem[];
 };
 
 const resetEditForm = () => {
@@ -1219,8 +1425,8 @@ const resetEditForm = () => {
   editForm.value.billingUnit = '';
   editForm.value.unitCost = '';
   editForm.value.activeCollapseKeys = ['auth', 'custom'];
-  editForm.value.authFields = [{ fieldName: '', value: '' }];
-  editForm.value.customFields = [{ fieldName: '', value: '' }];
+  editForm.value.authFields = [{ fieldName: '', fieldType: 'string', value: '' }] as FieldItem[];
+  editForm.value.customFields = [{ fieldName: '', fieldType: 'string', value: '' }] as FieldItem[];
 };
 
 // Watch for access type changes to control collapse state
@@ -1346,6 +1552,12 @@ onMounted(() => {
     isAuthenticated: authStore.isAuthenticated(),
     token: authStore.token
   });
+  
+  // Handle search parameter from URL
+  if (route.query.search) {
+    searchInputValue.value = route.query.search as string;
+    console.log('Search parameter from URL:', route.query.search);
+  }
   
   // Set a test user if not authenticated
   if (!authStore.isAuthenticated()) {
@@ -1594,5 +1806,23 @@ html, body {
 .column-checkbox-item .ant-checkbox-wrapper {
   font-size: 13px;
   color: #555;
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin: 20px 0;
+}
+
+.no-data-message .ant-empty {
+  margin: 0;
+}
+
+.no-data-message .ant-empty-description {
+  color: #666;
+  font-size: 14px;
 }
 </style> 

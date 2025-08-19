@@ -55,7 +55,8 @@
           </template>
         </a-input>
         <a-button type="primary" @click="handleCreateAgentClick">新建Agent</a-button>
-        <a-tooltip title="刷新Agent数据和模型配置数据">
+        <ReloadOutlined @click="onRefresh" />
+        <!-- <a-tooltip title="刷新Agent数据和模型配置数据">
           <ReloadOutlined @click="onRefresh" />
         </a-tooltip>
         <a-tooltip title="仅刷新模型配置数据">
@@ -63,7 +64,7 @@
         </a-tooltip>
         <a-tooltip title="测试模型数据获取">
           <a-button size="small" type="dashed" @click="testModelDataFetch">测试数据</a-button>
-        </a-tooltip>
+        </a-tooltip> -->
         <a-dropdown>
           <ColumnHeightOutlined @click.prevent />
           <template #overlay>
@@ -232,7 +233,7 @@
 
         <!-- 11. 语音合成模型 (必选) -->
         <a-form-item label="语音合成模型" name="speechSynthesisType" required>
-          <a-radio-group v-model:value="createForm.speechSynthesisType">
+          <a-radio-group v-model:value="createForm.speechSynthesisType" @change="handleSpeechSynthesisTypeChange">
             <a-radio value="TTS">TTS</a-radio>
             <a-radio value="音色复刻">音色复刻</a-radio>
           </a-radio-group>
@@ -240,7 +241,7 @@
 
         <!-- 12. TTS名称 (必选) - Conditional for TTS -->
         <a-form-item v-if="createForm.speechSynthesisType === 'TTS'" label="TTS名称" name="ttsName" required>
-          <a-select v-model:value="createForm.ttsName" placeholder="请选择" show-search>
+          <a-select v-model:value="createForm.ttsName" placeholder="请选择" show-search @change="handleTtsNameChange">
             <a-select-option v-for="tts in ttsOptions" :key="tts" :value="tts">{{ tts }}</a-select-option>
           </a-select>
         </a-form-item>
@@ -254,7 +255,7 @@
 
         <!-- 14. IP VCM名称 (必选) - Conditional for 音色复刻 -->
         <a-form-item v-if="createForm.speechSynthesisType === '音色复刻'" label="IP VCM名称" name="ipVcmName" required>
-          <a-select v-model:value="createForm.ipVcmName" placeholder="请选择" show-search>
+          <a-select v-model:value="createForm.ipVcmName" placeholder="请选择" show-search @change="handleIpVcmNameChange">
             <a-select-option v-for="ipvcm in ipVcmOptions" :key="ipvcm" :value="ipvcm">{{ ipvcm }}</a-select-option>
           </a-select>
         </a-form-item>
@@ -284,7 +285,7 @@
     >
       <a-form
         :model="editForm"
-        :rules="createFormRules"
+        :rules="editFormRules"
         layout="vertical"
         ref="editFormRef"
       >
@@ -292,42 +293,31 @@
           <a-input v-model:value="editForm.agentName" placeholder="请输入" />
         </a-form-item>
 
+        <a-form-item label="IP名称" name="ipName">
+          <a-input v-model:value="editForm.ipName" placeholder="请输入" />
+        </a-form-item>
+
         <a-form-item label="VAD" name="vad" required>
-          <a-select v-model:value="editForm.vadName" placeholder="请选择">
-            <a-select-option value="VAD类型">VAD类型</a-select-option>
-            <a-select-option value="静音检测">静音检测</a-select-option>
-            <a-select-option value="语音活动检测">语音活动检测</a-select-option>
+          <a-select v-model:value="editForm.vadName" placeholder="请选择" show-search>
+            <a-select-option v-for="vad in vadOptions" :key="vad" :value="vad">{{ vad }}</a-select-option>
           </a-select>
         </a-form-item>
 
         <a-form-item label="ASR" name="asr" required>
-          <a-select v-model:value="editForm.asrName" placeholder="请选择">
-            <a-select-option value="ASR类型">ASR类型</a-select-option>
-            <a-select-option value="蓝色语音ASR">蓝色语音ASR</a-select-option>
-            <a-select-option value="百度ASR">百度ASR</a-select-option>
-            <a-select-option value="讯飞ASR">讯飞ASR</a-select-option>
-            <a-select-option value="阿里ASR">阿里ASR</a-select-option>
+          <a-select v-model:value="editForm.asrName" placeholder="请选择" show-search>
+            <a-select-option v-for="asr in asrOptions" :key="asr" :value="asr">{{ asr }}</a-select-option>
           </a-select>
         </a-form-item>
 
         <a-form-item label="意图识别" name="intentRecognition">
-          <a-select v-model:value="editForm.intelligentAgentName" placeholder="请选择">
-            <a-select-option value="智能意图识别">智能意图识别</a-select-option>
-            <a-select-option value="16路意图识别">16路意图识别</a-select-option>
-            <a-select-option value="8路意图识别">8路意图识别</a-select-option>
-            <a-select-option value="4路意图识别">4路意图识别</a-select-option>
-            <a-select-option value="单路意图识别">单路意图识别</a-select-option>
+          <a-select v-model:value="editForm.intelligentAgentName" placeholder="请选择" show-search>
+            <a-select-option v-for="agent in intelligentAgentOptions" :key="agent" :value="agent">{{ agent }}</a-select-option>
           </a-select>
         </a-form-item>
 
         <a-form-item label="LLM" name="llm">
-          <a-select v-model:value="editForm.llmName" placeholder="请选择">
-            <a-select-option value="LLM">LLM</a-select-option>
-            <a-select-option value="Deep Seek R1">Deep Seek R1</a-select-option>
-            <a-select-option value="GPT-4">GPT-4</a-select-option>
-            <a-select-option value="Claude">Claude</a-select-option>
-            <a-select-option value="Gemini">Gemini</a-select-option>
-            <a-select-option value="文心一言">文心一言</a-select-option>
+          <a-select v-model:value="editForm.llmName" placeholder="请选择" show-search>
+            <a-select-option v-for="llm in llmOptions" :key="llm" :value="llm">{{ llm }}</a-select-option>
           </a-select>
         </a-form-item>
 
@@ -335,18 +325,26 @@
           <a-textarea v-model:value="editForm.prompt" placeholder="请输入" :rows="3" />
         </a-form-item>
 
+        <a-form-item label="工具" name="tools">
+          <a-select v-model:value="editForm.tools" placeholder="请选择" mode="multiple" show-search>
+            <a-select-option value="Bing">Bing</a-select-option>
+            <a-select-option value="RAG">RAG</a-select-option>
+            <a-select-option value="天气查询">天气查询</a-select-option>
+            <a-select-option value="bing, RAG, ...">bing, RAG, ...</a-select-option>
+            <a-select-option value="bing, 搜索">bing, 搜索</a-select-option>
+            <a-select-option value="RAG, 知识库">RAG, 知识库</a-select-option>
+            <a-select-option value="bing, RAG, 搜索">bing, RAG, 搜索</a-select-option>
+          </a-select>
+        </a-form-item>
+
         <a-form-item label="Memory" name="memory">
-          <a-select v-model:value="editForm.memoryName" placeholder="请选择">
-            <a-select-option value="Memory0">Memory0</a-select-option>
-            <a-select-option value="Memory 0">Memory 0</a-select-option>
-            <a-select-option value="Memory 1">Memory 1</a-select-option>
-            <a-select-option value="Memory 2">Memory 2</a-select-option>
-            <a-select-option value="Memory 3">Memory 3</a-select-option>
+          <a-select v-model:value="editForm.memoryName" placeholder="请选择" show-search>
+            <a-select-option v-for="memory in memoryOptions" :key="memory" :value="memory">{{ memory }}</a-select-option>
           </a-select>
         </a-form-item>
 
         <a-form-item label="工具" name="tools">
-          <a-select v-model:value="editForm.tools" placeholder="请选择" mode="multiple">
+          <a-select v-model:value="editForm.tools" placeholder="请选择" mode="multiple" show-search>
             <a-select-option value="Bing">Bing</a-select-option>
             <a-select-option value="RAG">RAG</a-select-option>
             <a-select-option value="天气查询">天气查询</a-select-option>
@@ -358,39 +356,33 @@
         </a-form-item>
 
         <a-form-item label="语音合成类型" name="speechSynthesisType" required>
-          <a-radio-group v-model:value="editForm.speechSynthesisType">
+          <a-radio-group v-model:value="editForm.speechSynthesisType" @change="handleEditSpeechSynthesisTypeChange">
             <a-radio value="TTS">TTS</a-radio>
-            <a-radio value="自定义识别">自定义识别</a-radio>
+            <a-radio value="音色复刻">音色复刻</a-radio>
           </a-radio-group>
         </a-form-item>
 
         <a-form-item v-if="editForm.speechSynthesisType === 'TTS'" label="TTS" name="tts" required>
-          <a-select v-model:value="editForm.ttsName" placeholder="请选择">
-            <a-select-option value="TTS">TTS</a-select-option>
-            <a-select-option value="微软TTS">微软TTS</a-select-option>
-            <a-select-option value="阿里TTS">阿里TTS</a-select-option>
-            <a-select-option value="讯飞TTS">讯飞TTS</a-select-option>
+          <a-select v-model:value="editForm.ttsName" placeholder="请选择" show-search @change="handleEditTtsNameChange">
+            <a-select-option v-for="tts in ttsOptions" :key="tts" :value="tts">{{ tts }}</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item v-if="editForm.speechSynthesisType === '自定义识别'" label="IP VCM" name="ipVcm" required>
-          <a-select v-model:value="editForm.ipVcmName" placeholder="请选择">
-            <a-select-option value="IP VCM">IP VCM</a-select-option>
-            <a-select-option value="蓝色意图识别">蓝色意图识别</a-select-option>
-            <a-select-option value="百度VCM">百度VCM</a-select-option>
-            <a-select-option value="讯飞VCM">讯飞VCM</a-select-option>
-            <a-select-option value="阿里VCM">阿里VCM</a-select-option>
+        <a-form-item v-if="editForm.speechSynthesisType === 'TTS'" label="TTS音色选择" name="ttsVoiceSelection" required>
+          <a-select v-model:value="editForm.ttsVoiceSelection" placeholder="请选择" show-search>
+            <a-select-option v-for="voice in ttsVoiceOptions" :key="voice" :value="voice">{{ voice }}</a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="角色选择" name="roleSelection" required>
-          <a-select v-model:value="editForm.roleSelection" placeholder="请选择">
-            <a-select-option value="000 台湾小美">000 台湾小美</a-select-option>
-            <a-select-option value="000300200009 智联">000300200009 智联</a-select-option>
-            <a-select-option value="小智">小智</a-select-option>
-            <a-select-option value="小爱">小爱</a-select-option>
-            <a-select-option value="小度">小度</a-select-option>
-            <a-select-option value="嘿嘿">嘿嘿</a-select-option>
+        <a-form-item v-if="editForm.speechSynthesisType === '音色复刻'" label="IP VCM名称" name="ipVcm" required>
+          <a-select v-model:value="editForm.ipVcmName" placeholder="请选择" show-search @change="handleEditIpVcmNameChange">
+            <a-select-option v-for="ipvcm in ipVcmOptions" :key="ipvcm" :value="ipvcm">{{ ipvcm }}</a-select-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item v-if="editForm.speechSynthesisType === '音色复刻'" label="IP VCM音色选择" name="ipVcmVoiceSelection" required>
+          <a-select v-model:value="editForm.ipVcmVoiceSelection" placeholder="请选择" show-search>
+            <a-select-option v-for="voice in ipVcmVoiceOptions" :key="voice" :value="voice">{{ voice }}</a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -681,7 +673,9 @@ const tableSize = ref('middle');
 const showCreateAgentModal = ref(false);
 const showEditAgentModal = ref(false);
 const editForm = ref({
+  id: 0, // Add ID field to identify which record to update
   agentName: '',
+  ipName: '', // Add IP name field
   vad: '',
   asr: '',
   intentRecognition: '',
@@ -699,7 +693,9 @@ const editForm = ref({
   llmName: '',
   memoryName: '',
   ttsName: '',
-  ipVcmName: ''
+  ipVcmName: '',
+  ttsVoiceSelection: '',
+  ipVcmVoiceSelection: ''
 });
 
 const editFormRef = ref();
@@ -723,6 +719,9 @@ const createForm = ref({
   ipVcmVoiceSelection: ''
 });
 
+// Model configuration data
+const modelConfigurationData = ref<any[]>([]);
+
 // Model options arrays (dynamically populated from model configuration data)
 const vadOptions = ref<string[]>([]);
 const asrOptions = ref<string[]>([]);
@@ -733,6 +732,176 @@ const ttsOptions = ref<string[]>([]);
 const ttsVoiceOptions = ref<string[]>([]);
 const ipVcmOptions = ref<string[]>([]);
 const ipVcmVoiceOptions = ref<string[]>([]);
+
+// Function to populate TTS voice options based on selected TTS model
+const populateTtsVoiceOptions = (selectedTtsName: string) => {
+  try {
+    console.log('=== populateTtsVoiceOptions START ===');
+    console.log('Selected TTS Name:', selectedTtsName);
+    
+    // Clear existing TTS voice options
+    ttsVoiceOptions.value = [];
+    
+    if (!selectedTtsName) {
+      console.log('No TTS name selected, clearing voice options');
+      return;
+    }
+    
+    // Find the TTS model in the model configuration data
+    const ttsModel = modelConfigurationData.value.find((model: any) => 
+      model.modelType?.toLowerCase() === 'tts' && 
+      model.modelName === selectedTtsName
+    );
+    
+    if (ttsModel) {
+      console.log('Found TTS model:', ttsModel);
+      
+      // Extract voice information from the TTS model
+      // Only get the voice name (versionNumber), not the voice ID (containerId)
+      if (ttsModel.versionNumber) {
+        ttsVoiceOptions.value.push(ttsModel.versionNumber);
+        console.log('✅ Added TTS voice option from versionNumber:', ttsModel.versionNumber);
+      }
+      
+      // If no specific voice data found, add default options
+      if (ttsVoiceOptions.value.length === 0) {
+        ttsVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
+        console.log('⚠️ No specific voice data found, added default options');
+      }
+    } else {
+      console.log('❌ TTS model not found for:', selectedTtsName);
+      // Add default options if model not found
+      ttsVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
+    }
+    
+    console.log('Final TTS voice options:', ttsVoiceOptions.value);
+    console.log('=== populateTtsVoiceOptions END ===');
+  } catch (error) {
+    console.error('❌ Error populating TTS voice options:', error);
+    // Fallback to default options
+    ttsVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
+  }
+};
+
+// Function to populate IP VCM voice options based on selected IP VCM model
+const populateIpVcmVoiceOptions = (selectedIpVcmName: string) => {
+  try {
+    console.log('=== populateIpVcmVoiceOptions START ===');
+    console.log('Selected IP VCM Name:', selectedIpVcmName);
+    
+    // Clear existing IP VCM voice options
+    ipVcmVoiceOptions.value = [];
+    
+    if (!selectedIpVcmName) {
+      console.log('No IP VCM name selected, clearing voice options');
+      return;
+    }
+    
+    // Find the IP VCM model in the model configuration data
+    const ipVcmModel = modelConfigurationData.value.find((model: any) => 
+      (model.modelType?.toLowerCase() === 'ip vcm' || 
+       model.modelType?.toLowerCase() === 'user vcm' || 
+       model.modelType?.toLowerCase() === 'system vcm') && 
+      model.modelName === selectedIpVcmName
+    );
+    
+    if (ipVcmModel) {
+      console.log('Found IP VCM model:', ipVcmModel);
+      
+      // Extract voice information from the IP VCM model
+      // Only get the voice name (versionNumber), not the voice ID (containerId)
+      if (ipVcmModel.versionNumber) {
+        ipVcmVoiceOptions.value.push(ipVcmModel.versionNumber);
+        console.log('✅ Added IP VCM voice option from versionNumber:', ipVcmModel.versionNumber);
+      }
+      
+      // If no specific voice data found, add default options
+      if (ipVcmVoiceOptions.value.length === 0) {
+        ipVcmVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
+        console.log('⚠️ No specific voice data found, added default options');
+      }
+    } else {
+      console.log('❌ IP VCM model not found for:', selectedIpVcmName);
+      // Add default options if model not found
+      ipVcmVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
+    }
+    
+    console.log('Final IP VCM voice options:', ipVcmVoiceOptions.value);
+    console.log('=== populateIpVcmVoiceOptions END ===');
+  } catch (error) {
+    console.error('❌ Error populating IP VCM voice options:', error);
+    // Fallback to default options
+    ipVcmVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
+  }
+};
+
+// Event handlers for TTS and IP VCM name changes
+const handleTtsNameChange = (value: string) => {
+  console.log('TTS name changed to:', value);
+  // Clear the previously selected TTS voice
+  createForm.value.ttsVoiceSelection = '';
+  // Populate voice options based on selected TTS
+  populateTtsVoiceOptions(value);
+};
+
+const handleIpVcmNameChange = (value: string) => {
+  console.log('IP VCM name changed to:', value);
+  // Clear the previously selected IP VCM voice
+  createForm.value.ipVcmVoiceSelection = '';
+  // Populate voice options based on selected IP VCM
+  populateIpVcmVoiceOptions(value);
+};
+
+// Edit form event handlers
+const handleEditSpeechSynthesisTypeChange = (e: any) => {
+  const value = e.target.value;
+  console.log('Edit form speech synthesis type changed to:', value);
+  
+  // Clear voice selections when type changes
+  editForm.value.ttsVoiceSelection = '';
+  editForm.value.ipVcmVoiceSelection = '';
+  
+  // Clear voice options
+  ttsVoiceOptions.value = [];
+  ipVcmVoiceOptions.value = [];
+  
+  // Clear model selections
+  editForm.value.ttsName = '';
+  editForm.value.ipVcmName = '';
+};
+
+const handleEditTtsNameChange = (value: string) => {
+  console.log('Edit form TTS name changed to:', value);
+  // Clear the previously selected TTS voice
+  editForm.value.ttsVoiceSelection = '';
+  // Populate voice options based on selected TTS
+  populateTtsVoiceOptions(value);
+};
+
+const handleEditIpVcmNameChange = (value: string) => {
+  console.log('Edit form IP VCM name changed to:', value);
+  // Clear the previously selected IP VCM voice
+  editForm.value.ipVcmVoiceSelection = '';
+  // Populate voice options based on selected IP VCM
+  populateIpVcmVoiceOptions(value);
+};
+
+const handleSpeechSynthesisTypeChange = (e: any) => {
+  const value = e.target.value;
+  console.log('Speech synthesis type changed to:', value);
+  
+  // Clear voice selections when type changes
+  createForm.value.ttsVoiceSelection = '';
+  createForm.value.ipVcmVoiceSelection = '';
+  
+  // Clear voice options
+  ttsVoiceOptions.value = [];
+  ipVcmVoiceOptions.value = [];
+  
+  // Clear model selections
+  createForm.value.ttsName = '';
+  createForm.value.ipVcmName = '';
+};
 
 // Function to populate options from model configuration data
 const populateOptionsFromModels = (models: any[]) => {
@@ -828,9 +997,9 @@ const populateOptionsFromModels = (models: any[]) => {
       console.log('⚠️ No VCM models found, added default');
     }
     
-    // Voice options remain static as they are configuration options
-    ttsVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
-    ipVcmVoiceOptions.value = ['默认音色', '女声音色', '男声音色', '童声音色', '老年音色'];
+    // Voice options will be populated dynamically based on selected TTS/IP VCM models
+ttsVoiceOptions.value = [];
+ipVcmVoiceOptions.value = [];
     
     console.log('Final options populated:', {
       vad: vadOptions.value,
@@ -869,8 +1038,11 @@ const fetchModelData = async () => {
       console.log('All model types found:', response.data.data.map((m: any) => m.modelType));
       console.log('Unique model types:', [...new Set(response.data.data.map((m: any) => m.modelType))]);
       
+      // Store model configuration data for voice options lookup
+      modelConfigurationData.value = response.data.data;
+      
       populateOptionsFromModels(response.data.data);
-      message.success('模型配置数据已更新');
+      // message.success('模型配置数据已更新');
     } else {
       console.warn('Model data response structure unexpected:', response.data);
       console.log('Response structure:', {
@@ -940,6 +1112,22 @@ const createFormRules = {
   ipVcmVoiceSelection: [{ required: true, message: '请选择IP VCM音色', trigger: 'blur' }]
 };
 
+// Edit form validation rules (same as create form for now)
+const editFormRules = {
+  agentName: [
+    { required: true, message: '请输入Agent名称', trigger: 'blur' },
+    { max: 15, message: 'Agent名称不能超过15个字符', trigger: 'blur' }
+  ],
+  ipName: [{ required: false, message: '请输入IP名称', trigger: 'blur' }],
+  vadName: [{ required: true, message: '请选择VAD名称', trigger: 'blur' }],
+  asrName: [{ required: true, message: '请选择ASR名称', trigger: 'blur' }],
+  speechSynthesisType: [{ required: true, message: '请选择语音合成模型', trigger: 'blur' }],
+  ttsName: [{ required: true, message: '请选择TTS名称', trigger: 'blur' }],
+  ttsVoiceSelection: [{ required: true, message: '请选择TTS音色', trigger: 'blur' }],
+  ipVcmName: [{ required: true, message: '请选择IP VCM名称', trigger: 'blur' }],
+  ipVcmVoiceSelection: [{ required: true, message: '请选择IP VCM音色', trigger: 'blur' }]
+};
+
 // Import auth store for dynamic username
 import { useAuthStore } from '../stores/auth';
 
@@ -991,6 +1179,10 @@ const handleCreateModalCancel = () => {
     ipVcmName: '',
     ipVcmVoiceSelection: ''
   };
+  
+  // Clear voice options
+  ttsVoiceOptions.value = [];
+  ipVcmVoiceOptions.value = [];
 };
 
 const handleCreateAgent = async () => {
@@ -1084,9 +1276,18 @@ const handleCreateAgentClick = () => {
 
 const handleEditAgent = (record: DataItem) => {
   console.log('Edit Agent clicked for record:', record);
+  
+  // Determine speech synthesis type based on data
+  let speechSynthesisType = 'TTS';
+  if (record.ipVcm && record.ipVcm !== '-' && record.ipVcm !== '') {
+    speechSynthesisType = '音色复刻';
+  }
+  
   // Pre-fill the form with data from the selected row
   editForm.value = {
+    id: record.id, // Set the record ID for API update
     agentName: record.agentName,
+    ipName: record.ipName || 'IP1', // Set IP name from record
     vad: record.vad,
     asr: record.asr,
     intentRecognition: record.intentRecognition,
@@ -1094,7 +1295,7 @@ const handleEditAgent = (record: DataItem) => {
     prompt: '您好，我是智能多模态情感分析产品，我可以为您提供情感分析服务。', // Default prompt
     memory: record.memory,
     tools: record.tools,
-    speechSynthesisType: record.tts ? 'TTS' : '自定义识别',
+    speechSynthesisType: speechSynthesisType,
     tts: record.tts || '',
     ipVcm: record.ipVcm || '',
     roleSelection: record.ttsCombinationName || record.vcmCombinationName || '',
@@ -1104,27 +1305,145 @@ const handleEditAgent = (record: DataItem) => {
     llmName: record.llm,
     memoryName: record.memory,
     ttsName: record.tts || '',
-    ipVcmName: record.ipVcm || ''
+    ipVcmName: record.ipVcm || '',
+    ttsVoiceSelection: record.ttsCombinationName || '',
+    ipVcmVoiceSelection: record.vcmCombinationName || ''
   };
+  
   showEditAgentModal.value = true;
+  
   // Fetch latest model data when opening the edit modal to ensure options are up-to-date
   fetchModelData();
+  
+  // Populate voice options based on selected models
+  if (speechSynthesisType === 'TTS' && record.tts) {
+    populateTtsVoiceOptions(record.tts);
+  } else if (speechSynthesisType === '音色复刻' && record.ipVcm) {
+    populateIpVcmVoiceOptions(record.ipVcm);
+  }
 };
 
 const handleEditModalCancel = () => {
   showEditAgentModal.value = false;
   editFormRef.value?.resetFields();
+  
+  // Reset edit form data
+  editForm.value = {
+    id: 0,
+    agentName: '',
+    ipName: '',
+    vad: '',
+    asr: '',
+    intentRecognition: '',
+    llm: '',
+    prompt: '',
+    memory: '',
+    tools: '',
+    speechSynthesisType: 'TTS',
+    tts: '',
+    ipVcm: '',
+    roleSelection: '',
+    vadName: '',
+    asrName: '',
+    intelligentAgentName: '',
+    llmName: '',
+    memoryName: '',
+    ttsName: '',
+    ipVcmName: '',
+    ttsVoiceSelection: '',
+    ipVcmVoiceSelection: ''
+  };
+  
+  // Clear voice options
+  ttsVoiceOptions.value = [];
+  ipVcmVoiceOptions.value = [];
 };
 
 const handleEditAgentSubmit = async () => {
+  console.log('=== handleEditAgentSubmit called ===');
+  console.log('Edit form data:', editForm.value);
+  
   try {
     await editFormRef.value?.validate();
-    console.log('Edit agent form data:', editForm.value);
-    // Here you would typically send the updated data to your API
-    showEditAgentModal.value = false;
-    editFormRef.value?.resetFields();
-  } catch (error) {
-    console.error('Form validation failed:', error);
+    console.log('Form validation passed');
+    
+    // Additional validation for conditional fields
+    if (editForm.value.speechSynthesisType === 'TTS') {
+      if (!editForm.value.ttsName) {
+        message.error('请选择TTS名称');
+        return;
+      }
+      if (!editForm.value.ttsVoiceSelection) {
+        message.error('请选择TTS音色');
+        return;
+      }
+    } else if (editForm.value.speechSynthesisType === '音色复刻') {
+      if (!editForm.value.ipVcmName) {
+        message.error('请选择IP VCM名称');
+        return;
+      }
+      if (!editForm.value.ipVcmVoiceSelection) {
+        message.error('请选择IP VCM音色');
+        return;
+      }
+    }
+    
+    // Get dynamic username from auth store
+    const dynamicUsername = authStore.user?.name || authStore.user?.username || 'admin';
+    console.log('Dynamic username:', dynamicUsername);
+    
+    // Prepare data for API submission - match backend field names
+    const agentData = {
+      agentName: editForm.value.agentName,
+      ipName: editForm.value.ipName || 'IP1', // Default IP name if not set
+      vad: editForm.value.vadName,
+      asr: editForm.value.asrName,
+      intentRecognition: editForm.value.intelligentAgentName,
+      knowledgeBase: editForm.value.intelligentAgentName, // Use same value as intentRecognition
+      llm: editForm.value.llmName,
+      memory: editForm.value.memoryName,
+      tools: editForm.value.tools,
+      tts: editForm.value.speechSynthesisType === 'TTS' ? editForm.value.ttsName : '',
+      ttsCombinationName: editForm.value.speechSynthesisType === 'TTS' ? editForm.value.ttsVoiceSelection : '',
+      ipVcm: editForm.value.speechSynthesisType === '音色复刻' ? editForm.value.ipVcmName : '',
+      vcmCombinationName: editForm.value.speechSynthesisType === '音色复刻' ? editForm.value.ipVcmVoiceSelection : '',
+      updater: dynamicUsername
+    };
+    
+    console.log('=== EDIT FORM DATA MAPPING ===');
+    console.log('Original editForm values:', editForm.value);
+    console.log('Mapped agentData for API:', agentData);
+    console.log('=== END MAPPING ===');
+    
+    console.log('Agent data to submit for edit:', agentData);
+    
+    // Make API call to update the agent configuration
+    console.log('Making PUT request to:', `${API_BASE_URL}/agent-configuration/${editForm.value.id}`);
+    console.log('Request data:', agentData);
+    
+    const response = await axios.put(`${API_BASE_URL}/agent-configuration/${editForm.value.id}`, agentData);
+    
+    console.log('API response:', response);
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+    
+    if (response.data.success) {
+      message.success('Agent编辑成功！');
+      showEditAgentModal.value = false;
+      editFormRef.value?.resetFields();
+      
+      // Refresh the table data
+      fetchData();
+    } else {
+      message.error('编辑失败: ' + (response.data.error || '未知错误'));
+    }
+    
+  } catch (error: any) {
+    console.error('=== EDIT AGENT ERROR ===');
+    console.error('Error editing agent:', error);
+    console.error('Error response:', error.response);
+    console.error('Error message:', error.message);
+    message.error('编辑失败: ' + (error.response?.data?.error || error.message || '未知错误'));
   }
 };
 
