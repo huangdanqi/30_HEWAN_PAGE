@@ -442,7 +442,7 @@ const handleSubmit = async () => {
       deviceModel: formState.deviceModel,
       releaseType: formState.releaseType,
       releaseVersion: releaseVersionMap[formState.releaseType] || formState.releaseType,
-      contentDescription: formState.contentDescription,
+      description: formState.contentDescription, // Changed from contentDescription to description
       versionNumber: generatedVersion.value,
       fileAddress: fileAddress,
       creator: props.currentUsername, // Use current username

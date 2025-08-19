@@ -345,6 +345,23 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
         }
         return '-';
       };
+    } else if (config.key === 'releaseVersion') {
+      // Handle releaseVersion column to show Chinese labels
+      column.customRender = ({ text }: { text: any }) => {
+        if (!text) return '-';
+        
+        // Map English values to Chinese labels
+        const versionMap: Record<string, string> = {
+          'major': '主版本',
+          'minor': '子版本',
+          'revision': '修订版',
+          '主版本': '主版本',
+          '子版本': '子版本',
+          '修订版': '修订版'
+        };
+        
+        return versionMap[text] || text;
+      };
     } else if (config.key !== 'operation') {
       // Use customRender for other columns that need custom rendering (except operation)
       column.customRender = ({ text }: { text: any }) => (text === undefined || text === null || text === '' ? '-' : text);
