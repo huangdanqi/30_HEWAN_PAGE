@@ -448,9 +448,21 @@ router.post('/', async (req, res) => {
     }
 
     console.log('Executing INSERT query...');
+    console.log('Final INSERT values being sent to database:', [
+      deviceModel, 
+      mappedReleaseVersion, 
+      versionNumber, 
+      mappedDescription, 
+      fileAddress || 'https://example.com/firmware.bin', 
+      creator
+    ]);
+    console.log('Creator value being inserted:', creator);
+    console.log('Creator type:', typeof creator);
+    console.log('Creator length:', creator ? creator.length : 'undefined');
+    
     const [result] = await pool.execute(
       'INSERT INTO firmware (device_model, release_version, version_number, description, file_address, creator) VALUES (?, ?, ?, ?, ?, ?)',
-      [deviceModel, mappedReleaseVersion, versionNumber, mappedDescription, fileAddress || 'https://example.com/firmware.bin', creator || '管理员']
+      [deviceModel, mappedReleaseVersion, versionNumber, mappedDescription, fileAddress || 'https://example.com/firmware.bin', creator]
     );
 
     console.log('Firmware record created successfully with ID:', result.insertId);
