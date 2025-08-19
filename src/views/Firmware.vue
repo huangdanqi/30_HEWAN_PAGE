@@ -88,6 +88,7 @@
           <a-button @click="testVersionGeneration" style="margin-left: 8px;">测试版本生成</a-button>
           <a-button @click="setTestUsername" style="margin-left: 8px;">设置测试用户名</a-button>
           <a-button @click="checkTableData" style="margin-left: 8px;">检查表格数据</a-button>
+          <a-button @click="updateExistingRecordsWithCurrentUsername" style="margin-left: 8px;">更新创建者信息</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -779,6 +780,67 @@ const checkTableData = () => {
   console.log('=== END TABLE DATA CHECK ===');
   
   message.info(`表格数据: ${rawData.value.length} 条记录, 唯一创建者: ${uniqueCreators.join(', ')}`);
+};
+
+// Function to update existing records with current username
+const updateExistingRecordsWithCurrentUsername = async () => {
+  try {
+    const currentUser = currentUsername.value;
+    if (currentUser === '管理员') {
+      message.warning('请先设置一个有效的用户名');
+      return;
+    }
+
+    console.log('=== UPDATING EXISTING RECORDS ===');
+    console.log('Current username:', currentUser);
+    console.log('Records to update:', rawData.value.length);
+    
+    // Find records that have "管理员" as creator
+    const recordsToUpdate = rawData.value.filter(item => item.creator === '管理员' && item.id);
+    console.log('Records with "管理员" creator:', recordsToUpdate.length);
+    
+    if (recordsToUpdate.length === 0) {
+      message.info('没有需要更新的记录');
+      return;
+    }
+
+    // Update each record
+    let updatedCount = 0;
+    for (const record of recordsToUpdate) {
+      try {
+        const response = await axios.put(constructApiUrl(`firmware/${record.id}`), {
+          deviceModel: record.deviceModel,
+          releaseVersion: record.releaseVersion,
+          versionNumber: record.versionNumber,
+          description: record.description,
+          fileAddress: record.fileAddress,
+          creator: currentUser // Update with current username
+        });
+        
+        if (response.status === 200) {
+          updatedCount++;
+          console.log(`Updated record ${record.id} with username: ${currentUser}`);
+        }
+      } catch (error: any) {
+        console.error(`Failed to update record ${record.id}:`, error);
+      }
+    }
+    
+    console.log(`Successfully updated ${updatedCount} records`);
+    console.log('=== END UPDATING EXISTING RECORDS ===');
+    
+    if (updatedCount > 0) {
+      message.success(`成功更新 ${updatedCount} 条记录的创建者信息`);
+      // Refresh the table to show updated data
+      await fetchFirmware();
+    } else {
+      message.warning('没有记录被更新');
+    }
+    
+  } catch (error: any) {
+    console.error('Error updating existing records:', error);
+    message.error('更新记录失败');
+  }
 };
 
 // Function to force refresh the dropdown
