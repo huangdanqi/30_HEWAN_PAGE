@@ -34,7 +34,7 @@
               <a-radio value="revision">修订版</a-radio>
             </a-radio-group>
             <div style="margin-top: 8px; color: #1890ff; font-weight: bold;">
-              本次发布版本为 {{ generatedVersion }} 版本
+              本次发布版本为 {{ generatedVersion }} 版本 ({{ currentReleaseTypeLabel }})
             </div>
           </a-form-item>
 
@@ -265,11 +265,34 @@ const generatedVersion = computed(() => {
   return nextVersion;
 });
 
+// Get Chinese label for current release type
+const currentReleaseTypeLabel = computed(() => {
+  const releaseTypeMap: Record<string, string> = {
+    'major': '主版本',
+    'minor': '子版本',
+    'revision': '修订版'
+  };
+  return releaseTypeMap[formState.releaseType] || formState.releaseType;
+});
+
 // Watch for record changes
 watch(() => props.record, (newRecord) => {
   if (newRecord) {
     formState.deviceModel = newRecord.deviceModel || '';
-    formState.releaseType = newRecord.releaseType || 'major';
+    
+    // Map Chinese release version to English value for the form
+    let releaseType = 'major'; // default
+    if (newRecord.releaseVersion) {
+      if (newRecord.releaseVersion === '主版本') {
+        releaseType = 'major';
+      } else if (newRecord.releaseVersion === '子版本') {
+        releaseType = 'minor';
+      } else if (newRecord.releaseVersion === '修订版') {
+        releaseType = 'revision';
+      }
+    }
+    formState.releaseType = releaseType;
+    
     formState.contentDescription = newRecord.description || newRecord.contentDescription || '';
     
     // Pre-fill file list if editing
