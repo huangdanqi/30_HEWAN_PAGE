@@ -166,24 +166,15 @@
         </a-form-item>
 
         <a-form-item label="生产批次" name="productionBatch" required>
-          <!-- Production Batch Select Dropdown -->
-          <a-select 
-            v-model:value="createBatchForm.productionBatch" 
+          <a-date-picker
+            v-model:value="createBatchForm.productionBatch"
             placeholder="请选择生产批次"
             :disabled="!createBatchForm.deviceModel"
             style="width: 100%"
-            id="production-batch-select"
-            data-field-type="select"
             allowClear
-          >
-            <a-select-option 
-              v-for="batch in productionBatchOptionsForForm" 
-              :key="batch.value" 
-              :value="batch.value"
-            >
-              {{ batch.label }}
-            </a-select-option>
-          </a-select>
+            format="YYYY-MM-DD"
+            valueFormat="YYYY-MM-DD"
+          />
         </a-form-item>
 
         <a-form-item label="生产厂家" name="manufacturer" required>
@@ -263,12 +254,15 @@
 
           <div class="form-group">
             <label>生产批次</label>
-            <select v-model="editBatchForm.productionBatch" class="form-input" @change="handleEditProductionBatchChange">
-              <option value="">请选择生产批次</option>
-              <option v-for="batch in productionBatchOptionsForEdit" :key="batch.value" :value="batch.value">
-                {{ batch.label }}
-              </option>
-            </select>
+            <a-date-picker
+              v-model:value="editBatchForm.productionBatch"
+              placeholder="请选择生产批次"
+              style="width: 100%"
+              allowClear
+              format="YYYY-MM-DD"
+              valueFormat="YYYY-MM-DD"
+              @change="handleEditProductionBatchDateChange"
+            />
           </div>
 
           <div class="form-group">
@@ -532,18 +526,18 @@ const fetchDeviceProduction = async () => {
     });
     
     if (response.data && response.data.data) {
-      // Server-side pagination response
+      // Server-side pagination response (single page)
       rawData.value = response.data.data.map((item: any, index: number) => ({
         ...item,
         key: index + 1
       }));
-      
+
       // Update pagination info from server
       if (response.data.pagination) {
         currentPage.value = response.data.pagination.current;
         pageSize.value = response.data.pagination.pageSize;
         total.value = response.data.pagination.total;
-        
+
         console.log('Updated pagination - current:', currentPage.value, 'pageSize:', pageSize.value, 'total:', total.value);
       }
     } else {
@@ -575,7 +569,19 @@ const fetchDeviceProduction = async () => {
 
 const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key' | 'id' | 'totalPrice'>) => {
   try {
-    const response = await axios.post('http://121.43.196.106:2829/api/device-production', deviceProductionData);
+    const payload = {
+      production_device_id: deviceProductionData.productionDeviceId,
+      device_model: deviceProductionData.deviceModel,
+      production_batch: deviceProductionData.productionBatch,
+      manufacturer: deviceProductionData.manufacturer,
+      firmware_version: deviceProductionData.firmwareVersion,
+      burn_firmware: deviceProductionData.burnFirmware,
+      unit_price: typeof deviceProductionData.unitPrice === 'number' ? deviceProductionData.unitPrice : parseFloat(String(deviceProductionData.unitPrice || 0)),
+      quantity: typeof deviceProductionData.quantity === 'number' ? deviceProductionData.quantity : parseInt(String(deviceProductionData.quantity || 0), 10),
+      updater: deviceProductionData.updater
+    };
+    console.log('POST /device-production payload:', payload);
+    const response = await axios.post('http://121.43.196.106:2829/api/device-production', payload);
     await fetchDeviceProduction(); // Refresh data
     return response.data;
   } catch (error) {
@@ -586,7 +592,19 @@ const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key'
 
 const updateDeviceProduction = async (id: number, deviceProductionData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`http://121.43.196.106:2829/api/device-production/${id}`, deviceProductionData);
+    const payload = {
+      production_device_id: deviceProductionData.productionDeviceId,
+      device_model: deviceProductionData.deviceModel,
+      production_batch: deviceProductionData.productionBatch,
+      manufacturer: deviceProductionData.manufacturer,
+      firmware_version: deviceProductionData.firmwareVersion,
+      burn_firmware: deviceProductionData.burnFirmware,
+      unit_price: typeof deviceProductionData.unitPrice === 'number' ? deviceProductionData.unitPrice : (deviceProductionData.unitPrice != null ? parseFloat(String(deviceProductionData.unitPrice)) : undefined),
+      quantity: typeof deviceProductionData.quantity === 'number' ? deviceProductionData.quantity : (deviceProductionData.quantity != null ? parseInt(String(deviceProductionData.quantity), 10) : undefined),
+      updater: deviceProductionData.updater
+    };
+    console.log('PUT /device-production payload:', payload);
+    const response = await axios.put(`http://121.43.196.106:2829/api/device-production/${id}`, payload);
     await fetchDeviceProduction(); // Refresh data
     return response.data;
   } catch (error) {
@@ -958,18 +976,32 @@ const manufacturerOptionsForEdit = computed(() => {
   return [];
 });
 
-// Function to fetch device models from API
+// Function to fetch device models from API (aggregate all pages)
 const fetchDeviceModels = async () => {
   try {
-    const response = await axios.get(constructApiUrl('device-type'));
-    if (response.data && response.data.data) {
-      // Update device model options with data from API
-      return response.data.data.map((item: any) => ({
-        key: item.deviceModelName || item.deviceModelId,
-        value: item.deviceModelName || item.deviceModelId,
-        label: item.deviceModelName || item.deviceModelId,
-      }));
+    // First page
+    const first = await axios.get(constructApiUrl('device-type'), { params: { page: 1, pageSize: 10 } });
+    const pagination = first.data?.pagination;
+    let combined = first.data?.data || [];
+    if (pagination && pagination.total && pagination.pageSize) {
+      const totalPages = Math.ceil(pagination.total / pagination.pageSize);
+      if (totalPages > 1) {
+        const promises: Promise<any>[] = [];
+        for (let p = 2; p <= totalPages; p++) {
+          promises.push(axios.get(constructApiUrl('device-type'), { params: { page: p, pageSize: pagination.pageSize } }));
+        }
+        const rest = await Promise.all(promises);
+        rest.forEach(r => {
+          if (r.data?.data) combined = combined.concat(r.data.data);
+        });
+      }
     }
+    // Map unique names as options
+    const names = combined
+      .map((item: any) => item.deviceModelName || item.deviceModelId)
+      .filter((v: any) => !!v);
+    const unique = Array.from(new Set(names));
+    return unique.map((name: string) => ({ key: name, value: name, label: name }));
   } catch (error) {
     console.error('Error fetching device models:', error);
   }
@@ -979,14 +1011,14 @@ const fetchDeviceModels = async () => {
 // Function to fetch firmware versions for a specific device model
 const fetchFirmwareVersions = async (deviceModel: string) => {
   try {
-    const response = await axios.get(constructApiUrl(`firmware?deviceModel=${deviceModel}`));
-    if (response.data && response.data.data) {
-      return response.data.data.map((item: any) => ({
-        key: item.versionNumber,
-        value: item.versionNumber,
-        label: item.versionNumber,
-      }));
-    }
+    const url = constructApiUrl(`firmware/device/${encodeURIComponent(deviceModel)}`);
+    const response = await axios.get(url);
+    const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+    const versions = list
+      .map((item: any) => item.versionNumber)
+      .filter((v: any) => !!v);
+    const unique = Array.from(new Set(versions));
+    return unique.map((v: string) => ({ key: v, value: v, label: v }));
   } catch (error) {
     console.error('Error fetching firmware versions:', error);
   }
@@ -1036,11 +1068,9 @@ const handleEditDeviceModelChange = async (event: Event) => {
   }
 };
 
-// Handler for production batch change in edit form
-const handleEditProductionBatchChange = (event: Event) => {
-  const target = event.target as HTMLSelectElement;
-  const value = target.value;
-  editBatchForm.value.productionBatch = value;
+// Handler for production batch change in edit form (DatePicker)
+const handleEditProductionBatchDateChange = (_date: any, dateString: string) => {
+  editBatchForm.value.productionBatch = dateString || '';
   // Clear manufacturer when production batch changes
   editBatchForm.value.manufacturer = '';
 };
@@ -1108,7 +1138,7 @@ const handleCreateBatchModalConfirm = async () => {
   try {
     await createBatchFormRef.value?.validate();
     
-    // Since productionBatch is now a select dropdown, it will always be a string
+    // productionBatch comes from a date picker with valueFormat, so it's a string (YYYY-MM-DD)
     const productionBatch = createBatchForm.value.productionBatch;
     
     if (!productionBatch) {
@@ -1132,15 +1162,15 @@ const handleCreateBatchModalConfirm = async () => {
     
     // Prepare data for API
     const formData = {
-      productionDeviceId: 'hjhwrn632q2f', // Default value or generate dynamically
+      productionDeviceId: 'hjhwrn632q2f',
       deviceModel: createBatchForm.value.deviceModel,
       productionBatch: productionBatch,
       manufacturer: createBatchForm.value.manufacturer,
-      firmwareVersion: createBatchForm.value.burnFirmware, // Map burnFirmware to firmwareVersion
+      firmwareVersion: createBatchForm.value.burnFirmware,
       burnFirmware: createBatchForm.value.burnFirmware,
-      unitPrice: createBatchForm.value.unitPrice || 0,
-      quantity: createBatchForm.value.quantity || 0,
-      updater: '当前用户' // This should come from user context
+      unitPrice: Number(createBatchForm.value.unitPrice || 0),
+      quantity: Number(createBatchForm.value.quantity || 0),
+      updater: '管理员'
     };
     
     // Send data to API

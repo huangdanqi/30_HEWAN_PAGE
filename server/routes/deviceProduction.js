@@ -107,8 +107,8 @@ router.post('/', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO device_production (production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, updater) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, updater]
+      'INSERT INTO device_production (production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity]
     );
 
     res.status(201).json({
@@ -142,8 +142,8 @@ router.put('/:id', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'UPDATE device_production SET production_device_id = ?, device_model = ?, production_batch = ?, manufacturer = ?, firmware_version = ?, burn_firmware = ?, unit_price = ?, quantity = ?, updater = ? WHERE id = ?',
-      [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, updater, req.params.id]
+      'UPDATE device_production SET production_device_id = ?, device_model = ?, production_batch = ?, manufacturer = ?, firmware_version = ?, burn_firmware = ?, unit_price = ?, quantity = ? WHERE id = ?',
+      [production_device_id, device_model, production_batch, manufacturer, firmware_version, burn_firmware, unit_price, quantity, req.params.id]
     );
 
     if (result.affectedRows === 0) {

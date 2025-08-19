@@ -49,7 +49,7 @@
           </a-form-item>
           
           <!-- Display current username -->
-          <a-form-item label="更新人">
+          <!-- <a-form-item label="更新人">
             <a-input
               :value="props.currentUsername"
               disabled
@@ -58,7 +58,7 @@
             <div style="font-size: 12px; color: #666; margin-top: 4px;">
               将使用当前登录用户作为更新人
             </div>
-          </a-form-item>
+          </a-form-item> -->
         </a-form>
       </div>
 

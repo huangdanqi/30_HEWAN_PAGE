@@ -277,6 +277,12 @@ interface DataItem {
   updateTime: string; // 更新时间
 }
 
+// Safely convert a date-like string to a comparable timestamp
+const getSafeTime = (value?: string) => {
+  const time = value ? new Date(value).getTime() : 0;
+  return isNaN(time) ? 0 : time;
+};
+
 // Define column configuration separately from the table columns
 interface ColumnConfig {
   key: string;
@@ -376,6 +382,8 @@ const fetchDeviceTypes = async () => {
           key: index + 1
         };
       });
+      // Default sort by 更新时间 descending using plain JavaScript
+      rawData.value.sort((a, b) => getSafeTime(b.updateTime) - getSafeTime(a.updateTime));
       console.log('Processed rawData:', rawData.value);
       
       // Update pagination info from server
@@ -395,6 +403,8 @@ const fetchDeviceTypes = async () => {
           key: index + 1
         };
       });
+      // Default sort by 更新时间 descending using plain JavaScript
+      rawData.value.sort((a, b) => getSafeTime(b.updateTime) - getSafeTime(a.updateTime));
       total.value = response.data.length;
       console.log('Processed rawData:', rawData.value);
     } else {
@@ -478,8 +488,8 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sorterInfo = ref<any>({
-  columnKey: 'updateTime_8',
-  order: 'descend',
+  columnKey: undefined,
+  order: undefined,
 });
 
 // Create pagination handlers as separate functions
@@ -596,10 +606,10 @@ const handleTableChange = (
     };
     fetchDeviceTypes(); // Fetch fresh data when sorting changes
   } else {
-    // When sorting is cleared, revert to default
+    // When sorting is cleared, remove any default sort
     sorterInfo.value = {
-      columnKey: 'updateTime_8',
-      order: 'descend',
+      columnKey: undefined,
+      order: undefined,
     };
     fetchDeviceTypes(); // Fetch fresh data when sorting is cleared
   }
