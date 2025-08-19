@@ -454,6 +454,7 @@ const handleSubmit = async () => {
     console.log('Submitting edit data:', submitData);
     console.log('File address:', fileAddress);
     console.log('Current username:', props.currentUsername);
+    console.log('Creator field being sent:', submitData.creator);
     console.log('=== END EDIT SUBMIT DEBUG ===');
     
     // Call API to update firmware

@@ -545,6 +545,8 @@ const handleSubmit = async () => {
     console.log('Generated version from parent:', props.generatedVersion);
     console.log('Local generated version:', generatedVersion.value);
     console.log('Form state:', formState);
+    console.log('Current username from props:', props.currentUsername);
+    console.log('Creator field being sent:', submitData.creator);
     console.log('Submitting firmware data:', submitData);
     console.log('=== END SUBMIT DEBUG ===');
     

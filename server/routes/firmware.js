@@ -317,6 +317,14 @@ router.post('/', async (req, res) => {
       fileAddress,
       creator
     });
+    
+    console.log('Creator field details:', {
+      creator: creator,
+      creatorType: typeof creator,
+      creatorLength: creator ? creator.length : 'undefined',
+      isAdmin: creator === '管理员',
+      isEmpty: !creator || creator.trim() === ''
+    });
 
     // Map frontend field names to database column names
     let mappedReleaseVersion = releaseVersion || releaseType || '主版本';
@@ -367,6 +375,15 @@ router.post('/', async (req, res) => {
       fileAddress: fileAddress || 'https://example.com/firmware.bin',
       creator: creator || '管理员'
     });
+    
+    console.log('Database insert values:', [
+      deviceModel, 
+      mappedReleaseVersion, 
+      versionNumber, 
+      mappedDescription, 
+      fileAddress || 'https://example.com/firmware.bin', 
+      creator || '管理员'
+    ]);
 
     // Validate required fields with detailed error messages
     const validationErrors = [];
@@ -456,6 +473,10 @@ router.post('/', async (req, res) => {
 
 // Update firmware record
 router.put('/:id', async (req, res) => {
+  console.log('=== FIRMWARE UPDATE REQUEST START ===');
+  console.log('Raw request body:', req.body);
+  console.log('Record ID to update:', req.params.id);
+  
   try {
     const {
       deviceModel, // camelCase from frontend
@@ -468,18 +489,51 @@ router.put('/:id', async (req, res) => {
       creator
     } = req.body;
 
+    console.log('Received update data:', {
+      deviceModel,
+      releaseType,
+      releaseVersion,
+      versionNumber,
+      contentDescription,
+      description,
+      fileAddress,
+      creator
+    });
+    
+    console.log('Creator field details for update:', {
+      creator: creator,
+      creatorType: typeof creator,
+      creatorLength: creator ? creator.length : 'undefined',
+      isAdmin: creator === '管理员',
+      isEmpty: !creator || creator.trim() === ''
+    });
+
     // Map frontend field names to database column names
     const mappedReleaseVersion = releaseType || releaseVersion;
     const mappedDescription = contentDescription || description;
+
+    console.log('Mapped update data:', {
+      deviceModel,
+      mappedReleaseVersion,
+      versionNumber,
+      mappedDescription,
+      fileAddress,
+      creator
+    });
 
     // Validate required fields
     if (!deviceModel || !mappedReleaseVersion || !versionNumber) {
       return res.status(400).json({ error: 'Device model, release version, and version number are required' });
     }
 
+    const updateValues = [deviceModel, mappedReleaseVersion, versionNumber, mappedDescription, fileAddress || 'https://example.com/firmware.bin', creator || '管理员', req.params.id];
+    
+    console.log('Database update values:', updateValues);
+    console.log('SQL query: UPDATE firmware SET device_model = ?, release_version = ?, version_number = ?, description = ?, file_address = ?, creator = ? WHERE id = ?');
+
     const [result] = await pool.execute(
       'UPDATE firmware SET device_model = ?, release_version = ?, version_number = ?, description = ?, file_address = ?, creator = ? WHERE id = ?',
-      [deviceModel, mappedReleaseVersion, versionNumber, mappedDescription, fileAddress || 'https://example.com/firmware.bin', creator || '管理员', req.params.id]
+      updateValues
     );
 
     if (result.affectedRows === 0) {
