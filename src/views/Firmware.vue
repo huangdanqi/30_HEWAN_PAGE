@@ -270,6 +270,27 @@ const currentUsername = computed(() => {
   return username;
 });
 
+// Timezone utility function to ensure consistent timezone display
+const formatToLocalTimezone = (timestamp: string | Date) => {
+  try {
+    const date = new Date(timestamp);
+    // Convert to China Standard Time (UTC+8)
+    return date.toLocaleString('zh-CN', { 
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  } catch (error) {
+    console.error('Error formatting timestamp:', error);
+    return timestamp;
+  }
+};
+
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -344,6 +365,18 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           }, text);
         }
         return '-';
+      };
+    } else if (config.key === 'releaseTime') {
+      // Handle releaseTime column with timezone formatting
+      column.customRender = ({ text }: { text: any }) => {
+        if (!text) return '-';
+        return formatToLocalTimezone(text);
+      };
+    } else if (config.key === 'updateTime_8') {
+      // Handle updateTime column with timezone formatting
+      column.customRender = ({ text }: { text: any }) => {
+        if (!text) return '-';
+        return formatToLocalTimezone(text);
       };
     } else if (config.key === 'releaseVersion') {
       // Handle releaseVersion column to show Chinese labels
