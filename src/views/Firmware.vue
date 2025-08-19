@@ -87,6 +87,7 @@
           <a-button @click="testFirmwareAPI" style="margin-left: 8px;">测试固件API</a-button>
           <a-button @click="testVersionGeneration" style="margin-left: 8px;">测试版本生成</a-button>
           <a-button @click="setTestUsername" style="margin-left: 8px;">设置测试用户名</a-button>
+          <a-button @click="checkTableData" style="margin-left: 8px;">检查表格数据</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -396,6 +397,21 @@ const fetchFirmware = async () => {
         key: index + 1
       }));
       
+      // Debug: Check what the actual MySQL data looks like
+      console.log('=== MYSQL DATA DEBUG ===');
+      console.log('Raw MySQL response:', response.data.data);
+      console.log('First few items with creator field:');
+      response.data.data.slice(0, 5).forEach((item: any, index: number) => {
+        console.log(`Item ${index + 1}:`, {
+          id: item.id,
+          deviceModel: item.deviceModel,
+          creator: item.creator,
+          releaseVersion: item.releaseVersion,
+          versionNumber: item.versionNumber
+        });
+      });
+      console.log('=== END MYSQL DATA DEBUG ===');
+      
       // Update total count from server
       if (response.data.pagination) {
         total.value = response.data.pagination.total;
@@ -409,6 +425,22 @@ const fetchFirmware = async () => {
         ...item,
         key: index + 1
       }));
+      
+      // Debug: Check direct array response
+      console.log('=== DIRECT ARRAY DEBUG ===');
+      console.log('Direct array response:', response.data);
+      console.log('First few items with creator field:');
+      response.data.slice(0, 5).forEach((item: any, index: number) => {
+        console.log(`Item ${index + 1}:`, {
+          id: item.id,
+          deviceModel: item.deviceModel,
+          creator: item.creator,
+          releaseVersion: item.releaseVersion,
+          versionNumber: item.versionNumber
+        });
+      });
+      console.log('=== END DIRECT ARRAY DEBUG ===');
+      
       total.value = response.data.length;
       console.log('Fetched firmware data (direct array):', rawData.value.length, 'records');
     } else {
@@ -724,6 +756,29 @@ const setTestUsername = () => {
     console.log('Current username computed:', currentUsername.value);
     console.log('=== END TEST USERNAME SET ===');
   }
+};
+
+// Function to check current table data and creator values
+const checkTableData = () => {
+  console.log('=== TABLE DATA CHECK ===');
+  console.log('Current rawData length:', rawData.value.length);
+  console.log('Current table data:');
+  rawData.value.forEach((item: any, index: number) => {
+    console.log(`Row ${index + 1}:`, {
+      id: item.id,
+      deviceModel: item.deviceModel,
+      creator: item.creator,
+      releaseVersion: item.releaseVersion,
+      versionNumber: item.versionNumber
+    });
+  });
+  
+  // Check for unique creator values
+  const uniqueCreators = [...new Set(rawData.value.map(item => item.creator))];
+  console.log('Unique creator values in table:', uniqueCreators);
+  console.log('=== END TABLE DATA CHECK ===');
+  
+  message.info(`表格数据: ${rawData.value.length} 条记录, 唯一创建者: ${uniqueCreators.join(', ')}`);
 };
 
 // Function to force refresh the dropdown
