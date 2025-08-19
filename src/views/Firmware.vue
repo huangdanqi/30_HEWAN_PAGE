@@ -242,7 +242,8 @@ import {
   type ColumnDefinition 
 } from '../utils/tableConfig';
 import { constructApiUrl } from '../utils/api';
-import { zh_CN } from 'ant-design-vue/es/locale';
+import zh_CN from 'ant-design-vue/es/locale/zh_CN';
+import { theme } from 'ant-design-vue';
 
 const route = useRoute();
 const router = useRouter();
