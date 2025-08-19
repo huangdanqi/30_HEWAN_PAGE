@@ -205,6 +205,9 @@
       :visible="showEditModal"
       :record="editRecord"
       :currentUsername="currentUsername"
+      :uniqueDeviceModels="uniqueDeviceModels"
+      :deviceModelOptions="deviceModelOptions"
+      :firmwareData="rawData"
       @update:visible="handleEditModalClose"
       @submit="handleEditModalSubmit"
     />

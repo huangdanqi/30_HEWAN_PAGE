@@ -187,7 +187,7 @@ router.get('/download/:filename', (req, res) => {
       if (err) {
         console.error('Download error:', err);
         res.status(500).json({ error: '下载失败', details: err.message });
-      } else {
+  } else {
         console.log('Download completed successfully');
       }
     });
@@ -317,7 +317,7 @@ router.post('/', async (req, res) => {
       fileAddress,
       creator
     });
-    
+
     // Map frontend field names to database column names
     let mappedReleaseVersion = releaseVersion || releaseType || '主版本';
     let mappedDescription = contentDescription || description || '';
@@ -330,7 +330,7 @@ router.post('/', async (req, res) => {
     } else if (releaseType === 'revision') {
       mappedReleaseVersion = '修订版';
     }
-    
+
     console.log('Mapped data:', {
       deviceModel,
       mappedReleaseVersion,
