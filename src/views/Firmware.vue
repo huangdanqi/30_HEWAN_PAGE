@@ -204,6 +204,7 @@
     <FirmwareEditModal
       :visible="showEditModal"
       :record="editRecord"
+      :currentUsername="currentUsername"
       @update:visible="handleEditModalClose"
       @submit="handleEditModalSubmit"
     />

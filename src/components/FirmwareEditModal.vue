@@ -45,6 +45,18 @@
               show-count
             />
           </a-form-item>
+          
+          <!-- Display current username -->
+          <a-form-item label="更新人">
+            <a-input
+              :value="props.currentUsername"
+              disabled
+              placeholder="当前用户"
+            />
+            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+              将使用当前登录用户作为更新人
+            </div>
+          </a-form-item>
         </a-form>
       </div>
 
@@ -137,10 +149,12 @@ import type { UploadChangeParam } from 'ant-design-vue';
 import { InboxOutlined, DeleteOutlined, PaperClipOutlined } from '@ant-design/icons-vue';
 import type { FormInstance } from 'ant-design-vue';
 import axios from 'axios';
+import { constructApiUrl } from '../utils/api';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
   record: { type: Object, default: null },
+  currentUsername: { type: String, default: '管理员' }, // Add current username prop
 });
 
 const emits = defineEmits(['update:visible', 'submit']);
@@ -171,7 +185,12 @@ const isRestricted = computed(() => {
 });
 
 // Upload configuration
-const uploadAction = `${import.meta.env.VITE_API_BASE_URL || '/api'}/api/firmware/upload`;
+const uploadAction = computed(() => {
+  // Use constructApiUrl to avoid double /api/ issue
+  const url = constructApiUrl('firmware/upload');
+  console.log('Upload action URL:', url);
+  return url;
+});
 const uploadHeaders = {
   // Add any required headers for authentication
 };
@@ -252,16 +271,30 @@ const beforeUpload = (file: File) => {
 };
 
 const handleUploadChange = (info: UploadChangeParam) => {
+  console.log('=== UPLOAD CHANGE START ===');
+  console.log('Upload change info:', info);
+  console.log('File status:', info.file.status);
+  console.log('File name:', info.file.name);
+  console.log('File response:', info.file.response);
+  
   let resFileList = [...info.fileList];
   resFileList = resFileList.slice(-1); // Only allow one file
   
   resFileList = resFileList.map(file => {
+    console.log('Processing file:', file);
     if (file.response) {
-      file.url = file.response.url;
-      // Ensure status is set to 'done' when upload is successful
-      if (file.response.success) {
+      console.log('File response:', file.response);
+      // Handle successful response
+      if (file.response && file.response.success) {
+        file.url = file.response.url;
         file.status = 'done';
         file.percent = 100;
+        console.log('File upload successful, URL:', file.response.url);
+      } else {
+        // Handle error response
+        file.status = 'error';
+        file.error = file.response?.error || '上传失败';
+        console.log('File upload failed:', file.response?.error);
       }
     }
     return file;
@@ -271,9 +304,13 @@ const handleUploadChange = (info: UploadChangeParam) => {
   
   if (info.file.status === 'done') {
     message.success(`${info.file.name} 文件上传成功`);
+    console.log('Upload completed successfully');
   } else if (info.file.status === 'error') {
-    message.error(`${info.file.name} 文件上传失败`);
+    const errorMsg = info.file.error || info.file.response?.error || '未知错误';
+    message.error(`${info.file.name} 文件上传失败: ${errorMsg}`);
+    console.error('Upload error:', info.file.response || info.file.error);
   }
+  console.log('=== UPLOAD CHANGE END ===');
 };
 
 const handleDrop = (e: DragEvent) => {
@@ -297,25 +334,54 @@ const handleSubmit = async () => {
   
   loading.value = true;
   try {
+    const uploadedFile = fileList.value[0];
+    if (!uploadedFile.url && !uploadedFile.response?.url) {
+      message.error('文件上传未完成，请等待上传完成后再提交');
+      return;
+    }
+    
+    const releaseVersionMap: Record<string, string> = {
+      'major': '主版本',
+      'minor': '子版本',
+      'revision': '修订版'
+    };
+    
+    const fileAddress = uploadedFile.url || uploadedFile.response?.url;
+    
     const submitData = {
       deviceModel: formState.deviceModel,
       releaseType: formState.releaseType,
+      releaseVersion: releaseVersionMap[formState.releaseType] || formState.releaseType,
       contentDescription: formState.contentDescription,
       versionNumber: generatedVersion.value,
-      fileAddress: fileList.value[0].url || fileList.value[0].response?.url,
+      fileAddress: fileAddress,
+      creator: props.currentUsername, // Use current username
       isEdit: true,
       originalRecord: props.record
     };
     
-    // Call API to update firmware
-    const response = await axios.put(`/api/firmware/${props.record?.id}`, submitData);
+    console.log('=== EDIT SUBMIT DEBUG ===');
+    console.log('Submitting edit data:', submitData);
+    console.log('File address:', fileAddress);
+    console.log('Current username:', props.currentUsername);
+    console.log('=== END EDIT SUBMIT DEBUG ===');
     
+    // Call API to update firmware
+    const response = await axios.put(constructApiUrl(`firmware/${props.record?.id}`), submitData);
+    
+    console.log('Edit API response:', response.data);
     message.success('固件编辑成功!');
     emits('submit', submitData);
     handleCancel();
-  } catch (error) {
-    console.error('Submit failed:', error);
-    message.error('操作失败，请重试');
+  } catch (error: any) {
+    console.error('Edit submit failed:', error);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+      message.error(`编辑失败: ${error.response.data?.error || '未知错误'}`);
+    } else {
+      message.error('操作失败，请重试');
+    }
   } finally {
     loading.value = false;
   }
