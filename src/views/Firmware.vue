@@ -86,6 +86,7 @@
           <a-button @click="showDataCount" style="margin-left: 8px;">显示数据统计</a-button>
           <a-button @click="testFirmwareAPI" style="margin-left: 8px;">测试固件API</a-button>
           <a-button @click="testVersionGeneration" style="margin-left: 8px;">测试版本生成</a-button>
+          <a-button @click="setTestUsername" style="margin-left: 8px;">设置测试用户名</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -255,7 +256,14 @@ const authStore = useAuthStore(); // Use auth store
 
 // Get current username from auth store
 const currentUsername = computed(() => {
-  return authStore.user?.name || authStore.user?.username || '管理员';
+  const username = authStore.user?.name || authStore.user?.username || '管理员';
+  console.log('=== AUTH STORE DEBUG ===');
+  console.log('Auth store user:', authStore.user);
+  console.log('Auth store token:', authStore.token);
+  console.log('Is authenticated:', authStore.isAuthenticated());
+  console.log('Computed username:', username);
+  console.log('=== END AUTH STORE DEBUG ===');
+  return username;
 });
 
 // API base URL
@@ -557,97 +565,6 @@ const setTestData = () => {
   });
 };
 
-// Function to test API directly without processing
-const testDirectAPI = async () => {
-  try {
-    console.log('=== DIRECT API TEST ===');
-    const apiUrl = constructApiUrl('device-type');
-    console.log('Testing URL:', apiUrl);
-    
-    const response = await axios.get(apiUrl);
-    console.log('Direct response:', response);
-    console.log('Response data:', response.data);
-    console.log('Response status:', response.status);
-    
-    // Try to access different possible data locations
-    if (response.data) {
-      console.log('Available keys in response.data:', Object.keys(response.data));
-      if (response.data.data) {
-        console.log('response.data.data:', response.data.data);
-        console.log('response.data.data type:', typeof response.data.data);
-        if (Array.isArray(response.data.data)) {
-          console.log('response.data.data is array with length:', response.data.data.length);
-          if (response.data.data.length > 0) {
-            console.log('First item:', response.data.data[0]);
-            console.log('First item keys:', Object.keys(response.data.data[0]));
-          }
-        }
-      }
-    }
-    
-  } catch (error) {
-    console.error('Direct API test failed:', error);
-  }
-};
-
-// Function to test download endpoint
-const testDownloadEndpoint = async () => {
-  try {
-    console.log('=== TESTING DOWNLOAD ENDPOINT ===');
-    
-    // Test with a sample filename from the firmware directory
-    const testFilename = 'test_1754461301245.xlsx';
-    const downloadUrl = constructApiUrl(`firmware/download/${testFilename}`);
-    
-    console.log('Testing download URL:', downloadUrl);
-    
-    // Test if the endpoint responds
-    const response = await axios.get(downloadUrl, { responseType: 'blob' });
-    console.log('Download endpoint response:', response);
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
-    
-    if (response.status === 200) {
-      // Create a test download
-      const blob = new Blob([response.data]);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `test_download_${testFilename}`;
-      link.style.display = 'none';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      window.URL.revokeObjectURL(url);
-      message.success('下载端点测试成功！文件已下载');
-    }
-    
-  } catch (error: any) {
-    console.error('Download endpoint test failed:', error);
-    if (error.response) {
-      console.error('Error response:', error.response.data);
-      console.error('Error status:', error.response.status);
-      message.error(`下载端点测试失败: ${error.response.status} - ${error.response.data?.error || '未知错误'}`);
-    } else {
-      message.error('下载端点测试失败: 网络错误');
-    }
-  }
-};
-
-// Function to show data count statistics
-const showDataCount = () => {
-  console.log('=== DATA COUNT STATISTICS ===');
-  console.log('Raw data count:', rawData.value.length);
-  console.log('Filtered data count:', filteredData.value.length);
-  console.log('Total from server:', total.value);
-  console.log('Current page:', currentPage.value);
-  console.log('Page size:', pageSize.value);
-  
-  message.info(`数据统计: 原始数据 ${rawData.value.length} 条, 过滤后 ${filteredData.value.length} 条, 服务器总数 ${total.value} 条`);
-};
-
 // Function to test API directly
 const testFirmwareAPI = async () => {
   try {
@@ -741,6 +658,72 @@ const showRawData = () => {
   console.log('Device "t" versions:', deviceTData.map(item => item.versionNumber));
   
   message.info(`原始数据: ${rawData.value.length} 条, 设备"t": ${deviceTData.length} 条`);
+};
+
+// Function to test download endpoint
+const testDownloadEndpoint = async () => {
+  try {
+    console.log('=== TESTING DOWNLOAD ENDPOINT ===');
+    
+    // Test with a sample filename from the firmware directory
+    const testFilename = 'test_1754461301245.xlsx';
+    const downloadUrl = constructApiUrl(`firmware/download/${testFilename}`);
+    
+    console.log('Testing download URL:', downloadUrl);
+    
+    // Test if the endpoint responds
+    const response = await axios.get(downloadUrl, { responseType: 'blob' });
+    console.log('Download endpoint response:', response);
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    
+    if (response.status === 200) {
+      // Create a test download
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `test_download_${testFilename}`;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      window.URL.revokeObjectURL(url);
+      message.success('下载端点测试成功！文件已下载');
+    }
+    
+  } catch (error) {
+    console.error('Download endpoint test failed:', error);
+  }
+};
+
+// Function to show data count statistics
+const showDataCount = () => {
+  console.log('=== DATA COUNT STATISTICS ===');
+  console.log('Raw data count:', rawData.value.length);
+  console.log('Filtered data count:', filteredData.value.length);
+  console.log('Total from server:', total.value);
+  console.log('Current page:', currentPage.value);
+  console.log('Page size:', pageSize.value);
+  
+  message.info(`数据统计: 原始数据 ${rawData.value.length} 条, 过滤后 ${filteredData.value.length} 条, 服务器总数 ${total.value} 条`);
+};
+
+// Function to set test username for testing dynamic username feature
+const setTestUsername = () => {
+  const testUsername = prompt('请输入测试用户名 (例如: 张三, 李四, 王五):', '张三');
+  if (testUsername) {
+    // Use the auth store method to set logged-in state
+    authStore.setLoggedInState(testUsername);
+    message.success(`测试用户名已设置为: ${testUsername}`);
+    console.log('=== TEST USERNAME SET ===');
+    console.log('New username:', testUsername);
+    console.log('Auth store user:', authStore.user);
+    console.log('Current username computed:', currentUsername.value);
+    console.log('=== END TEST USERNAME SET ===');
+  }
 };
 
 // Function to force refresh the dropdown
