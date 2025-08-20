@@ -84,7 +84,7 @@
       >
       <template #bodyCell="{ column, record, index }">
       <template v-if="column.key === 'rowIndex'">
-        {{ (currentPage - 1) * pageSize + index + 1 }}
+        {{ (currentPage.value - 1) * pageSize.value + index + 1 }}
       </template>
       <template v-else-if="column.key === 'operation_9'">
         <a-space class="action-cell" direction="horizontal">
