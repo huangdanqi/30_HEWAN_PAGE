@@ -1457,16 +1457,35 @@ const processSingleFile = async () => {
               throw new Error('Excel文件中没有数据行');
             }
             
+            console.log('=== EXCEL DATA PROCESSING ===');
+            console.log('Total data rows from Excel:', dataRows.length);
+            console.log('Raw data rows:', dataRows);
+            
+            // Filter out completely empty rows before processing
+            const nonEmptyRows = dataRows.filter((row: unknown, index: number) => {
+              const rowArray = row as any[];
+              const hasData = rowArray.some(cell => cell !== null && cell !== undefined && cell.toString().trim() !== '');
+              console.log(`Row ${index + 1} has data:`, hasData, 'Content:', rowArray);
+              return hasData;
+            });
+            
+            console.log('Non-empty rows after filtering:', nonEmptyRows.length);
+            
             // Transform data rows to device objects - match the exact structure expected by backend
-            const devices = dataRows.map((row: unknown, index: number) => {
+            const devices = nonEmptyRows.map((row: unknown, index: number) => {
               const rowArray = row as any[];
               const device: any = {};
+              
+              console.log(`Processing row ${index + 1}:`, rowArray);
+              console.log(`Row ${index + 1} headers:`, headers);
               
               // Map Excel columns to device properties - use exact field names expected by backend
               headers.forEach((header: string, colIndex: number) => {
                 if (header && rowArray[colIndex] !== undefined) {
                   const value = rowArray[colIndex];
                   const headerStr = header.toString().trim();
+                  
+                  console.log(`Mapping header "${headerStr}" (col ${colIndex}) to value:`, value);
                   
                   // Map Chinese headers to exact backend field names
                   if (headerStr.includes('设备ID')) device.deviceId = value;
@@ -1494,20 +1513,23 @@ const processSingleFile = async () => {
               device.createTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
               device.creator = userName.value;
               
-              // Ensure all required fields have values (use '-' for empty values like the working test)
+              // Only use fallback values if the field is truly empty (not just whitespace)
+              // This prevents Excel content from being replaced with "-"
               device.deviceId = device.deviceId || `IMPORT_${Date.now()}_${index}`;
-              device.boundSubAccount = device.boundSubAccount || '-';
-              device.initialFirmware = device.initialFirmware || '-';
-              device.latestFirmware = device.latestFirmware || '-';
-              device.currentFirmwareVersion = device.currentFirmwareVersion || '-';
-              device.serialNumberCode = device.serialNumberCode || '-';
-              device.chipId = device.chipId || '-';
-              device.wifiMacAddress = device.wifiMacAddress || '-';
-              device.bluetoothMacAddress = device.bluetoothMacAddress || '-';
-              device.bluetoothName = device.bluetoothName || '-';
-              device.cellularNetworkId = device.cellularNetworkId || '-';
-              device.fourGCardNumber = device.fourGCardNumber || '-';
-              device.cpuSerialNumber = device.cpuSerialNumber || '-';
+              device.boundSubAccount = device.boundSubAccount || (device.boundSubAccount === '' ? '-' : device.boundSubAccount);
+              device.initialFirmware = device.initialFirmware || (device.initialFirmware === '' ? '-' : device.initialFirmware);
+              device.latestFirmware = device.latestFirmware || (device.latestFirmware === '' ? '-' : device.latestFirmware);
+              device.currentFirmwareVersion = device.currentFirmwareVersion || (device.currentFirmwareVersion === '' ? '-' : device.currentFirmwareVersion);
+              device.serialNumberCode = device.serialNumberCode || (device.serialNumberCode === '' ? '-' : device.serialNumberCode);
+              device.chipId = device.chipId || (device.chipId === '' ? '-' : device.chipId);
+              device.wifiMacAddress = device.wifiMacAddress || (device.wifiMacAddress === '' ? '-' : device.wifiMacAddress);
+              device.bluetoothMacAddress = device.bluetoothMacAddress || (device.bluetoothMacAddress === '' ? '-' : device.bluetoothMacAddress);
+              device.bluetoothName = device.bluetoothName || (device.bluetoothName === '' ? '-' : device.bluetoothName);
+              device.cellularNetworkId = device.cellularNetworkId || (device.cellularNetworkId === '' ? '-' : device.cellularNetworkId);
+              device.fourGCardNumber = device.fourGCardNumber || (device.fourGCardNumber === '' ? '-' : device.fourGCardNumber);
+              device.cpuSerialNumber = device.cpuSerialNumber || (device.cpuSerialNumber === '' ? '-' : device.cpuSerialNumber);
+              
+              console.log(`Row ${index + 1} final device object:`, device);
               
               return device;
             }).filter(device => device.deviceId); // Filter out rows without device ID
@@ -1612,6 +1634,10 @@ const processSingleFile = async () => {
             // Import successful
             importStep.value = 'success';
             importedCount.value = devices.length;
+            
+            console.log(`=== IMPORT SUCCESS ===`);
+            console.log(`Successfully processed ${devices.length} devices from Excel`);
+            console.log(`Excel had ${dataRows.length} total rows, ${nonEmptyRows.length} non-empty rows`);
             
             // Refresh the device list
             await fetchDeviceManagement();
