@@ -241,4 +241,102 @@ router.get('/device-id/:deviceId', async (req, res) => {
   }
 });
 
+// Bulk import devices from Excel file
+router.post('/bulk-import', async (req, res) => {
+  try {
+    const { devices, deviceModel, productionBatch, manufacturer, creator } = req.body;
+    
+    if (!Array.isArray(devices) || devices.length === 0) {
+      return res.status(400).json({ error: 'No devices data provided' });
+    }
+    
+    if (!deviceModel || !productionBatch || !manufacturer || !creator) {
+      return res.status(400).json({ error: 'Device model, production batch, manufacturer, and creator are required' });
+    }
+    
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      
+      const results = [];
+      for (const device of devices) {
+        try {
+          // Map Excel columns to database columns based on the image structure
+          const deviceData = {
+            device_id: device.deviceId || device['设备ID'] || '',
+            bound_sub_account: device.boundSubAccount || device['绑定子账户'] || '-',
+            device_model: deviceModel, // From form selection
+            production_batch: productionBatch, // From form selection
+            manufacturer: manufacturer, // From form selection
+            initial_firmware: device.initialFirmware || device['初始烧录固件'] || `${deviceModel} V 1.0.1`,
+            latest_firmware: device.latestFirmware || device['最新可更新固件'] || `${deviceModel} V 2.0.1`,
+            current_firmware_version: device.currentFirmwareVersion || device['当前固件版本'] || `${deviceModel} V 1.3.0`,
+            serial_number_code: device.serialNumberCode || device['SN码'] || '',
+            chip_id: device.chipId || device['芯片ID'] || '',
+            wifi_mac_address: device.wifiMacAddress || device['Wi-Fi MAC地址'] || '',
+            bluetooth_mac_address: device.bluetoothMacAddress || device['蓝牙MAC地址'] || '',
+            bluetooth_name: device.bluetoothName || device['蓝牙名称'] || '',
+            cellular_network_id: device.cellularNetworkId || device['蜂窝网络识别码'] || '',
+            four_g_card_number: device.fourGCardNumber || device['4G卡号'] || '',
+            cpu_serial_number: device.cpuSerialNumber || device['CPU序列号'] || '',
+            creator: creator
+          };
+          
+          // Validate required fields
+          if (!deviceData.device_id) {
+            throw new Error(`Device ID is required for row ${results.length + 1}`);
+          }
+          
+          // Check if device already exists
+          const [existing] = await connection.execute(
+            'SELECT id FROM device_management WHERE device_id = ?',
+            [deviceData.device_id]
+          );
+          
+          if (existing.length > 0) {
+            // Update existing device
+            await connection.execute(
+              'UPDATE device_management SET bound_sub_account = ?, device_model = ?, production_batch = ?, manufacturer = ?, initial_firmware = ?, latest_firmware = ?, current_firmware_version = ?, serial_number_code = ?, chip_id = ?, wifi_mac_address = ?, bluetooth_mac_address = ?, bluetooth_name = ?, cellular_network_id = ?, four_g_card_number = ?, cpu_serial_number = ?, creator = ?, update_time = CURRENT_TIMESTAMP WHERE device_id = ?',
+              [deviceData.bound_sub_account, deviceData.device_model, deviceData.production_batch, deviceData.manufacturer, deviceData.initial_firmware, deviceData.latest_firmware, deviceData.current_firmware_version, deviceData.serial_number_code, deviceData.chip_id, deviceData.wifi_mac_address, deviceData.bluetooth_mac_address, deviceData.bluetooth_name, deviceData.cellular_network_id, deviceData.four_g_card_number, deviceData.cpu_serial_number, deviceData.creator, deviceData.device_id]
+            );
+            results.push({ deviceId: deviceData.device_id, status: 'updated' });
+          } else {
+            // Insert new device
+            await connection.execute(
+              'INSERT INTO device_management (device_id, bound_sub_account, device_model, production_batch, manufacturer, initial_firmware, latest_firmware, current_firmware_version, serial_number_code, chip_id, wifi_mac_address, bluetooth_mac_address, bluetooth_name, cellular_network_id, four_g_card_number, cpu_serial_number, creator) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [deviceData.device_id, deviceData.bound_sub_account, deviceData.device_model, deviceData.production_batch, deviceData.manufacturer, deviceData.initial_firmware, deviceData.latest_firmware, deviceData.current_firmware_version, deviceData.serial_number_code, deviceData.chip_id, deviceData.wifi_mac_address, deviceData.bluetooth_mac_address, deviceData.bluetooth_name, deviceData.cellular_network_id, deviceData.four_g_card_number, deviceData.cpu_serial_number, deviceData.creator]
+            );
+            results.push({ deviceId: deviceData.device_id, status: 'created' });
+          }
+        } catch (deviceError) {
+          results.push({ deviceId: device.deviceId || device['设备ID'] || 'Unknown', status: 'error', error: deviceError.message });
+        }
+      }
+      
+      await connection.commit();
+      
+      const successCount = results.filter(r => r.status === 'created' || r.status === 'updated').length;
+      const errorCount = results.filter(r => r.status === 'error').length;
+      
+      res.json({
+        message: `Bulk import completed. ${successCount} devices processed successfully, ${errorCount} errors.`,
+        results,
+        totalProcessed: devices.length,
+        successCount,
+        errorCount
+      });
+      
+    } catch (transactionError) {
+      await connection.rollback();
+      throw transactionError;
+    } finally {
+      connection.release();
+    }
+    
+  } catch (error) {
+    console.error('Error in bulk import:', error);
+    res.status(500).json({ error: 'Bulk import failed: ' + error.message });
+  }
+});
+
 export default router; 

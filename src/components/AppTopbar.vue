@@ -45,7 +45,7 @@
 import { MailOutlined, BellOutlined, UserOutlined, DownOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth'; // Import the auth store
-import { computed } from 'vue'; // Import computed
+import { computed, provide } from 'vue'; // Import computed and provide
 import topbarImage from '../assets/images/top.jpg';
 
 const router = useRouter();
@@ -60,6 +60,8 @@ const userName = computed(() => {
   return authStore.user?.name || authStore.user?.username || '管理员';
 });
 
+// Provide userName to child components
+provide('userName', userName);
 
 
 const handleLogout = () => {

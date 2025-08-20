@@ -240,7 +240,7 @@
                 <input ref="fileInput" type="file" @change="handleFileSelect" accept=".xls,.xlsx,.csv" style="display: none;">
                 <div class="upload-icon">📁</div>
                 <div class="upload-text">点击或拖拽文件到此区域</div>
-                <div class="upload-hint">支持导入excel文件，文件大小不超过50M，支持文件格式：xls, xlsx.</div>
+                <div class="upload-hint">支持导入Excel文件，文件大小不超过50M，支持文件格式：xls, xlsx。文件应包含设备ID、绑定子账户、初始烧录固件等列。</div>
               </div>
               
               <div v-if="uploadedFileName" class="uploaded-file">
@@ -391,7 +391,7 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, watch, h } from 'vue';
+import { ref, computed, onMounted, watch, h, inject } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExportOutlined} from '@ant-design/icons-vue';
@@ -399,6 +399,7 @@ import draggable from 'vuedraggable';
 import { useRouter } from 'vue-router';
 import { Empty } from 'ant-design-vue';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import { 
   createColumnConfigs, 
   useTableColumns, 
@@ -408,6 +409,9 @@ import {
 import { constructApiUrl } from '../utils/api';
 
 const router = useRouter();
+
+// Inject userName from AppTopbar
+const userName = inject('userName', computed(() => '管理员'));
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -1329,6 +1333,7 @@ const processSingleFile = async () => {
     console.log('File name:', selectedFile.value?.name);
     console.log('File size:', selectedFile.value?.size);
     console.log('File type:', selectedFile.value?.type);
+    console.log('Current userName:', userName.value);
     
     if (!selectedFile.value) {
       throw new Error('No file selected');
@@ -1345,75 +1350,155 @@ const processSingleFile = async () => {
       throw new Error('File size exceeds 50MB limit');
     }
     
-    // Simulate file reading and processing
+    // Check if required form fields are selected
+    if (!selectedDeviceModel.value) {
+      throw new Error('请选择设备型号');
+    }
+    if (!selectedProductionBatch.value) {
+      throw new Error('请选择生产批次');
+    }
+    if (!selectedManufacturer.value) {
+      throw new Error('请选择生产厂家');
+    }
+    
     console.log('File validation passed, starting processing...');
     
+    // Simulate progress
     const interval = setInterval(() => {
       progressPercent.value += Math.random() * 20;
       if (progressPercent.value >= 100) {
         progressPercent.value = 100;
         clearInterval(interval);
         
-        // Simulate file parsing and validation
+        // Process the Excel file
         setTimeout(async () => {
           try {
-            // Simulate reading Excel file content
-            const mockRowCount = Math.floor(Math.random() * 100) + 50; // 50-150 records
-            console.log(`Simulated reading ${mockRowCount} rows from Excel file`);
+            console.log('Reading Excel file...');
             
-            // Simulate data validation
-            const validationErrors = [];
+            // Read the Excel file
+            const arrayBuffer = await selectedFile.value!.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
             
-            // Check if required fields are present in the form
-            if (!selectedDeviceModel.value) {
-              validationErrors.push('设备型号 is required');
-            }
-            if (!selectedProductionBatch.value) {
-              validationErrors.push('生产批次 is required');
-            }
-            if (!selectedManufacturer.value) {
-              validationErrors.push('生产厂家 is required');
+            // Convert to JSON with header row
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            console.log('Excel data:', jsonData);
+            
+            if (jsonData.length < 2) {
+              throw new Error('Excel file must contain at least a header row and one data row');
             }
             
-            // Simulate Excel data validation
-            if (Math.random() < 0.2) { // 20% chance of validation error
-              validationErrors.push('Excel file contains invalid data format');
+            // Extract headers (first row)
+            const headers = jsonData[0] as string[];
+            console.log('Headers:', headers);
+            
+            // Extract data rows (skip header row)
+            const dataRows = jsonData.slice(1);
+            console.log('Data rows count:', dataRows.length);
+            
+            // Validate headers match expected structure
+            const expectedHeaders = [
+              '设备ID', '绑定子账户', '初始烧录固件', '最新可更新固件', '当前固件版本',
+              'SN码', '芯片ID', 'Wi-Fi MAC地址', '蓝牙MAC地址', '蓝牙名称',
+              '蜂窝网络识别码', '4G卡号', 'CPU序列号'
+            ];
+            
+            const missingHeaders = expectedHeaders.filter(header => 
+              !headers.some(h => h && h.toString().includes(header))
+            );
+            
+            if (missingHeaders.length > 0) {
+              throw new Error(`Excel文件缺少必需的列: ${missingHeaders.join(', ')}`);
             }
-            if (Math.random() < 0.15) { // 15% chance of duplicate ID error
-              validationErrors.push('Excel file contains duplicate device IDs');
+            
+            // Validate that we have at least one data row
+            if (dataRows.length === 0) {
+              throw new Error('Excel文件中没有数据行');
             }
+            
+            // Transform data rows to device objects
+            const devices = dataRows.map((row: unknown, index: number) => {
+              const rowArray = row as any[];
+              const device: any = {};
+              
+              // Map Excel columns to device properties
+              headers.forEach((header: string, colIndex: number) => {
+                if (header && rowArray[colIndex] !== undefined) {
+                  const value = rowArray[colIndex];
+                  
+                  // Map Chinese headers to English properties
+                  if (header.includes('设备ID')) device.deviceId = value;
+                  else if (header.includes('绑定子账户')) device.boundSubAccount = value;
+                  else if (header.includes('初始烧录固件')) device.initialFirmware = value;
+                  else if (header.includes('最新可更新固件')) device.latestFirmware = value;
+                  else if (header.includes('当前固件版本')) device.currentFirmwareVersion = value;
+                  else if (header.includes('SN码')) device.serialNumberCode = value;
+                  else if (header.includes('芯片ID')) device.chipId = value;
+                  else if (header.includes('Wi-Fi MAC地址')) device.wifiMacAddress = value;
+                  else if (header.includes('蓝牙MAC地址')) device.bluetoothMacAddress = value;
+                  else if (header.includes('蓝牙名称')) device.bluetoothName = value;
+                  else if (header.includes('蜂窝网络识别码')) device.cellularNetworkId = value;
+                  else if (header.includes('4G卡号')) device.fourGCardNumber = value;
+                  else if (header.includes('CPU序列号')) device.cpuSerialNumber = value;
+                }
+              });
+              
+              // Add form-selected values
+              device.deviceModel = selectedDeviceModel.value;
+              device.productionBatch = selectedProductionBatch.value;
+              device.manufacturer = selectedManufacturer.value;
+              
+              return device;
+            }).filter(device => device.deviceId); // Filter out rows without device ID
+            
+            console.log('Transformed devices:', devices);
+            
+            if (devices.length === 0) {
+              throw new Error('Excel文件中没有找到有效的设备数据，请确保每行都包含设备ID');
+            }
+            
+            // Validate device data
+            const validationErrors: string[] = [];
+            devices.forEach((device, index) => {
+              if (!device.deviceId || device.deviceId.toString().trim() === '') {
+                validationErrors.push(`第${index + 2}行: 设备ID不能为空`);
+              }
+              // Add more validation as needed
+            });
             
             if (validationErrors.length > 0) {
-              // Validation failed
-              importStep.value = 'failure';
-              failureMessage.value = `数据验证失败:\n${validationErrors.join('\n')}`;
-              console.error('Validation errors:', validationErrors);
-              
-              // Auto-close after 2 seconds
-              setTimeout(() => {
-                closeDeviceImportModal();
-              }, 2000);
-            } else {
-              // Validation passed - import successful
-              importStep.value = 'success';
-              importedCount.value = mockRowCount;
-              
-              console.log('Import successful, adding new rows to table...');
-              
-              // Add new rows from file to the table
-              addNewRowsFromFile(mockRowCount);
-              
-              // Auto-close after 2 seconds and refresh list
-              setTimeout(() => {
-                closeDeviceImportModal();
-                // Refresh the device list
-                fetchDeviceManagement();
-              }, 2000);
+              throw new Error(`数据验证失败:\n${validationErrors.join('\n')}`);
             }
+            
+            // Send data to server
+            console.log('Sending data to server...');
+            const response = await axios.post(constructApiUrl('device-management/bulk-import'), {
+              devices,
+              deviceModel: selectedDeviceModel.value,
+              productionBatch: selectedProductionBatch.value,
+              manufacturer: selectedManufacturer.value,
+              creator: userName.value
+            });
+            
+            console.log('Server response:', response.data);
+            
+            // Import successful
+            importStep.value = 'success';
+            importedCount.value = devices.length;
+            
+            // Refresh the device list
+            await fetchDeviceManagement();
+            
+            // Auto-close after 2 seconds
+            setTimeout(() => {
+              closeDeviceImportModal();
+            }, 2000);
+            
           } catch (error: any) {
             console.error('Error during file processing:', error);
             importStep.value = 'failure';
-            failureMessage.value = `文件处理过程中发生错误: ${error.message}`;
+            failureMessage.value = `文件处理失败: ${error.message}`;
             
             // Auto-close after 2 seconds
             setTimeout(() => {
@@ -1436,43 +1521,7 @@ const processSingleFile = async () => {
   }
 };
 
-const addNewRowsFromFile = (rowCount: number) => {
-  // Generate new device data based on file import
-  const newRows: DataItem[] = [];
-  const baseDeviceId = '0075A1B2SZTDS25061982X';
-  const baseTime = new Date();
-  
-  for (let i = 0; i < rowCount; i++) {
-    const newId = `${baseDeviceId}${String(i + 200).padStart(2, '0')}`;
-    const newRow: DataItem = {
-      key: rawData.value.length + i + 1,
-      deviceId: newId,
-      boundSubAccount: '-',
-      deviceModel: selectedDeviceModel.value,
-      productionBatch: selectedProductionBatch.value,
-      manufacturer: selectedManufacturer.value,
-      initialFirmware: `${selectedDeviceModel.value} V 1.0.1`,
-      latestFirmware: `${selectedDeviceModel.value} V 2.0.1`,
-      currentFirmwareVersion: `${selectedDeviceModel.value} V 1.3.0`,
-      serialNumberCode: `SZTDS25061982X${String(i + 200).padStart(2, '0')}`,
-      chipId: `ESP32-${newId}`,
-      wifiMacAddress: `DC:54:75:62:${String(i + 200).padStart(2, '0')}:70`,
-      bluetoothMacAddress: `DC:54:75:62:${String(i + 200).padStart(2, '0')}:70`,
-      bluetoothName: `ZBMU 001 250619X${String(i + 200).padStart(2, '0')}`,
-      cellularNetworkId: `353801003000${String(i + 200).padStart(3, '0')}`,
-      fourGCardNumber: `147762943${String(i + 200).padStart(3, '0')}36`,
-      cpuSerialNumber: `0xFFFFFF${String(200 - i).padStart(2, '0')}`,
-      creator: '33',
-      createTime: new Date(baseTime.getTime() + i * 60000).toLocaleString('zh-CN'),
-      updateTime: new Date(baseTime.getTime() + i * 60000).toLocaleString('zh-CN')
-    };
-    newRows.push(newRow);
-  }
-  
-  // Add new rows to the existing data
-  rawData.value = [...rawData.value, ...newRows];
-  console.log(`Added ${rowCount} new rows from file import`);
-};
+
 
 const prevStep = () => {
   if (importStep.value === '2') {

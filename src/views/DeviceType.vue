@@ -82,11 +82,8 @@
         @change="handleTableChange"
         :showSorterTooltip="false"
       >
-      <template #bodyCell="{ column, record, index }">
-      <template v-if="column.key === 'rowIndex'">
-        {{ (currentPage.value - 1) * pageSize.value + index + 1 }}
-      </template>
-      <template v-else-if="column.key === 'operation_9'">
+      <template #bodyCell="{ column, record }">
+      <template v-if="column.key === 'operation_9'">
         <a-space class="action-cell" direction="horizontal">
           <a class="view-link" @click="$emit('view-record', record)">查看</a>
           <a-divider type="vertical" />
@@ -297,12 +294,12 @@ interface ColumnConfig {
   sortDirections?: ('ascend' | 'descend')[];
   sortOrder?: 'ascend' | 'descend';
   defaultSortOrder?: 'ascend' | 'descend';
-  customRender?: (record: any) => string | number;
+  customRender?: ({ text, record, index }: { text?: any; record?: any; index?: number }) => any;
   className?: string;
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + (index || 0) + 1 },
   { key: 'deviceModelId_1', title: '设备型号ID', dataIndex: 'deviceModelId', width: 150, sorter: (a, b) => a.deviceModelId.localeCompare(b.deviceModelId), sortDirections: ['ascend', 'descend'] },
   { key: 'deviceModelName_2', title: '设备型号名称', dataIndex: 'deviceModelName', width: 120, sorter: (a, b) => a.deviceModelName.localeCompare(b.deviceModelName), sortDirections: ['ascend', 'descend'] },
   { key: 'introduction_3', title: '介绍', dataIndex: 'introduction', width: 300, sorter: (a, b) => (a.introduction || '').localeCompare(b.introduction || ''), sortDirections: ['ascend', 'descend'] },
