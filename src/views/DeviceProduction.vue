@@ -242,87 +242,88 @@
         </div>
         
         <div class="modal-body">
-          <div class="form-group">
-            <label>设备型号</label>
-            <a-select 
-              v-model:value="editBatchForm.deviceModel" 
-              placeholder="请选择设备型号"
-              @change="handleEditDeviceModelChange"
-              style="width: 100%"
-            >
-              <a-select-option 
-                v-for="deviceModel in deviceModelOptionsForEdit" 
-                :key="deviceModel.value" 
-                :value="deviceModel.value"
+          <a-form
+            :model="editBatchForm"
+            :rules="editBatchFormRules"
+            layout="vertical"
+            ref="editBatchFormRef"
+          >
+            <a-form-item label="设备型号" name="deviceModel" required>
+              <a-select 
+                v-model:value="editBatchForm.deviceModel" 
+                placeholder="请选择设备型号"
+                @change="handleEditDeviceModelChange"
+                style="width: 100%"
               >
-                {{ deviceModel.label }}
-              </a-select-option>
-            </a-select>
-          </div>
+                <a-select-option 
+                  v-for="deviceModel in deviceModelOptionsForEdit" 
+                  :key="deviceModel.value" 
+                  :value="deviceModel.value"
+                >
+                  {{ deviceModel.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
 
-          <div class="form-group">
-            <label>生产批次</label>
-            <a-date-picker
-              v-model:value="editBatchForm.productionBatch"
-              placeholder="请选择生产批次"
-              style="width: 100%"
-              allowClear
-              format="YYYY-MM-DD"
-              valueFormat="YYYY-MM-DD"
-              @change="handleEditProductionBatchDateChange"
-            />
-          </div>
+            <a-form-item label="生产批次" name="productionBatch" required>
+              <a-date-picker
+                v-model:value="editBatchForm.productionBatch"
+                placeholder="请选择生产批次"
+                style="width: 100%"
+                allowClear
+                format="YYYY-MM-DD"
+                valueFormat="YYYY-MM-DD"
+                @change="handleEditProductionBatchDateChange"
+              />
+            </a-form-item>
 
-          <div class="form-group">
-            <label>生产厂家</label>
-            <a-input 
-              v-model:value="editBatchForm.manufacturer" 
-              placeholder="请输入生产厂家"
-              @blur="handleManufacturerBlur"
-            />
-          </div>
+            <a-form-item label="生产厂家" name="manufacturer" required>
+              <a-input 
+                v-model:value="editBatchForm.manufacturer" 
+                placeholder="请输入生产厂家"
+                @blur="handleManufacturerBlur"
+              />
+            </a-form-item>
 
-          <div class="form-group">
-            <label>烧录固件</label>
-            <a-select 
-              v-model:value="editBatchForm.burnFirmware" 
-              placeholder="请选择烧录固件"
-              :disabled="!editBatchForm.deviceModel"
-              style="width: 100%"
-            >
-              <a-select-option 
-                v-for="firmware in firmwareOptionsForEdit" 
-                :key="firmware.value" 
-                :value="firmware.value"
+            <a-form-item label="烧录固件" name="burnFirmware" required>
+              <a-select 
+                v-model:value="editBatchForm.burnFirmware" 
+                placeholder="请选择烧录固件"
+                :disabled="!editBatchForm.deviceModel"
+                style="width: 100%"
               >
-                {{ firmware.label }}
-              </a-select-option>
-            </a-select>
-          </div>
+                <a-select-option 
+                  v-for="firmware in firmwareOptionsForEdit" 
+                  :key="firmware.value" 
+                  :value="firmware.value"
+                >
+                  {{ firmware.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
 
-          <div class="form-group">
-            <label>单价</label>
-            <a-input-number 
-              v-model:value="editBatchForm.unitPrice" 
-              placeholder="请输入" 
-              style="width: 100%"
-              :min="0"
-              :precision="2"
-              suffix="元"
-            />
-          </div>
+            <a-form-item label="单价" name="unitPrice" required>
+              <a-input-number 
+                v-model:value="editBatchForm.unitPrice" 
+                placeholder="请输入" 
+                style="width: 100%"
+                :min="0"
+                :precision="2"
+                suffix="元"
+              />
+            </a-form-item>
 
-          <div class="form-group">
-            <label>数量</label>
-            <a-input-number 
-              v-model:value="editBatchForm.quantity" 
-              placeholder="请输入" 
-              style="width: 100%"
-              :min="1"
-              :precision="0"
-              suffix="个"
-            />
-          </div>
+            <a-form-item label="数量" name="quantity" required>
+              <a-input-number 
+                v-model:value="editBatchForm.quantity" 
+                placeholder="请输入" 
+                style="width: 100%"
+                :min="1"
+                :precision="0"
+                suffix="个"
+              />
+            </a-form-item>
+          </a-form>
         </div>
         
         <div class="modal-footer">
@@ -633,6 +634,10 @@ const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key'
 
 const updateDeviceProduction = async (id: number, deviceProductionData: Partial<DataItem>) => {
   try {
+    console.log('=== updateDeviceProduction called ===');
+    console.log('ID:', id);
+    console.log('Device production data:', deviceProductionData);
+    
     const payload = {
       production_device_id: deviceProductionData.productionDeviceId,
       device_model: deviceProductionData.deviceModel,
@@ -645,12 +650,24 @@ const updateDeviceProduction = async (id: number, deviceProductionData: Partial<
       updater: deviceProductionData.updater,
       creator: deviceProductionData.creator
     };
+    
     console.log('PUT /device-production payload:', payload);
+    console.log('Making PUT request to:', `http://121.43.196.106:2829/api/device-production/${id}`);
+    
     const response = await axios.put(`http://121.43.196.106:2829/api/device-production/${id}`, payload);
-    await fetchDeviceProduction(); // Refresh data
+    console.log('PUT response received:', response);
+    console.log('Response data:', response.data);
+    
+    // Don't call fetchDeviceProduction here as it's called by the caller
     return response.data;
   } catch (error) {
-    console.error('Error updating device production:', error);
+    console.error('=== Error in updateDeviceProduction ===');
+    console.error('Error details:', error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errorResponse = error as any;
+      console.error('Error response status:', errorResponse.response?.status);
+      console.error('Error response data:', errorResponse.response?.data);
+    }
     throw error;
   }
 };
@@ -1300,16 +1317,23 @@ const handleEditBatchModalCancel = () => {
 
 const handleEditBatchModalConfirm = async () => {
   try {
-    await editBatchFormRef.value?.validate();
+    console.log('=== Starting edit batch modal confirm ===');
+    console.log('Current editing record:', currentEditingRecord.value);
     console.log('Edit batch form data:', editBatchForm.value);
+    
+    // Validate form
+    await editBatchFormRef.value?.validate();
+    console.log('Form validation passed');
     
     // Get the record ID from the stored editing record
     if (!currentEditingRecord.value || !currentEditingRecord.value.id) {
       message.error('无法找到要更新的记录');
+      console.error('No current editing record found');
       return;
     }
     
     const currentRecord = currentEditingRecord.value;
+    console.log('Current record to update:', currentRecord);
     
     // Prepare data for API update
     const updateData = {
@@ -1325,8 +1349,12 @@ const handleEditBatchModalConfirm = async () => {
       creator: currentRecord.creator || currentUsername.value
     };
     
+    console.log('Update data prepared:', updateData);
+    console.log('About to call updateDeviceProduction with ID:', currentRecord.id);
+    
     // Send update to API
-    await updateDeviceProduction(currentRecord.id!, updateData);
+    const result = await updateDeviceProduction(currentRecord.id!, updateData);
+    console.log('Update API call successful:', result);
     
     message.success('设备更新成功！');
     showEditBatchModal.value = false;
@@ -1344,14 +1372,22 @@ const handleEditBatchModalConfirm = async () => {
     currentEditingRecord.value = null;
     
     // Refresh the data
+    console.log('Refreshing device production data...');
     await fetchDeviceProduction();
+    console.log('Data refresh completed');
     
   } catch (error: unknown) {
-    console.error('Form validation failed:', error);
+    console.error('=== Edit batch modal confirm failed ===');
+    console.error('Error details:', error);
+    
     if (error && typeof error === 'object' && 'response' in error) {
       const errorResponse = error as any;
+      console.error('Error response:', errorResponse.response);
+      
       if (errorResponse.response?.data?.error) {
         message.error(errorResponse.response.data.error);
+      } else if (errorResponse.response?.data?.message) {
+        message.error(errorResponse.response.data.message);
       } else if (errorResponse.message) {
         message.error(errorResponse.message);
       } else {
