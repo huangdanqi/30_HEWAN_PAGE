@@ -1470,6 +1470,10 @@ const processSingleFile = async () => {
               device.productionBatch = selectedProductionBatch.value;
               device.manufacturer = selectedManufacturer.value;
               
+              // Add dynamic creation time and creator
+              device.createTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+              device.creator = userName.value;
+              
               return device;
             }).filter(device => device.deviceId); // Filter out rows without device ID
             
@@ -1494,6 +1498,9 @@ const processSingleFile = async () => {
             
             // Send data to server
             console.log('Sending data to server...');
+            console.log('Creator (创建人):', userName.value);
+            console.log('Sample device data with creator and creation time:', devices[0]);
+            
             const response = await axios.post(constructApiUrl('device-management/bulk-import'), {
               devices,
               deviceModel: selectedDeviceModel.value,
