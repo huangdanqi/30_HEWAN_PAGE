@@ -62,6 +62,12 @@
         <a-button type="default" @click="debugUserName" style="margin-left: 8px;">
           调试用户名
         </a-button>
+        <a-button type="default" @click="setTestUser" style="margin-left: 8px;">
+          设置测试用户
+        </a-button>
+        <a-button type="default" @click="autoLogin" style="margin-left: 8px;">
+          自动登录
+        </a-button>
           <ReloadOutlined @click="onRefresh" />
           <!-- <a-button type="default" @click="debugApiCall" style="margin-left: 8px;">调试API</a-button>
           <a-button type="default" @click="healthCheck" style="margin-left: 8px;">健康检查</a-button> -->
@@ -1868,6 +1874,57 @@ const debugUserName = () => {
   console.log('Auth store isAuthenticated:', authStore.isAuthenticated());
   
   message.info(`当前用户名: ${userName.value || '未定义'}`);
+};
+
+const setTestUser = () => {
+  try {
+    const authStore = useAuthStore();
+    const testUsername = '测试用户_' + Date.now();
+    
+    // Set a test user using the auth store method
+    authStore.setLoggedInState(testUsername);
+    
+    console.log('Test user set:', testUsername);
+    console.log('Auth store user:', authStore.user);
+    console.log('Auth store isAuthenticated:', authStore.isAuthenticated());
+    
+    message.success(`测试用户设置成功: ${testUsername}`);
+    
+    // Force a refresh to update the injected userName
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Failed to set test user:', error);
+    message.error('设置测试用户失败');
+  }
+};
+
+const autoLogin = async () => {
+  try {
+    const authStore = useAuthStore();
+    const testUsername = '自动登录用户_' + Date.now();
+    
+    // Use the login method to properly set up authentication
+    const success = await authStore.login(testUsername, 'testpassword');
+    
+    if (success) {
+      console.log('Auto login successful:', testUsername);
+      message.success(`自动登录成功: ${testUsername}`);
+      
+      // Force a refresh to update the injected userName
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      message.error('自动登录失败');
+    }
+    
+  } catch (error) {
+    console.error('Auto login failed:', error);
+    message.error('自动登录失败');
+  }
 };
 
 const handleDeviceImportClick = async () => {
