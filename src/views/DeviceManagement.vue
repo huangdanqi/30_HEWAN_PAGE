@@ -1596,34 +1596,41 @@ const processSingleFile = async () => {
               throw new Error(`连接测试失败: ${testError.message}`);
             }
             
-            // Test the exact API endpoint we'll use
+            // Test the exact API endpoint we'll use (without inserting data)
             try {
-              console.log('Testing bulk-import endpoint with minimal data...');
+              console.log('Testing bulk-import endpoint connectivity...');
+              // Just test if the endpoint is reachable by sending a minimal request
+              // but we'll catch the response to verify connectivity without inserting
               const testBulkResponse = await axios.post(constructApiUrl('device-management/bulk-import'), {
                 devices: [{
-                  deviceId: 'TEST_CONNECTIVITY_' + Date.now(),
-                  boundSubAccount: 'TEST',
-                  initialFirmware: 'TEST',
-                  latestFirmware: 'TEST',
-                  currentFirmwareVersion: 'TEST',
-                  serialNumberCode: 'TEST',
-                  chipId: 'TEST',
-                  wifiMacAddress: 'TEST',
-                  bluetoothMacAddress: 'TEST',
-                  bluetoothName: 'TEST',
-                  cellularNetworkId: 'TEST',
-                  fourGCardNumber: 'TEST',
-                  cpuSerialNumber: 'TEST'
+                  deviceId: 'CONNECTIVITY_TEST_ONLY', // This won't be inserted due to validation
+                  boundSubAccount: '',
+                  initialFirmware: '',
+                  latestFirmware: '',
+                  currentFirmwareVersion: '',
+                  serialNumberCode: '',
+                  chipId: '',
+                  wifiMacAddress: '',
+                  bluetoothMacAddress: '',
+                  bluetoothName: '',
+                  cellularNetworkId: '',
+                  fourGCardNumber: '',
+                  cpuSerialNumber: ''
                 }],
-                deviceModel: 'TEST_MODEL',
-                productionBatch: '2025-08-20',
-                manufacturer: 'TEST_MANUFACTURER',
-                creator: userName.value
+                deviceModel: '',
+                productionBatch: '',
+                manufacturer: '',
+                creator: ''
               });
-              console.log('✅ Bulk-import endpoint test successful:', testBulkResponse.data);
+              console.log('✅ Bulk-import endpoint is reachable');
             } catch (testBulkError: any) {
-              console.error('❌ Bulk-import endpoint test failed:', testBulkError);
-              throw new Error(`批量导入端点测试失败: ${testBulkError.response?.data?.error || testBulkError.message}`);
+              // We expect this to fail due to validation, but it proves the endpoint is reachable
+              if (testBulkError.response && testBulkError.response.status === 400) {
+                console.log('✅ Bulk-import endpoint is reachable (validation error expected)');
+              } else {
+                console.error('❌ Bulk-import endpoint connectivity test failed:', testBulkError);
+                throw new Error(`批量导入端点连接测试失败: ${testBulkError.response?.data?.error || testBulkError.message}`);
+              }
             }
             
             // Compare with working test data structure
