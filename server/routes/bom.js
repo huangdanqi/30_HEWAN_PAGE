@@ -9,6 +9,15 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+// Test endpoint to verify BOM route is working
+router.get('/bom-test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'BOM route is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Configure multer for file upload
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -101,16 +110,47 @@ router.get('/download-bom', async (req, res) => {
     const bomDir = path.join(__dirname, '../../public/bom-files');
     const files = fs.readdirSync(bomDir);
     
+    console.log('=== BOM Download Debug ===');
+    console.log('Searching for:', { deviceModel, productionBatch, manufacturer });
+    console.log('Decoded manufacturer:', decodeURIComponent(manufacturer));
+    console.log('Available files:', files);
+    
     // Filter files that match the device info
+    // Decode URL-encoded manufacturer name for proper matching
+    const decodedManufacturer = decodeURIComponent(manufacturer);
+    
     const matchingFiles = files.filter(file => {
       const filename = file.toLowerCase();
-      return filename.includes(deviceModel.toLowerCase()) &&
-             filename.includes(productionBatch.toLowerCase()) &&
-             filename.includes(manufacturer.toLowerCase());
+      const decodedFilename = decodeURIComponent(filename);
+      
+      // Check if filename contains all required components
+      const hasDeviceModel = filename.includes(deviceModel.toLowerCase());
+      const hasProductionBatch = filename.includes(productionBatch.toLowerCase());
+      const hasManufacturer = filename.includes(decodedManufacturer.toLowerCase()) || 
+                             decodedFilename.includes(decodedManufacturer.toLowerCase());
+      
+      console.log(`File: ${file}`);
+      console.log(`  - Has device model (${deviceModel}): ${hasDeviceModel}`);
+      console.log(`  - Has production batch (${productionBatch}): ${hasProductionBatch}`);
+      console.log(`  - Has manufacturer (${decodedManufacturer}): ${hasManufacturer}`);
+      
+      return hasDeviceModel && hasProductionBatch && hasManufacturer;
     });
     
+    console.log('Matching files found:', matchingFiles);
+    
     if (matchingFiles.length === 0) {
-      return res.status(404).json({ success: false, message: 'No BOM file found for this device' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No BOM file found for this device',
+        searchCriteria: {
+          deviceModel,
+          productionBatch,
+          manufacturer: decodedManufacturer
+        },
+        availableFiles: files,
+        debug: 'Check server logs for detailed matching information'
+      });
     }
     
     // Get the most recent file (assuming timestamp in filename)
@@ -140,7 +180,7 @@ router.get('/download-bom', async (req, res) => {
   }
 });
 
-// Get list of BOM files for a device
+// Get list of all BOM files (for debugging)
 router.get('/bom-files', async (req, res) => {
   try {
     const { deviceModel, productionBatch, manufacturer } = req.query;
