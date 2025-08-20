@@ -295,11 +295,12 @@ interface ColumnConfig {
   sortOrder?: 'ascend' | 'descend';
   defaultSortOrder?: 'ascend' | 'descend';
   customRender?: (record: any) => string | number;
+  customCell?: (record: any) => { children: any; props: any };
   className?: string;
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
   { key: 'deviceModelId_1', title: '设备型号ID', dataIndex: 'deviceModelId', width: 150, sorter: (a, b) => a.deviceModelId.localeCompare(b.deviceModelId), sortDirections: ['ascend', 'descend'] },
   { key: 'deviceModelName_2', title: '设备型号名称', dataIndex: 'deviceModelName', width: 120, sorter: (a, b) => a.deviceModelName.localeCompare(b.deviceModelName), sortDirections: ['ascend', 'descend'] },
   { key: 'introduction_3', title: '介绍', dataIndex: 'introduction', width: 300, sorter: (a, b) => (a.introduction || '').localeCompare(b.introduction || ''), sortDirections: ['ascend', 'descend'] },
@@ -326,9 +327,31 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sorter: config.sorter,
     sortDirections: config.sortDirections,
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    customRender: config.customRender
-      ? config.customRender
-      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
+    customCell: (record: any) => {
+      // Special handling for rowIndex column
+      if (config.key === 'rowIndex') {
+        const rowIndex = rawData.value.findIndex(item => item.id === record.id) + 1;
+        const displayIndex = (currentPage.value - 1) * pageSize.value + rowIndex;
+        return {
+          children: displayIndex,
+          props: {}
+        };
+      }
+      
+      // Handle other columns with customRender
+      if (config.customRender) {
+        return {
+          children: config.customRender(record),
+          props: {}
+        };
+      }
+      
+      // Default rendering for other columns
+      return {
+        children: record[config.dataIndex] === undefined || record[config.dataIndex] === null || record[config.dataIndex] === '' ? '-' : record[config.dataIndex],
+        props: {}
+      };
+    },
     className: config.className,
   })) as ColumnsType;
 };
