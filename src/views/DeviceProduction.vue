@@ -573,6 +573,13 @@ const fetchDeviceProduction = async () => {
         };
       });
 
+      // Apply plain JavaScript descending sort by updateTime
+      rawData.value.sort((a, b) => {
+        const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
+        const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
+        return timeB - timeA; // Descending order (newest first)
+      });
+
       // Update pagination info from server
       if (response.data.pagination) {
         currentPage.value = response.data.pagination.current;
@@ -591,6 +598,13 @@ const fetchDeviceProduction = async () => {
       ];
       rawData.value = fallbackData;
       total.value = fallbackData.length;
+      
+      // Apply plain JavaScript descending sort by updateTime for fallback data
+      rawData.value.sort((a, b) => {
+        const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
+        const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
+        return timeB - timeA; // Descending order (newest first)
+      });
     }
   } catch (error) {
     console.error('Error fetching device production:', error);
@@ -603,6 +617,13 @@ const fetchDeviceProduction = async () => {
     ];
     rawData.value = fallbackData;
     total.value = fallbackData.length;
+    
+    // Apply plain JavaScript descending sort by updateTime for error fallback data
+    rawData.value.sort((a, b) => {
+      const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
+      const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
+      return timeB - timeA; // Descending order (newest first)
+    });
   } finally {
     loading.value = false;
   }
@@ -732,7 +753,7 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sorterInfo = ref<any>({
-  columnKey: 'productionBatch',
+  columnKey: 'updateTime_11',
   order: 'descend',
 });
 
@@ -763,6 +784,12 @@ const onRefresh = () => {
   searchInputValue.value = '';
   currentPage.value = 1;
   resetColumns(); // Reset column order and visibility
+
+  // Reset sorter to 更新时间 descending
+  sorterInfo.value = {
+    columnKey: 'updateTime_11',
+    order: 'descend',
+  };
 
   // Reset all selector values to '全部'
   deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
@@ -836,7 +863,7 @@ const handleTableChange = (
   } else {
     // When sorting is cleared, revert to default
     sorterInfo.value = {
-      columnKey: 'productionBatch',
+      columnKey: 'updateTime_11',
       order: 'descend',
     };
   }
