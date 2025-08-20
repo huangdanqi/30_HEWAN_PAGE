@@ -577,26 +577,26 @@ interface ColumnConfig {
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1, sorter: (a, b) => a.rowIndex - b.rowIndex, sortDirections: ['ascend', 'descend'] },
-  { key: 'deviceId_2', title: '设备ID', dataIndex: 'deviceId', width: 200, sorter: (a, b) => (a.deviceId || '').localeCompare(b.deviceId || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'boundSubAccount_3', title: '绑定子账户', dataIndex: 'boundSubAccount', width: 120, sorter: (a, b) => (a.boundSubAccount || '').localeCompare(b.boundSubAccount || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'deviceModel_4', title: '设备型号', dataIndex: 'deviceModel', width: 120, sorter: (a, b) => (a.deviceModel || '').localeCompare(b.deviceModel || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'productionBatch_5', title: '生产批次', dataIndex: 'productionBatch', width: 120, sorter: (a, b) => new Date(a.productionBatch).getTime() - new Date(b.productionBatch).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'manufacturer_6', title: '生产厂家', dataIndex: 'manufacturer', width: 200, sorter: (a, b) => (a.manufacturer || '').localeCompare(b.manufacturer || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'initialFirmware_7', title: '初始烧录固件', dataIndex: 'initialFirmware', width: 150, sorter: (a, b) => (a.initialFirmware || '').localeCompare(b.initialFirmware || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'latestFirmware_8', title: '最新可更新固件', dataIndex: 'latestFirmware', width: 150, sorter: (a, b) => (a.latestFirmware || '').localeCompare(b.latestFirmware || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'currentFirmwareVersion_9', title: '当前固件版本', dataIndex: 'currentFirmwareVersion', width: 150, sorter: (a, b) => (a.currentFirmwareVersion || '').localeCompare(b.currentFirmwareVersion || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'serialNumberCode_10', title: 'SN码', dataIndex: 'serialNumberCode', width: 150, sorter: (a, b) => (a.serialNumberCode || '').localeCompare(b.serialNumberCode || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'chipId_11', title: '芯片ID', dataIndex: 'chipId', width: 150, sorter: (a, b) => (a.chipId || '').localeCompare(b.chipId || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'wifiMacAddress_12', title: 'Wi-Fi MAC 地址', dataIndex: 'wifiMacAddress', width: 150, sorter: (a, b) => (a.wifiMacAddress || '').localeCompare(b.wifiMacAddress || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'bluetoothMacAddress_13', title: '蓝牙MAC地址', dataIndex: 'bluetoothMacAddress', width: 150, sorter: (a, b) => (a.bluetoothMacAddress || '').localeCompare(b.bluetoothMacAddress || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'bluetoothName_14', title: '蓝牙名称', dataIndex: 'bluetoothName', width: 150, sorter: (a, b) => (a.bluetoothName || '').localeCompare(b.bluetoothName || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'cellularNetworkId_15', title: '蜂窝网络识别码', dataIndex: 'cellularNetworkId', width: 150, sorter: (a, b) => (a.cellularNetworkId || '').localeCompare(b.cellularNetworkId || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'fourGCardNumber_16', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120, sorter: (a, b) => (a.fourGCardNumber || '').localeCompare(b.fourGCardNumber || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'cpuSerialNumber_17', title: 'CPU序列号', dataIndex: 'cpuSerialNumber', width: 150, sorter: (a, b) => (a.cpuSerialNumber || '').localeCompare(b.cpuSerialNumber || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'creator_18', title: '创建人', dataIndex: 'creator', width: 100, sorter: (a, b) => (a.creator || '').localeCompare(b.creator || ''), sortDirections: ['ascend', 'descend'] },
-  { key: 'createTime_19', title: '创建时间', dataIndex: 'createTime', width: 150, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime_20', title: '更新时间', dataIndex: 'updateTime', width: 150, sorter: (a, b) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
+  { key: 'deviceId_2', title: '设备ID', dataIndex: 'deviceId', width: 200 },
+  { key: 'boundSubAccount_3', title: '绑定子账户', dataIndex: 'boundSubAccount', width: 120 },
+  { key: 'deviceModel_4', title: '设备型号', dataIndex: 'deviceModel', width: 120 },
+  { key: 'productionBatch_5', title: '生产批次', dataIndex: 'productionBatch', width: 120 },
+  { key: 'manufacturer_6', title: '生产厂家', dataIndex: 'manufacturer', width: 200 },
+  { key: 'initialFirmware_7', title: '初始烧录固件', dataIndex: 'initialFirmware', width: 150 },
+  { key: 'latestFirmware_8', title: '最新可更新固件', dataIndex: 'latestFirmware', width: 150 },
+  { key: 'currentFirmwareVersion_9', title: '当前固件版本', dataIndex: 'currentFirmwareVersion', width: 150 },
+  { key: 'serialNumberCode_10', title: 'SN码', dataIndex: 'serialNumberCode', width: 150 },
+  { key: 'chipId_11', title: '芯片ID', dataIndex: 'chipId', width: 150 },
+  { key: 'wifiMacAddress_12', title: 'Wi-Fi MAC 地址', dataIndex: 'wifiMacAddress', width: 150 },
+  { key: 'bluetoothMacAddress_13', title: '蓝牙MAC地址', dataIndex: 'bluetoothMacAddress', width: 150 },
+  { key: 'bluetoothName_14', title: '蓝牙名称', dataIndex: 'bluetoothName', width: 150 },
+  { key: 'cellularNetworkId_15', title: '蜂窝网络识别码', dataIndex: 'cellularNetworkId', width: 150 },
+  { key: 'fourGCardNumber_16', title: '4G卡号', dataIndex: 'fourGCardNumber', width: 120 },
+  { key: 'cpuSerialNumber_17', title: 'CPU序列号', dataIndex: 'cpuSerialNumber', width: 150 },
+  { key: 'creator_18', title: '创建人', dataIndex: 'creator', width: 100 },
+  { key: 'createTime_19', title: '创建时间', dataIndex: 'createTime', width: 150 },
+  { key: 'updateTime_20', title: '更新时间', dataIndex: 'updateTime', width: 150 },
   { key: 'operation_21', title: '操作', dataIndex: '', width: 200, fixed: 'right' },
 ];
 
@@ -612,9 +612,6 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     key: config.key,
     width: config.width,
     fixed: config.fixed,
-    sorter: config.sorter,
-    sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
     customRender: config.customRender
       ? config.customRender
       : ({ text, record }) => {
@@ -909,7 +906,7 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 
 const sorterInfo = ref<any>({
-  columnKey: 'createTime',
+  columnKey: 'updateTime_20',
   order: 'descend',
 });
 
@@ -1000,6 +997,7 @@ const healthCheck = async () => {
   console.log('=== END HEALTH CHECK ===');
 };
 
+// Filtered and sorted data - always sorted by update time in descending order (newest first)
 const filteredData = computed(() => {
   let dataToFilter = rawData.value;
 
@@ -1032,17 +1030,12 @@ const filteredData = computed(() => {
     dataToFilter = dataToFilter.filter(item => item.manufacturer === selectedManufacturer);
   }
 
-  // Sorting logic
-  if (sorterInfo.value && sorterInfo.value.order) {
-    const { columnKey, order } = sorterInfo.value;
-    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-    if (sorterFn) {
-      dataToFilter.sort((a, b) => {
-        const result = sorterFn(a, b);
-        return order === 'ascend' ? result : -result;
-      });
-    }
-  }
+  // Plain JavaScript sorting by update time in descending order
+  dataToFilter.sort((a: DataItem, b: DataItem) => {
+    const dateA = new Date(a.updateTime || '1970-01-01').getTime();
+    const dateB = new Date(b.updateTime || '1970-01-01').getTime();
+    return dateB - dateA; // Descending order (newest first)
+  });
 
   return dataToFilter;
 });
@@ -1093,9 +1086,9 @@ watch(searchInputValue, () => {
 const handleTableChange = (
   paginationData: any,
   _filters: any,
-  sorter: any,
+  _sorter: any,
 ) => {
-  console.log('Table change:', paginationData, _filters, sorter);
+  console.log('Table change:', paginationData, _filters, _sorter);
   
   // Handle pagination changes
   if (paginationData) {
@@ -1103,20 +1096,8 @@ const handleTableChange = (
     pageSize.value = paginationData.pageSize || 10;
   }
   
-  // Handle sorting changes
-  const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-  if (currentSorter && currentSorter.order) {
-    sorterInfo.value = {
-      columnKey: currentSorter.columnKey,
-      order: currentSorter.order,
-    };
-  } else {
-    // When sorting is cleared, revert to default
-    sorterInfo.value = {
-      columnKey: 'createTime',
-      order: 'descend',
-    };
-  }
+  // Note: Sorting is now handled by plain JavaScript in the filteredData computed property
+  // Data is always sorted by update time in descending order
 };
 
 const onSettingClick = () => {
