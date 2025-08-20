@@ -406,7 +406,7 @@
 </template>
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { ref, computed, onMounted, watch, h, inject } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
@@ -427,7 +427,11 @@ import { constructApiUrl } from '../utils/api';
 const router = useRouter();
 
 // Inject userName from AppTopbar
-const userName = inject('userName', computed(() => '管理员'));
+// Get current username from auth store (same approach as DeviceProduction.vue)
+const authStore = useAuthStore();
+const userName = computed(() => {
+  return authStore.user?.name || authStore.user?.username || '管理员';
+});
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
