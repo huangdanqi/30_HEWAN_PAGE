@@ -168,7 +168,7 @@
 
         <a-form-item label="生产批次" name="productionBatch" required>
           <a-date-picker
-            v-model:value="createBatchForm.productionBatch"
+            v-model:value="createBatchForm.productionBatch" 
             placeholder="请选择生产批次"
             :disabled="!createBatchForm.deviceModel"
             style="width: 100%"
@@ -305,7 +305,7 @@
                   :key="firmware.value" 
                   :value="firmware.label"
                 >
-                  {{ firmware.label }}
+                {{ firmware.label }}
                 </a-select-option>
               </a-select>
             </a-form-item>
@@ -507,8 +507,8 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
           if (config.key === 'deviceModel_2') {
             return {
               children: h('a', {
-                style: { cursor: 'pointer' },
-                onClick: () => {
+              style: { cursor: 'pointer' },
+              onClick: () => {
                   router.push({ name: 'device-type', query: { search: record.deviceModel } }).catch(() => {
                     message.warning(`未找到设备型号 "${record.deviceModel}" 的相关信息`);
                   });
@@ -579,8 +579,8 @@ const fetchDeviceProduction = async () => {
       rawData.value = response.data.data.map((item: any, index: number) => {
         console.log(`Item ${index}:`, item);
         return {
-          ...item,
-          key: index + 1
+        ...item,
+        key: index + 1
         };
       });
 
@@ -592,13 +592,13 @@ const fetchDeviceProduction = async () => {
         return timeB - timeA; // Descending order (newest first)
       });
       console.log('After sorting - First few updateTime values:', rawData.value.slice(0, 3).map(item => item.updateTime));
-
+      
       // Update pagination info from server
       if (response.data.pagination) {
         currentPage.value = response.data.pagination.current;
         pageSize.value = response.data.pagination.pageSize;
         total.value = response.data.pagination.total;
-
+        
         console.log('Updated pagination - current:', currentPage.value, 'pageSize:', pageSize.value, 'total:', total.value);
       }
     } else {

@@ -326,7 +326,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sorter: config.sorter,
     sortDirections: config.sortDirections,
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    customRender: (record: any, index: number) => {
+    customRender: ({ record, index }: { record: any; index: number }) => {
       // Special handling for rowIndex column
       if (config.key === 'rowIndex') {
         return (currentPage.value - 1) * pageSize.value + index + 1;
