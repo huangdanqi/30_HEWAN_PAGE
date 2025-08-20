@@ -121,7 +121,7 @@
           <a-divider type="vertical" />
           <a class="upload-link" @click="handleUploadBom(record)">上传BOM</a>
           <a-divider type="vertical" />
-          <a class="download-link" @click="$emit('download-record', record)">下载</a>
+          <a class="download-link" @click="handleDownloadBom(record)">下载</a>
           <a-divider type="vertical" />
           <a-popconfirm
             title="确定要删除该设备吗?"
@@ -1581,32 +1581,81 @@ const removeFile = () => {
   console.log('File removed');
 };
 
-const handleUploadConfirm = () => {
+const handleUploadConfirm = async () => {
   if (!uploadedFile.value) {
     message.error('请选择要上传的文件');
     return;
   }
 
-  // Simulate upload progress
-  uploadProgress.value = 0;
-  const interval = setInterval(() => {
-    uploadProgress.value += 10;
-    if (uploadProgress.value >= 100) {
-      clearInterval(interval);
-      message.success('文件上传成功！');
+  try {
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('bomFile', uploadedFile.value);
+    formData.append('deviceModel', currentEditingRecord.value?.deviceModel || '');
+    formData.append('productionBatch', currentEditingRecord.value?.productionBatch || '');
+    formData.append('manufacturer', currentEditingRecord.value?.manufacturer || '');
+    formData.append('uploader', currentUsername.value);
+
+    // Upload file to server
+    const response = await axios.post('/api/upload-bom', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        }
+      },
+    });
+
+    if (response.data.success) {
+      message.success('BOM文件上传成功！');
       showUploadBomModal.value = false;
       uploadedFile.value = null;
       uploadProgress.value = 0;
+      
+      // Refresh data to show the uploaded file
+      await fetchDeviceProduction();
+    } else {
+      message.error(response.data.message || '上传失败');
     }
-  }, 100);
+  } catch (error) {
+    console.error('Error uploading BOM file:', error);
+    message.error('文件上传失败，请重试');
+    uploadProgress.value = 0;
+  }
 };
 
 const handleUploadBom = (record: DataItem) => {
   console.log('Upload BOM clicked for record:', record);
+  // Store the current record for upload context
+  currentEditingRecord.value = record;
   // Pre-fill the form with data from the selected row
   showUploadBomModal.value = true;
   // You might want to set uploadedFile.value here if you want to pre-select a file
   // For now, it will be empty until a file is dropped or selected.
+};
+
+const handleDownloadBom = async (record: DataItem) => {
+  console.log('Download BOM clicked for record:', record);
+  
+  try {
+    // Create download URL for the BOM file
+    const downloadUrl = `/api/download-bom?deviceModel=${encodeURIComponent(record.deviceModel)}&productionBatch=${encodeURIComponent(record.productionBatch)}&manufacturer=${encodeURIComponent(record.manufacturer)}`;
+    
+    // Create a temporary link element and trigger download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `BOM_${record.deviceModel}_${record.productionBatch}_${record.manufacturer}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    message.success('BOM文件下载开始');
+  } catch (error) {
+    console.error('Error downloading BOM file:', error);
+    message.error('下载失败，请重试');
+  }
 };
 
 onMounted(() => {

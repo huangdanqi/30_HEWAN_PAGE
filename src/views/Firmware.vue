@@ -82,7 +82,7 @@
           <a-button @click="testDirectAPI" style="margin-left: 8px;">直接测试API</a-button>
           <a-button @click="forceRefreshDropdown" style="margin-left: 8px;">强制刷新下拉框</a-button>
           <a-button @click="clearFirmwareData" style="margin-left: 8px;">清除固件数据</a-button> -->
-          <a-button @click="testDownloadEndpoint" style="margin-left: 8px;">测试下载端点</a-button>
+          <!-- <a-button @click="testDownloadEndpoint" style="margin-left: 8px;">测试下载端点</a-button>
           <a-button @click="showDataCount" style="margin-left: 8px;">显示数据统计</a-button>
           <a-button @click="testFirmwareAPI" style="margin-left: 8px;">测试固件API</a-button>
           <a-button @click="testVersionGeneration" style="margin-left: 8px;">测试版本生成</a-button>
@@ -90,7 +90,7 @@
           <a-button @click="checkTableData" style="margin-left: 8px;">检查表格数据</a-button>
           <a-button @click="updateExistingRecordsWithCurrentUsername" style="margin-left: 8px;">更新创建者信息</a-button>
           <a-button @click="testCurrentUsername" style="margin-left: 8px;">测试当前用户名</a-button>
-          <a-button @click="testFormSubmissionData" style="margin-left: 8px;">测试表单提交数据</a-button>
+          <a-button @click="testFormSubmissionData" style="margin-left: 8px;">测试表单提交数据</a-button> -->
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />

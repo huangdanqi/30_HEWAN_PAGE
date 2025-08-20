@@ -32,6 +32,7 @@ import deviceManagementRoutes from './routes/deviceManagement.js';
 import productTypeRoutes from './routes/productType.js';
 import productListRoutes from './routes/productList.js';
 import toyProductionRoutes from './routes/toyProduction.js';
+import bomRoutes from './routes/bom.js';
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use('/audio', express.static(path.join(__dirname, '..', 'public', 'audio')))
 app.use('/images', express.static(path.join(__dirname, '..', 'public', 'images')));
 app.use('/videos', express.static(path.join(__dirname, '..', 'public', 'videos')));
 app.use('/firmware', express.static(path.join(__dirname, '..', 'public', 'firmware')));
+app.use('/bom-files', express.static(path.join(__dirname, '..', 'public', 'bom-files')));
 app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 
 // API Routes - Original routes
@@ -72,6 +74,7 @@ app.use('/api/device-management', deviceManagementRoutes);
 app.use('/api/product-type', productTypeRoutes);
 app.use('/api/product-list', productListRoutes);
 app.use('/api/toy-production', toyProductionRoutes);
+app.use('/api', bomRoutes);
 
 // Error handling middleware for multer errors
 app.use((error, req, res, next) => {
