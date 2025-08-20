@@ -226,9 +226,12 @@ router.get('/download-bom', async (req, res) => {
       return res.status(404).json({ success: false, message: 'BOM file not found' });
     }
     
-    // Set headers for file download
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${mostRecentFile}"`);
+         // Set headers for file download
+     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+     
+     // Encode filename for Content-Disposition header to handle Chinese characters
+     const encodedFilename = encodeURIComponent(mostRecentFile);
+     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
     
     // Stream the file
     const fileStream = fs.createReadStream(filePath);
