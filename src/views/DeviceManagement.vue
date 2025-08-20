@@ -56,6 +56,9 @@
         <a-button type="default" @click="testApiConnection" style="margin-left: 8px;">
           测试API连接
         </a-button>
+        <a-button type="default" @click="testBulkImport" style="margin-left: 8px;">
+          测试批量导入
+        </a-button>
           <ReloadOutlined @click="onRefresh" />
           <!-- <a-button type="default" @click="debugApiCall" style="margin-left: 8px;">调试API</a-button>
           <a-button type="default" @click="healthCheck" style="margin-left: 8px;">健康检查</a-button> -->
@@ -1787,6 +1790,48 @@ const testApiConnection = async () => {
   } catch (error: any) {
     console.error('API test failed:', error);
     message.error(`API连接失败: ${error.message}`);
+  }
+};
+
+const testBulkImport = async () => {
+  try {
+    console.log('Testing bulk import with sample data...');
+    
+    const testDevices = [
+      {
+        deviceId: `TEST_${Date.now()}_1`,
+        boundSubAccount: 'TEST_ACCOUNT',
+        initialFirmware: 'TEST_FW_V1.0',
+        latestFirmware: 'TEST_FW_V2.0',
+        currentFirmwareVersion: 'TEST_FW_V1.5',
+        serialNumberCode: 'TEST_SN_001',
+        chipId: 'TEST_CHIP_001',
+        wifiMacAddress: 'AA:BB:CC:DD:EE:FF',
+        bluetoothMacAddress: 'AA:BB:CC:DD:EE:FF',
+        bluetoothName: 'TEST_BT_001',
+        cellularNetworkId: 'TEST_CELL_001',
+        fourGCardNumber: 'TEST_4G_001',
+        cpuSerialNumber: 'TEST_CPU_001'
+      }
+    ];
+    
+    const response = await axios.post(constructApiUrl('device-management/bulk-import'), {
+      devices: testDevices,
+      deviceModel: 'TEST_MODEL',
+      productionBatch: '2025-08-20',
+      manufacturer: 'TEST_MANUFACTURER',
+      creator: userName.value
+    });
+    
+    console.log('Bulk import test successful:', response.data);
+    message.success(`批量导入测试成功！${response.data.message}`);
+    
+    // Refresh the device list to see the new record
+    await fetchDeviceManagement();
+    
+  } catch (error: any) {
+    console.error('Bulk import test failed:', error);
+    message.error(`批量导入测试失败: ${error.response?.data?.error || error.message}`);
   }
 };
 
