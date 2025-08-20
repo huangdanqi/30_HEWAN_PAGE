@@ -461,11 +461,12 @@ interface ColumnConfig {
   sortOrder?: 'ascend' | 'descend';
   defaultSortOrder?: 'ascend' | 'descend';
   customRender?: (record: any) => string | number;
+  customCell?: (record: any) => { children: any; props: any };
   className?: string;
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customCell: (record: any) => ({ children: (currentPage.value - 1) * pageSize.value + (rawData.value.findIndex(item => item.key === record.key) + 1), props: {} }) },
   { key: 'productionDeviceId_1', title: '生成批次ID', dataIndex: 'productionDeviceId', width: 150, sorter: (a, b) => a.productionDeviceId.localeCompare(b.productionDeviceId), sortDirections: ['ascend', 'descend'] },
   { key: 'deviceModel_2', title: '设备型号', dataIndex: 'deviceModel', width: 120, sorter: (a, b) => a.deviceModel.localeCompare(b.deviceModel), sortDirections: ['ascend', 'descend'] },
   { key: 'productionBatch_3', title: '生产批次', dataIndex: 'productionBatch', width: 120, sorter: (a, b) => new Date(a.productionBatch).getTime() - new Date(b.productionBatch).getTime(), sortDirections: ['ascend', 'descend'] },
@@ -495,37 +496,39 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sorter: config.sorter,
     sortDirections: config.sortDirections,
     sortOrder: undefined, // No default sort order - we use plain JavaScript for default sorting
-    customRender: config.customRender
-      ? config.customRender
-      : ({ text, record }) => {
+    customCell: config.customRender
+      ? (record: any) => ({
+          children: config.customRender!(record),
+          props: {}
+        })
+      : (record: any) => {
           // Handle hyperlinks for specific columns
           if (config.key === 'deviceModel_2') {
-            return text ? h('a', {
-              style: { cursor: 'pointer' },
-              onClick: () => {
-                router.push({ name: 'device-type', query: { search: text } }).catch(() => {
-                  message.warning(`未找到设备型号 "${text}" 的相关信息`);
-                });
-              }
-            }, text) : '-';
+            return {
+              children: h('a', {
+                style: { cursor: 'pointer' },
+                onClick: () => {
+                  router.push({ name: 'device-type', query: { search: record.deviceModel } }).catch(() => {
+                    message.warning(`未找到设备型号 "${record.deviceModel}" 的相关信息`);
+                  });
+                }
+              }, record.deviceModel || '-'),
+              props: {}
+            };
           }
-          if (config.key === 'firmwareVersion_5') {
-            return text ? h('a', {
-              style: { cursor: 'pointer' },
-              onClick: () => {
-                router.push({ name: 'firmware', query: { search: text } }).catch(() => {
-                  message.warning(`未找到固件版本 "${text}" 的相关信息`);
-                });
-              }
-            }, text) : '-';
-          }
-          // Default rendering for other columns
           if (config.key === 'updater_9') {
             // Special handling for 更新人 column - show creator or fallback
             const creatorValue = record.creator;
-            return creatorValue && creatorValue !== '' ? creatorValue : '未设置';
+            return {
+              children: creatorValue && creatorValue !== '' ? creatorValue : '未设置',
+              props: {}
+            };
           }
-          return text === undefined || text === null || text === '' ? '-' : text;
+          // Default rendering for other columns
+          return {
+            children: record[config.dataIndex] === undefined || record[config.dataIndex] === null || record[config.dataIndex] === '' ? '-' : record[config.dataIndex],
+            props: {}
+          };
         },
     className: config.className,
   })) as ColumnsType;
@@ -1597,7 +1600,7 @@ const handleUploadConfirm = async () => {
     formData.append('uploader', currentUsername.value);
 
     // Upload file to server
-    const response = await axios.post('/api/upload-bom', formData, {
+    const response = await axios.post(`${API_BASE_URL}/upload-bom`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -1641,7 +1644,7 @@ const handleDownloadBom = async (record: DataItem) => {
   
   try {
     // Create download URL for the BOM file
-    const downloadUrl = `/api/download-bom?deviceModel=${encodeURIComponent(record.deviceModel)}&productionBatch=${encodeURIComponent(record.productionBatch)}&manufacturer=${encodeURIComponent(record.manufacturer)}`;
+    const downloadUrl = `${API_BASE_URL}/download-bom?deviceModel=${encodeURIComponent(record.deviceModel)}&productionBatch=${encodeURIComponent(record.productionBatch)}&manufacturer=${encodeURIComponent(record.manufacturer)}`;
     
     // Create a temporary link element and trigger download
     const link = document.createElement('a');
