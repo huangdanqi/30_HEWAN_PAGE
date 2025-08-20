@@ -341,11 +341,11 @@
     </div>
 
     <!-- 上传BOM Modal -->
-    <div v-if="showUploadBomModal" class="modal-overlay" @click="showUploadBomModal = false">
+    <div v-if="showUploadBomModal" class="modal-overlay" @click="handleUploadBomModalCancel">
       <div class="modal-content upload-modal" @click.stop>
         <div class="modal-header">
           <h3>上传BOM</h3>
-          <button class="close-button" @click="showUploadBomModal = false">×</button>
+          <button class="close-button" @click="handleUploadBomModalCancel">×</button>
         </div>
         
         <div class="modal-body">
@@ -391,7 +391,7 @@
         </div>
         
         <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showUploadBomModal = false">取消</button>
+          <button class="btn btn-secondary" @click="handleUploadBomModalCancel">取消</button>
           <button class="btn btn-primary" @click="handleUploadConfirm" :disabled="!uploadedFile">确定</button>
         </div>
       </div>
@@ -1594,9 +1594,15 @@ const handleUploadConfirm = async () => {
     // Create FormData for file upload
     const formData = new FormData();
     formData.append('bomFile', uploadedFile.value);
-    formData.append('deviceModel', currentEditingRecord.value?.deviceModel || '');
-    formData.append('productionBatch', currentEditingRecord.value?.productionBatch || '');
-    formData.append('manufacturer', currentEditingRecord.value?.manufacturer || '');
+    
+    if (!bomUploadRecord.value) {
+      message.error('无法获取设备信息，请重新选择设备');
+      return;
+    }
+    
+    formData.append('deviceModel', bomUploadRecord.value.deviceModel || '');
+    formData.append('productionBatch', bomUploadRecord.value.productionBatch || '');
+    formData.append('manufacturer', bomUploadRecord.value.manufacturer || '');
     formData.append('uploader', currentUsername.value);
 
     // Upload file to server
@@ -1616,6 +1622,7 @@ const handleUploadConfirm = async () => {
       showUploadBomModal.value = false;
       uploadedFile.value = null;
       uploadProgress.value = 0;
+      bomUploadRecord.value = null; // Clear the upload record
       
       // Refresh data to show the uploaded file
       await fetchDeviceProduction();
@@ -1631,13 +1638,23 @@ const handleUploadConfirm = async () => {
 
 const handleUploadBom = (record: DataItem) => {
   console.log('Upload BOM clicked for record:', record);
-  // Store the current record for upload context
-  currentEditingRecord.value = record;
+  // Store the record specifically for BOM upload context
+  bomUploadRecord.value = record;
   // Pre-fill the form with data from the selected row
   showUploadBomModal.value = true;
   // You might want to set uploadedFile.value here if you want to pre-select a file
   // For now, it will be empty until a file is dropped or selected.
 };
+
+const handleUploadBomModalCancel = () => {
+  showUploadBomModal.value = false;
+  uploadedFile.value = null;
+  uploadProgress.value = 0;
+  bomUploadRecord.value = null; // Clear the upload record
+};
+
+// Store the record for BOM upload context
+const bomUploadRecord = ref<DataItem | null>(null);
 
 const handleDownloadBom = async (record: DataItem) => {
   console.log('Download BOM clicked for record:', record);
