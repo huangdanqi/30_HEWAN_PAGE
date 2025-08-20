@@ -489,6 +489,11 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
             }, text) : '-';
           }
           // Default rendering for other columns
+          if (config.key === 'updater_9') {
+            // Special handling for 更新人 column - show creator or fallback
+            const creatorValue = record.creator;
+            return creatorValue && creatorValue !== '' ? creatorValue : '未设置';
+          }
           return text === undefined || text === null || text === '' ? '-' : text;
         },
     className: config.className,
@@ -535,10 +540,14 @@ const fetchDeviceProduction = async () => {
     
     if (response.data && response.data.data) {
       // Server-side pagination response (single page)
-      rawData.value = response.data.data.map((item: any, index: number) => ({
-        ...item,
-        key: index + 1
-      }));
+      console.log('Raw API response data:', response.data.data);
+      rawData.value = response.data.data.map((item: any, index: number) => {
+        console.log(`Item ${index}:`, item);
+        return {
+          ...item,
+          key: index + 1
+        };
+      });
 
       // Update pagination info from server
       if (response.data.pagination) {
