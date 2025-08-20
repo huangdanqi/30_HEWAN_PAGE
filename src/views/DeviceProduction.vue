@@ -254,6 +254,8 @@
                 placeholder="请选择设备型号"
                 @change="handleEditDeviceModelChange"
                 style="width: 100%"
+                :disabled="true"
+                class="disabled-field"
               >
                 <a-select-option 
                   v-for="deviceModel in deviceModelOptionsForEdit" 
@@ -274,6 +276,8 @@
                 format="YYYY-MM-DD"
                 valueFormat="YYYY-MM-DD"
                 @change="handleEditProductionBatchDateChange"
+                :disabled="true"
+                class="disabled-field"
               />
             </a-form-item>
 
@@ -282,6 +286,8 @@
                 v-model:value="editBatchForm.manufacturer" 
                 placeholder="请输入生产厂家"
                 @blur="handleManufacturerBlur"
+                :disabled="true"
+                class="disabled-field"
               />
             </a-form-item>
 
@@ -289,13 +295,14 @@
               <a-select 
                 v-model:value="editBatchForm.burnFirmware" 
                 placeholder="请选择烧录固件"
-                :disabled="!editBatchForm.deviceModel"
+                :disabled="true"
                 style="width: 100%"
+                class="disabled-field"
               >
                 <a-select-option 
                   v-for="firmware in firmwareOptionsForEdit" 
                   :key="firmware.value" 
-                  :value="firmware.value"
+                  :value="firmware.label"
                 >
                   {{ firmware.label }}
                 </a-select-option>
@@ -2295,5 +2302,32 @@ html, body {
 
 :deep(.ant-table-tbody .ant-table-cell a:active) {
   color: #096dd9;
+}
+
+/* Disabled field styling for edit form */
+:deep(.disabled-field .ant-select-selector) {
+  background-color: #f5f5f5 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+}
+
+:deep(.disabled-field .ant-input) {
+  background-color: #f5f5f5 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+}
+
+:deep(.disabled-field .ant-picker-input > input) {
+  background-color: #f5f5f5 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+}
+
+:deep(.disabled-field .ant-select-arrow) {
+  color: #ccc !important;
+}
+
+:deep(.disabled-field .ant-picker-suffix) {
+  color: #ccc !important;
 }
 </style> 
