@@ -2018,7 +2018,8 @@ const handleEditConfirm = async () => {
       bluetooth_name: editForm.value.bluetoothName,
       cellular_network_id: editForm.value.cellularNetworkId,
       four_g_card_number: editForm.value.fourGCardNumber,
-      cpu_serial_number: editForm.value.cpuSerialNumber
+      cpu_serial_number: editForm.value.cpuSerialNumber,
+      creator: userName.value // Add the creator field from the auth store
     };
     
     console.log('Update data prepared:', updateData);

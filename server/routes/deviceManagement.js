@@ -57,6 +57,46 @@ router.get('/test-db', async (req, res) => {
   }
 });
 
+// Test update functionality
+router.get('/test-update/:id', async (req, res) => {
+  try {
+    console.log('Testing update functionality for ID:', req.params.id);
+    
+    // First check if the record exists
+    const [existingRecord] = await pool.execute(
+      'SELECT * FROM device_management WHERE id = ?',
+      [req.params.id]
+    );
+    
+    if (existingRecord.length === 0) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    
+    console.log('Existing record:', existingRecord[0]);
+    
+    // Test a simple update
+    const [updateResult] = await pool.execute(
+      'UPDATE device_management SET update_time = CURRENT_TIMESTAMP WHERE id = ?',
+      [req.params.id]
+    );
+    
+    console.log('Test update result:', updateResult);
+    
+    res.json({
+      message: 'Test update successful',
+      existingRecord: existingRecord[0],
+      updateResult: updateResult
+    });
+    
+  } catch (error) {
+    console.error('Test update failed:', error);
+    res.status(500).json({ 
+      error: 'Test update failed: ' + error.message,
+      stack: error.stack 
+    });
+  }
+});
+
 // Get all device management records
 router.get('/', async (req, res) => {
   try {
@@ -187,6 +227,9 @@ router.post('/', async (req, res) => {
 // Update device management record
 router.put('/:id', async (req, res) => {
   try {
+    console.log('PUT /:id - Request params:', req.params);
+    console.log('PUT /:id - Request body:', req.body);
+    
     const {
       device_id,
       bound_sub_account,
@@ -207,27 +250,60 @@ router.put('/:id', async (req, res) => {
       creator
     } = req.body;
 
+    console.log('Extracted fields:', {
+      device_id,
+      bound_sub_account,
+      device_model,
+      production_batch,
+      manufacturer,
+      initial_firmware,
+      latest_firmware,
+      current_firmware_version,
+      serial_number_code,
+      chip_id,
+      wifi_mac_address,
+      bluetooth_mac_address,
+      bluetooth_name,
+      cellular_network_id,
+      four_g_card_number,
+      cpu_serial_number,
+      creator
+    });
+
     // Validate required fields
     if (!device_id || !device_model || !production_batch || !manufacturer) {
+      console.log('Validation failed - missing required fields');
       return res.status(400).json({ error: 'Device ID, device model, production batch, and manufacturer are required' });
     }
+
+    console.log('Executing UPDATE query with params:', [
+      device_id, bound_sub_account, device_model, production_batch, manufacturer, 
+      initial_firmware, latest_firmware, current_firmware_version, serial_number_code, 
+      chip_id, wifi_mac_address, bluetooth_mac_address, bluetooth_name, 
+      cellular_network_id, four_g_card_number, cpu_serial_number, creator, req.params.id
+    ]);
 
     const [result] = await pool.execute(
       'UPDATE device_management SET device_id = ?, bound_sub_account = ?, device_model = ?, production_batch = ?, manufacturer = ?, initial_firmware = ?, latest_firmware = ?, current_firmware_version = ?, serial_number_code = ?, chip_id = ?, wifi_mac_address = ?, bluetooth_mac_address = ?, bluetooth_name = ?, cellular_network_id = ?, four_g_card_number = ?, cpu_serial_number = ?, creator = ? WHERE id = ?',
       [device_id, bound_sub_account, device_model, production_batch, manufacturer, initial_firmware, latest_firmware, current_firmware_version, serial_number_code, chip_id, wifi_mac_address, bluetooth_mac_address, bluetooth_name, cellular_network_id, four_g_card_number, cpu_serial_number, creator, req.params.id]
     );
 
+    console.log('UPDATE result:', result);
+
     if (result.affectedRows === 0) {
+      console.log('No rows affected - record not found');
       return res.status(404).json({ error: 'Device management record not found' });
     }
 
+    console.log('Update successful');
     res.json({ message: 'Device management record updated successfully' });
   } catch (error) {
     console.error('Error updating device management record:', error);
+    console.error('Error stack:', error.stack);
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Device ID already exists' });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
