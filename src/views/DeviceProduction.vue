@@ -1359,6 +1359,7 @@ const handleEditBatchModalConfirm = async () => {
     
     // Prepare data for API update
     console.log('Step 8: Preparing update data');
+    console.log('Current username from AppTopbar:', currentUsername.value);
     const updateData = {
       productionDeviceId: currentRecord.productionDeviceId,
       deviceModel: editBatchForm.value.deviceModel,
@@ -1369,10 +1370,12 @@ const handleEditBatchModalConfirm = async () => {
       unitPrice: Number(editBatchForm.value.unitPrice || 0),
       quantity: Number(editBatchForm.value.quantity || 0),
       updater: currentUsername.value,
-      creator: currentRecord.creator || currentUsername.value
+      creator: currentUsername.value  // Always use current dynamic username for updates
     };
     
     console.log('Step 9: Update data prepared:', updateData);
+    console.log('Step 9a: Creator field value:', updateData.creator);
+    console.log('Step 9b: Current username source:', currentUsername.value);
     console.log('Step 10: About to call updateDeviceProduction with ID:', currentRecord.id);
     
     // Send update to API
