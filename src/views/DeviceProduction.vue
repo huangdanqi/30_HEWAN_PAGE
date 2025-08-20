@@ -53,6 +53,7 @@
             </template>
           </a-input>
           <a-button type="primary" @click="handleCreateDevice">新建设备</a-button>
+          <a-button @click="handleBomCleanup" style="margin-left: 8px;">清理BOM</a-button>
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -1651,6 +1652,22 @@ const handleUploadBomModalCancel = () => {
   uploadedFile.value = null;
   uploadProgress.value = 0;
   bomUploadRecord.value = null; // Clear the upload record
+};
+
+const handleBomCleanup = async () => {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/bom-cleanup`);
+    
+    if (response.data.success) {
+      message.success(`BOM清理完成！删除了 ${response.data.deletedCount} 个旧文件`);
+      console.log('BOM cleanup result:', response.data);
+    } else {
+      message.error(response.data.message || 'BOM清理失败');
+    }
+  } catch (error) {
+    console.error('Error during BOM cleanup:', error);
+    message.error('BOM清理失败，请重试');
+  }
 };
 
 // Store the record for BOM upload context

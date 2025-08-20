@@ -18,6 +18,45 @@ router.get('/bom-test', (req, res) => {
   });
 });
 
+// Cleanup endpoint to remove old files with incorrect names
+router.delete('/bom-cleanup', async (req, res) => {
+  try {
+    const bomDir = path.join(__dirname, '../../public/bom-files');
+    
+    if (!fs.existsSync(bomDir)) {
+      return res.json({ success: true, message: 'No BOM directory found', deletedCount: 0 });
+    }
+    
+    const files = fs.readdirSync(bomDir);
+    let deletedCount = 0;
+    
+    for (const file of files) {
+      // Remove files that contain "unknown" in the filename (old uploads with incorrect data)
+      if (file.includes('unknown') && file.endsWith('.xlsx')) {
+        const filePath = path.join(bomDir, file);
+        fs.unlinkSync(filePath);
+        deletedCount++;
+        console.log(`Deleted old BOM file: ${file}`);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `Cleanup completed. Deleted ${deletedCount} old files.`,
+      deletedCount,
+      remainingFiles: fs.readdirSync(bomDir)
+    });
+    
+  } catch (error) {
+    console.error('Error during BOM cleanup:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error during cleanup',
+      error: error.message 
+    });
+  }
+});
+
 // Configure multer for file upload
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -140,17 +179,34 @@ router.get('/download-bom', async (req, res) => {
     console.log('Matching files found:', matchingFiles);
     
     if (matchingFiles.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'No BOM file found for this device',
-        searchCriteria: {
-          deviceModel,
-          productionBatch,
-          manufacturer: decodedManufacturer
-        },
-        availableFiles: files,
-        debug: 'Check server logs for detailed matching information'
-      });
+      // Check if there are any files at all
+      const excelFiles = files.filter(file => file.endsWith('.xlsx') && !file.includes('unknown'));
+      
+      if (excelFiles.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'No BOM files found. Please upload a BOM file first.',
+          searchCriteria: {
+            deviceModel,
+            productionBatch,
+            manufacturer: decodedManufacturer
+          },
+          availableFiles: files,
+          suggestion: 'Upload a new BOM file for this device'
+        });
+      } else {
+        return res.status(404).json({ 
+          success: false, 
+          message: `No BOM file found for device ${deviceModel} (${productionBatch})`,
+          searchCriteria: {
+            deviceModel,
+            productionBatch,
+            manufacturer: decodedManufacturer
+          },
+          availableFiles: excelFiles,
+          suggestion: `Available files are for other devices. Upload a BOM file for ${deviceModel} (${productionBatch})`
+        });
+      }
     }
     
     // Get the most recent file (assuming timestamp in filename)
