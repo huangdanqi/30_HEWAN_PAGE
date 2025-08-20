@@ -1596,6 +1596,36 @@ const processSingleFile = async () => {
               throw new Error(`连接测试失败: ${testError.message}`);
             }
             
+            // Test the exact API endpoint we'll use
+            try {
+              console.log('Testing bulk-import endpoint with minimal data...');
+              const testBulkResponse = await axios.post(constructApiUrl('device-management/bulk-import'), {
+                devices: [{
+                  deviceId: 'TEST_CONNECTIVITY_' + Date.now(),
+                  boundSubAccount: 'TEST',
+                  initialFirmware: 'TEST',
+                  latestFirmware: 'TEST',
+                  currentFirmwareVersion: 'TEST',
+                  serialNumberCode: 'TEST',
+                  chipId: 'TEST',
+                  wifiMacAddress: 'TEST',
+                  bluetoothMacAddress: 'TEST',
+                  bluetoothName: 'TEST',
+                  cellularNetworkId: 'TEST',
+                  fourGCardNumber: 'TEST',
+                  cpuSerialNumber: 'TEST'
+                }],
+                deviceModel: 'TEST_MODEL',
+                productionBatch: '2025-08-20',
+                manufacturer: 'TEST_MANUFACTURER',
+                creator: userName.value
+              });
+              console.log('✅ Bulk-import endpoint test successful:', testBulkResponse.data);
+            } catch (testBulkError: any) {
+              console.error('❌ Bulk-import endpoint test failed:', testBulkError);
+              throw new Error(`批量导入端点测试失败: ${testBulkError.response?.data?.error || testBulkError.message}`);
+            }
+            
             // Compare with working test data structure
             console.log('=== COMPARING WITH WORKING TEST DATA ===');
             const workingTestData = {
@@ -1610,28 +1640,54 @@ const processSingleFile = async () => {
             
             try {
               console.log('Sending bulk import request...');
-              const response = await axios.post(constructApiUrl('device-management/bulk-import'), {
+              const requestPayload = {
                 devices,
                 deviceModel: selectedDeviceModel.value,
                 productionBatch: selectedProductionBatch.value,
                 manufacturer: selectedManufacturer.value,
                 creator: userName.value
-              });
+              };
               
-              console.log('Server response:', response);
-              console.log('Response data:', response.data);
+              console.log('Final request payload:', requestPayload);
+              console.log('Request payload JSON:', JSON.stringify(requestPayload, null, 2));
+              
+              const response = await axios.post(constructApiUrl('device-management/bulk-import'), requestPayload);
+              
+              console.log('=== API RESPONSE RECEIVED ===');
+              console.log('Server response status:', response.status);
+              console.log('Server response headers:', response.headers);
+              console.log('Server response data:', response.data);
+              console.log('Response message:', response.data?.message);
+              
+              // Check if the response indicates success
+              if (response.data && response.data.successCount !== undefined) {
+                console.log(`✅ API call successful: ${response.data.successCount} devices processed`);
+                
+                // Only show success if devices were actually processed
+                if (response.data.successCount > 0) {
+                  console.log('✅ Devices successfully inserted/updated in database');
+                } else {
+                  console.warn('⚠️ API call completed but no devices were processed');
+                  throw new Error('API调用成功但未处理任何设备，请检查数据格式');
+                }
+              } else {
+                console.warn('⚠️ API response format unexpected:', response.data);
+                throw new Error('API响应格式异常，请检查服务器日志');
+              }
+              
             } catch (apiError: any) {
-              console.error('API Error Details:', {
-                message: apiError.message,
-                response: apiError.response,
-                status: apiError.response?.status,
-                data: apiError.response?.data,
-                config: apiError.config
-              });
+              console.error('=== API ERROR DETAILS ===');
+              console.error('Error message:', apiError.message);
+              console.error('Error response:', apiError.response);
+              console.error('Error status:', apiError.response?.status);
+              console.error('Error data:', apiError.response?.data);
+              console.error('Error config:', apiError.config);
+              console.error('Full error object:', apiError);
+              
               throw new Error(`API调用失败: ${apiError.response?.data?.error || apiError.message}`);
             }
             
-            // Import successful
+            // Only show success if we reach here (no errors thrown)
             importStep.value = 'success';
             importedCount.value = devices.length;
             
