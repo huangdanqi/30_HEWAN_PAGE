@@ -59,6 +59,9 @@
         <a-button type="default" @click="testBulkImport" style="margin-left: 8px;">
           测试批量导入
         </a-button>
+        <a-button type="default" @click="debugUserName" style="margin-left: 8px;">
+          调试用户名
+        </a-button>
           <ReloadOutlined @click="onRefresh" />
           <!-- <a-button type="default" @click="debugApiCall" style="margin-left: 8px;">调试API</a-button>
           <a-button type="default" @click="healthCheck" style="margin-left: 8px;">健康检查</a-button> -->
@@ -398,6 +401,7 @@
 <script lang="ts" setup>
 import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted, watch, h, inject } from 'vue';
+import { useAuthStore } from '../stores/auth';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExportOutlined} from '@ant-design/icons-vue';
@@ -1796,6 +1800,8 @@ const testApiConnection = async () => {
 const testBulkImport = async () => {
   try {
     console.log('Testing bulk import with sample data...');
+    console.log('Current userName value:', userName.value);
+    console.log('userName type:', typeof userName.value);
     
     const testDevices = [
       {
@@ -1815,13 +1821,17 @@ const testBulkImport = async () => {
       }
     ];
     
-    const response = await axios.post(constructApiUrl('device-management/bulk-import'), {
+    const requestPayload = {
       devices: testDevices,
       deviceModel: 'TEST_MODEL',
       productionBatch: '2025-08-20',
       manufacturer: 'TEST_MANUFACTURER',
       creator: userName.value
-    });
+    };
+    
+    console.log('Request payload:', requestPayload);
+    
+    const response = await axios.post(constructApiUrl('device-management/bulk-import'), requestPayload);
     
     console.log('Bulk import test successful:', response.data);
     message.success(`批量导入测试成功！${response.data.message}`);
@@ -1833,6 +1843,31 @@ const testBulkImport = async () => {
     console.error('Bulk import test failed:', error);
     message.error(`批量导入测试失败: ${error.response?.data?.error || error.message}`);
   }
+};
+
+const debugUserName = () => {
+  console.log('=== USERNAME DEBUG ===');
+  console.log('userName.value:', userName.value);
+  console.log('userName type:', typeof userName.value);
+  console.log('userName computed:', userName);
+  
+  // Check if userName is reactive
+  if (userName.value) {
+    console.log('userName is defined:', userName.value);
+  } else {
+    console.log('userName is undefined or empty');
+  }
+  
+  // Check localStorage
+  const storedUser = localStorage.getItem('user');
+  console.log('localStorage user:', storedUser);
+  
+  // Check auth store
+  const authStore = useAuthStore();
+  console.log('Auth store user:', authStore.user);
+  console.log('Auth store isAuthenticated:', authStore.isAuthenticated());
+  
+  message.info(`当前用户名: ${userName.value || '未定义'}`);
 };
 
 const handleDeviceImportClick = async () => {
