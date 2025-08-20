@@ -413,6 +413,7 @@ interface DataItem {
   quantity: number; // 数量 (个)
   totalPrice: number; // 总价 (元)
   updater?: string; // 更新人
+  creator?: string; // 创建人
   createTime?: string; // 创建时间
   updateTime?: string; // 更新时间
 }
@@ -442,7 +443,7 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'unitPrice_6', title: '单价 (元)', dataIndex: 'unitPrice', width: 120, sorter: (a, b) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
   { key: 'quantity_7', title: '数量 (个)', dataIndex: 'quantity', width: 120, sorter: (a, b) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
   { key: 'totalPrice_8', title: '总价 (元)', dataIndex: 'totalPrice', width: 120, sorter: (a, b) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'updater_9', title: '更新人', dataIndex: 'updater', width: 120, sorter: (a, b) => (a.updater || '').localeCompare(b.updater || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'updater_9', title: '更新人', dataIndex: 'creator', width: 120, sorter: (a, b) => (a.creator || '').localeCompare(b.creator || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'createTime_10', title: '创建时间', dataIndex: 'createTime', width: 180, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime_11', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a, b) => new Date(b.updateTime).getTime() - new Date(a.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'operation_12', title: '操作', dataIndex: '', width: 330, fixed: 'right' },
@@ -550,10 +551,10 @@ const fetchDeviceProduction = async () => {
     } else {
       // Fallback to static data if API fails
       const fallbackData: DataItem[] = [
-        { key: 1, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ001', productionBatch: '2025-06-30', manufacturer: '第一天德科技有限公司', firmwareVersion: '2001 V 1.0.0', burnFirmware: '2001 V 1.0.0', unitPrice: 86.75, quantity: 500, totalPrice: 43375, updater: '张三', createTime: '2025-06-30 10:00:00', updateTime: '2025-06-30 10:00:00' },
-        { key: 2, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ002', productionBatch: '2025-07-01', manufacturer: '深圳市华为技术有限公司', firmwareVersion: '2001 V 1.1.0', burnFirmware: '2001 V 1.1.0', unitPrice: 87.75, quantity: 550, totalPrice: 48262.5, updater: '李四', createTime: '2025-07-01 11:00:00', updateTime: '2025-07-01 11:00:00' },
-        { key: 3, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ003', productionBatch: '2025-07-02', manufacturer: '深圳市中兴通讯股份有限公司', firmwareVersion: '2001 V 1.2.0', burnFirmware: '2001 V 1.2.0', unitPrice: 88.75, quantity: 600, totalPrice: 53250, updater: '王五', createTime: '2025-07-02 12:00:00', updateTime: '2025-07-02 12:00:00' },
-        { key: 4, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ004', productionBatch: '2025-07-03', manufacturer: '深圳市大疆创新科技有限公司', firmwareVersion: '2001 V 2.0.0', burnFirmware: '2001 V 2.0.0', unitPrice: 89.75, quantity: 650, totalPrice: 58337.5, updater: '赵六', createTime: '2025-07-03 13:00:00', updateTime: '2025-07-03 13:00:00' },
+        { key: 1, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ001', productionBatch: '2025-06-30', manufacturer: '第一天德科技有限公司', firmwareVersion: '2001 V 1.0.0', burnFirmware: '2001 V 1.0.0', unitPrice: 86.75, quantity: 500, totalPrice: 43375, updater: '张三', creator: '张三', createTime: '2025-06-30 10:00:00', updateTime: '2025-06-30 10:00:00' },
+        { key: 2, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ002', productionBatch: '2025-07-01', manufacturer: '深圳市华为技术有限公司', firmwareVersion: '2001 V 1.1.0', burnFirmware: '2001 V 1.1.0', unitPrice: 87.75, quantity: 550, totalPrice: 48262.5, updater: '李四', creator: '李四', createTime: '2025-07-01 11:00:00', updateTime: '2025-07-01 11:00:00' },
+        { key: 3, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ003', productionBatch: '2025-07-02', manufacturer: '深圳市中兴通讯股份有限公司', firmwareVersion: '2001 V 1.2.0', burnFirmware: '2001 V 1.2.0', unitPrice: 88.75, quantity: 600, totalPrice: 53250, updater: '王五', creator: '王五', createTime: '2025-07-02 12:00:00', updateTime: '2025-07-02 12:00:00' },
+        { key: 4, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ004', productionBatch: '2025-07-03', manufacturer: '深圳市大疆创新科技有限公司', firmwareVersion: '2001 V 2.0.0', burnFirmware: '2001 V 2.0.0', unitPrice: 89.75, quantity: 650, totalPrice: 58337.5, updater: '赵六', creator: '赵六', createTime: '2025-07-03 13:00:00', updateTime: '2025-07-03 13:00:00' },
       ];
       rawData.value = fallbackData;
       total.value = fallbackData.length;
@@ -562,10 +563,10 @@ const fetchDeviceProduction = async () => {
     console.error('Error fetching device production:', error);
     // Fallback to static data if API fails
     const fallbackData: DataItem[] = [
-      { key: 1, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ001', productionBatch: '2025-06-30', manufacturer: '第一天德科技有限公司', firmwareVersion: '2001 V 1.0.0', burnFirmware: '2001 V 1.0.0', unitPrice: 86.75, quantity: 500, totalPrice: 43375, updater: '张三', createTime: '2025-06-30 10:00:00', updateTime: '2025-06-30 10:00:00' },
-      { key: 2, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ002', productionBatch: '2025-07-01', manufacturer: '深圳市华为技术有限公司', firmwareVersion: '2001 V 1.1.0', burnFirmware: '2001 V 1.1.0', unitPrice: 87.75, quantity: 550, totalPrice: 48262.5, updater: '李四', createTime: '2025-07-01 11:00:00', updateTime: '2025-07-01 11:00:00' },
-      { key: 3, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ003', productionBatch: '2025-07-02', manufacturer: '深圳市中兴通讯股份有限公司', firmwareVersion: '2001 V 1.2.0', burnFirmware: '2001 V 1.2.0', unitPrice: 88.75, quantity: 600, totalPrice: 53250, updater: '王五', createTime: '2025-07-02 12:00:00', updateTime: '2025-07-02 12:00:00' },
-      { key: 4, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ004', productionBatch: '2025-07-03', manufacturer: '深圳市大疆创新科技有限公司', firmwareVersion: '2001 V 2.0.0', burnFirmware: '2001 V 2.0.0', unitPrice: 89.75, quantity: 650, totalPrice: 58337.5, updater: '赵六', createTime: '2025-07-03 13:00:00', updateTime: '2025-07-03 13:00:00' },
+      { key: 1, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ001', productionBatch: '2025-06-30', manufacturer: '第一天德科技有限公司', firmwareVersion: '2001 V 1.0.0', burnFirmware: '2001 V 1.0.0', unitPrice: 86.75, quantity: 500, totalPrice: 43375, updater: '张三', creator: '张三', createTime: '2025-06-30 10:00:00', updateTime: '2025-06-30 10:00:00' },
+      { key: 2, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ002', productionBatch: '2025-07-01', manufacturer: '深圳市华为技术有限公司', firmwareVersion: '2001 V 1.1.0', burnFirmware: '2001 V 1.1.0', unitPrice: 87.75, quantity: 550, totalPrice: 48262.5, updater: '李四', creator: '李四', createTime: '2025-07-01 11:00:00', updateTime: '2025-07-01 11:00:00' },
+      { key: 3, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ003', productionBatch: '2025-07-02', manufacturer: '深圳市中兴通讯股份有限公司', firmwareVersion: '2001 V 1.2.0', burnFirmware: '2001 V 1.2.0', unitPrice: 88.75, quantity: 600, totalPrice: 53250, updater: '王五', creator: '王五', createTime: '2025-07-02 12:00:00', updateTime: '2025-07-02 12:00:00' },
+      { key: 4, productionDeviceId: 'hjhwrn632q2f', deviceModel: 'HWZ004', productionBatch: '2025-07-03', manufacturer: '深圳市大疆创新科技有限公司', firmwareVersion: '2001 V 2.0.0', burnFirmware: '2001 V 2.0.0', unitPrice: 89.75, quantity: 650, totalPrice: 58337.5, updater: '赵六', creator: '赵六', createTime: '2025-07-03 13:00:00', updateTime: '2025-07-03 13:00:00' },
     ];
     rawData.value = fallbackData;
     total.value = fallbackData.length;
