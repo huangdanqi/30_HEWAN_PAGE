@@ -1457,18 +1457,18 @@ const processSingleFile = async () => {
               throw new Error('Excel文件中没有数据行');
             }
             
-            // Transform data rows to device objects
+            // Transform data rows to device objects - match the exact structure expected by backend
             const devices = dataRows.map((row: unknown, index: number) => {
               const rowArray = row as any[];
               const device: any = {};
               
-              // Map Excel columns to device properties
+              // Map Excel columns to device properties - use exact field names expected by backend
               headers.forEach((header: string, colIndex: number) => {
                 if (header && rowArray[colIndex] !== undefined) {
                   const value = rowArray[colIndex];
                   const headerStr = header.toString().trim();
                   
-                  // Map Chinese headers to English properties with more robust matching
+                  // Map Chinese headers to exact backend field names
                   if (headerStr.includes('设备ID')) device.deviceId = value;
                   else if (headerStr.includes('绑定子账户')) device.boundSubAccount = value;
                   else if (headerStr.includes('初始烧录固件')) device.initialFirmware = value;
@@ -1485,14 +1485,29 @@ const processSingleFile = async () => {
                 }
               });
               
-              // Add form-selected values
+              // Add form-selected values - use exact field names expected by backend
               device.deviceModel = selectedDeviceModel.value;
               device.productionBatch = selectedProductionBatch.value;
               device.manufacturer = selectedManufacturer.value;
               
-              // Add dynamic creation time and creator
+              // Add dynamic creation time and creator - use exact field names expected by backend
               device.createTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
               device.creator = userName.value;
+              
+              // Ensure all required fields have values (use '-' for empty values like the working test)
+              device.deviceId = device.deviceId || `IMPORT_${Date.now()}_${index}`;
+              device.boundSubAccount = device.boundSubAccount || '-';
+              device.initialFirmware = device.initialFirmware || '-';
+              device.latestFirmware = device.latestFirmware || '-';
+              device.currentFirmwareVersion = device.currentFirmwareVersion || '-';
+              device.serialNumberCode = device.serialNumberCode || '-';
+              device.chipId = device.chipId || '-';
+              device.wifiMacAddress = device.wifiMacAddress || '-';
+              device.bluetoothMacAddress = device.bluetoothMacAddress || '-';
+              device.bluetoothName = device.bluetoothName || '-';
+              device.cellularNetworkId = device.cellularNetworkId || '-';
+              device.fourGCardNumber = device.fourGCardNumber || '-';
+              device.cpuSerialNumber = device.cpuSerialNumber || '-';
               
               return device;
             }).filter(device => device.deviceId); // Filter out rows without device ID
@@ -1517,16 +1532,36 @@ const processSingleFile = async () => {
             }
             
             // Send data to server
-            console.log('Sending data to server...');
+            console.log('=== SENDING DATA TO SERVER ===');
             console.log('Creator (创建人):', userName.value);
+            console.log('Creator type:', typeof userName.value);
+            console.log('Total devices to import:', devices.length);
             console.log('Sample device data with creator and creation time:', devices[0]);
             console.log('API URL:', constructApiUrl('device-management/bulk-import'));
-            console.log('Request payload:', {
+            
+            // Log the exact structure being sent
+            const requestPayload = {
               devices,
               deviceModel: selectedDeviceModel.value,
               productionBatch: selectedProductionBatch.value,
               manufacturer: selectedManufacturer.value,
               creator: userName.value
+            };
+            
+            console.log('Request payload:', requestPayload);
+            console.log('Request payload JSON:', JSON.stringify(requestPayload, null, 2));
+            
+            // Validate the data structure matches what backend expects
+            console.log('=== DATA VALIDATION ===');
+            devices.forEach((device, index) => {
+              console.log(`Device ${index + 1}:`, {
+                deviceId: device.deviceId,
+                deviceModel: device.deviceModel,
+                productionBatch: device.productionBatch,
+                manufacturer: device.manufacturer,
+                creator: device.creator,
+                createTime: device.createTime
+              });
             });
             
             // Test basic connectivity first
@@ -1538,6 +1573,18 @@ const processSingleFile = async () => {
               console.error('Basic connectivity test failed:', testError);
               throw new Error(`连接测试失败: ${testError.message}`);
             }
+            
+            // Compare with working test data structure
+            console.log('=== COMPARING WITH WORKING TEST DATA ===');
+            const workingTestData = {
+              deviceId: 'TEST_DEVICE_ID',
+              deviceModel: 'TEST_MODEL',
+              productionBatch: '2025-08-20',
+              manufacturer: 'TEST_MANUFACTURER',
+              creator: userName.value
+            };
+            console.log('Working test data structure:', workingTestData);
+            console.log('Excel import data structure (first device):', devices[0]);
             
             try {
               console.log('Sending bulk import request...');
