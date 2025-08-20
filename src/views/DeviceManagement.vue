@@ -53,6 +53,9 @@
             </template>
           </a-input>
           <a-button type="primary" @click="handleDeviceImportClick">设备导入</a-button>
+        <a-button type="default" @click="testApiConnection" style="margin-left: 8px;">
+          测试API连接
+        </a-button>
           <ReloadOutlined @click="onRefresh" />
           <!-- <a-button type="default" @click="debugApiCall" style="margin-left: 8px;">调试API</a-button>
           <a-button type="default" @click="healthCheck" style="margin-left: 8px;">健康检查</a-button> -->
@@ -393,7 +396,7 @@
 import type { ColumnsType } from 'ant-design-vue/es/table';
 import { ref, computed, onMounted, watch, h, inject } from 'vue';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
-import { theme } from 'ant-design-vue';
+import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExportOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import { useRouter } from 'vue-router';
@@ -1500,8 +1503,8 @@ const processSingleFile = async () => {
             console.log('Sending data to server...');
             console.log('Creator (创建人):', userName.value);
             console.log('Sample device data with creator and creation time:', devices[0]);
-            
-            const response = await axios.post(constructApiUrl('device-management/bulk-import'), {
+            console.log('API URL:', constructApiUrl('device-management/bulk-import'));
+            console.log('Request payload:', {
               devices,
               deviceModel: selectedDeviceModel.value,
               productionBatch: selectedProductionBatch.value,
@@ -1509,7 +1512,38 @@ const processSingleFile = async () => {
               creator: userName.value
             });
             
-            console.log('Server response:', response.data);
+            // Test basic connectivity first
+            try {
+              console.log('Testing basic connectivity...');
+              const testResponse = await axios.get(constructApiUrl('device-management'));
+              console.log('Basic connectivity test successful:', testResponse.data.length, 'devices found');
+            } catch (testError: any) {
+              console.error('Basic connectivity test failed:', testError);
+              throw new Error(`连接测试失败: ${testError.message}`);
+            }
+            
+            try {
+              console.log('Sending bulk import request...');
+              const response = await axios.post(constructApiUrl('device-management/bulk-import'), {
+                devices,
+                deviceModel: selectedDeviceModel.value,
+                productionBatch: selectedProductionBatch.value,
+                manufacturer: selectedManufacturer.value,
+                creator: userName.value
+              });
+              
+              console.log('Server response:', response);
+              console.log('Response data:', response.data);
+            } catch (apiError: any) {
+              console.error('API Error Details:', {
+                message: apiError.message,
+                response: apiError.response,
+                status: apiError.response?.status,
+                data: apiError.response?.data,
+                config: apiError.config
+              });
+              throw new Error(`API调用失败: ${apiError.response?.data?.error || apiError.message}`);
+            }
             
             // Import successful
             importStep.value = 'success';
@@ -1741,6 +1775,18 @@ const handleCurrentFirmwareClick = (record: DataItem) => {
     });
   } else {
     console.log('设备ID信息不存在，无法查看当前固件信息');
+  }
+};
+
+const testApiConnection = async () => {
+  try {
+    console.log('Testing API connection...');
+    const response = await axios.get(constructApiUrl('device-management'));
+    console.log('API test successful:', response.data);
+    message.success(`API连接成功！找到 ${response.data.length} 条设备记录`);
+  } catch (error: any) {
+    console.error('API test failed:', error);
+    message.error(`API连接失败: ${error.message}`);
   }
 };
 
