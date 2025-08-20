@@ -487,7 +487,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     fixed: config.fixed,
     sorter: config.sorter,
     sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
+    sortOrder: undefined, // No default sort order - we use plain JavaScript for default sorting
     customRender: config.customRender
       ? config.customRender
       : ({ text, record }) => {
@@ -754,10 +754,8 @@ const handleManufacturerChange = (val: any) => {
 const currentPage = ref(1);
 const pageSize = ref(10);
 
-const sorterInfo = ref<any>({
-  columnKey: 'updateTime_11',
-  order: 'descend',
-});
+// No default sorterInfo - we'll use plain JavaScript for default sorting
+const sorterInfo = ref<any>(null);
 
 const pagination = computed(() => ({
   total: total.value, 
@@ -787,11 +785,8 @@ const onRefresh = () => {
   currentPage.value = 1;
   resetColumns(); // Reset column order and visibility
 
-  // Reset sorter to 更新时间 descending
-  sorterInfo.value = {
-    columnKey: 'updateTime_11',
-    order: 'descend',
-  };
+  // Clear sorterInfo to use plain JavaScript default sorting
+  sorterInfo.value = null;
 
   // Reset all selector values to '全部'
   deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
@@ -834,37 +829,35 @@ const filteredData = computed(() => {
     dataToFilter = dataToFilter.filter(item => item.manufacturer === selectedManufacturer);
   }
 
-  // Sorting logic - handle both Ant Design and plain JavaScript sorting
-  if (sorterInfo.value && sorterInfo.value.order) {
-    const { columnKey, order } = sorterInfo.value;
+  // Default sorting: Always use plain JavaScript for updateTime descending
+  // Only use Ant Design sorter when user explicitly interacts with it
+  if (sorterInfo.value && sorterInfo.value.order && sorterInfo.value.columnKey === 'updateTime_11') {
+    // User has explicitly clicked the updateTime column header
+    const { order } = sorterInfo.value;
+    console.log('User clicked updateTime column, applying Ant Design sorter with order:', order);
     
-    if (columnKey === 'updateTime_11') {
-      // For updateTime column, use Ant Design sorter but ensure descending by default
-      console.log('Applying Ant Design sorter for updateTime with order:', order);
-      const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-      if (sorterFn) {
-        dataToFilter.sort((a, b) => {
-          const result = sorterFn(a, b);
-          return order === 'ascend' ? result : -result;
-        });
-      }
+    if (order === 'ascend') {
+      // User wants ascending (oldest first)
+      dataToFilter.sort((a, b) => {
+        const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
+        const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
+        return timeA - timeB; // Ascending order (oldest first)
+      });
     } else {
-      // Use Ant Design sorter for other columns
-      const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-      if (sorterFn) {
-        dataToFilter.sort((a, b) => {
-          const result = sorterFn(a, b);
-          return order === 'ascend' ? result : -result;
-        });
-      }
+      // User wants descending (newest first) - same as default
+      dataToFilter.sort((a, b) => {
+        const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
+        const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
+        return timeB - timeA; // Descending order (newest first)
+      });
     }
   } else {
-    // No sorter info, apply default updateTime descending sort
-    console.log('No sorter info, applying default updateTime descending sort');
+    // Default behavior: Use plain JavaScript for updateTime descending sort
+    console.log('Using default plain JavaScript descending sort for updateTime');
     dataToFilter.sort((a, b) => {
       const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
       const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
-      return timeB - timeA; // Always descending for updateTime
+      return timeB - timeA; // Always descending for updateTime by default
     });
   }
 
@@ -883,16 +876,16 @@ const handleTableChange = (
   const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
 
   if (currentSorter && currentSorter.order) {
+    // User has explicitly clicked a column header
     sorterInfo.value = {
       columnKey: currentSorter.columnKey,
       order: currentSorter.order,
     };
+    console.log('User clicked column header, setting sorterInfo:', sorterInfo.value);
   } else {
-    // When sorting is cleared, revert to default
-    sorterInfo.value = {
-      columnKey: 'updateTime_11',
-      order: 'descend',
-    };
+    // When sorting is cleared, revert to plain JavaScript default sorting
+    sorterInfo.value = null;
+    console.log('Sorting cleared, reverting to plain JavaScript default sorting');
   }
   
   // When table changes, we should probably go back to the first page
