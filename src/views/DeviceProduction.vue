@@ -328,7 +328,7 @@
         
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="showEditBatchModal = false">取消</button>
-          <button class="btn btn-primary" @click="handleEditBatchModalConfirm">确定</button>
+          <button class="btn btn-primary" @click="() => { console.log('Edit confirm button clicked!'); handleEditBatchModalConfirm(); }">确定</button>
         </div>
       </div>
     </div>
@@ -1316,14 +1316,28 @@ const handleEditBatchModalCancel = () => {
 };
 
 const handleEditBatchModalConfirm = async () => {
+  console.log('🚀 handleEditBatchModalConfirm function called!');
   try {
     console.log('=== Starting edit batch modal confirm ===');
     console.log('Current editing record:', currentEditingRecord.value);
     console.log('Edit batch form data:', editBatchForm.value);
     
     // Validate form
-    await editBatchFormRef.value?.validate();
-    console.log('Form validation passed');
+    console.log('About to validate form with ref:', editBatchFormRef.value);
+    if (!editBatchFormRef.value) {
+      console.error('Form ref is null!');
+      message.error('表单引用错误，请重试');
+      return;
+    }
+    
+    try {
+      await editBatchFormRef.value.validate();
+      console.log('Form validation passed');
+    } catch (validationError) {
+      console.error('Form validation failed:', validationError);
+      message.error('表单验证失败，请检查输入');
+      return;
+    }
     
     // Get the record ID from the stored editing record
     if (!currentEditingRecord.value || !currentEditingRecord.value.id) {
