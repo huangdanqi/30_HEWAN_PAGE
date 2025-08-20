@@ -574,11 +574,13 @@ const fetchDeviceProduction = async () => {
       });
 
       // Apply plain JavaScript descending sort by updateTime
+      console.log('Before sorting - First few updateTime values:', rawData.value.slice(0, 3).map(item => item.updateTime));
       rawData.value.sort((a, b) => {
         const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
         const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
         return timeB - timeA; // Descending order (newest first)
       });
+      console.log('After sorting - First few updateTime values:', rawData.value.slice(0, 3).map(item => item.updateTime));
 
       // Update pagination info from server
       if (response.data.pagination) {
@@ -800,6 +802,8 @@ const onRefresh = () => {
 
 const filteredData = computed(() => {
   let dataToFilter = rawData.value;
+  console.log('filteredData computed - rawData length:', rawData.value.length);
+  console.log('filteredData computed - first few updateTime values:', rawData.value.slice(0, 3).map(item => item.updateTime));
 
   if (searchInputValue.value) {
     const searchTerm = searchInputValue.value.toLowerCase();
@@ -830,18 +834,39 @@ const filteredData = computed(() => {
     dataToFilter = dataToFilter.filter(item => item.manufacturer === selectedManufacturer);
   }
 
-  // Sorting logic
+  // Sorting logic - prioritize plain JavaScript sort for updateTime
   if (sorterInfo.value && sorterInfo.value.order) {
     const { columnKey, order } = sorterInfo.value;
-    const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-    if (sorterFn) {
+    
+    // Special handling for updateTime column - always use plain JavaScript descending sort
+    if (columnKey === 'updateTime_11') {
+      console.log('Applying plain JavaScript descending sort for updateTime');
       dataToFilter.sort((a, b) => {
-        const result = sorterFn(a, b);
-        return order === 'ascend' ? result : -result;
+        const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
+        const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
+        return timeB - timeA; // Always descending for updateTime
       });
+    } else {
+      // Use Ant Design sorter for other columns
+      const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
+      if (sorterFn) {
+        dataToFilter.sort((a, b) => {
+          const result = sorterFn(a, b);
+          return order === 'ascend' ? result : -result;
+        });
+      }
     }
+  } else {
+    // No sorter info, apply default updateTime descending sort
+    console.log('No sorter info, applying default updateTime descending sort');
+    dataToFilter.sort((a, b) => {
+      const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
+      const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
+      return timeB - timeA; // Always descending for updateTime
+    });
   }
 
+  console.log('filteredData final - first few updateTime values:', dataToFilter.slice(0, 3).map(item => item.updateTime));
   return dataToFilter;
 });
 
