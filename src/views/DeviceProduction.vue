@@ -595,7 +595,8 @@ const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key'
       burn_firmware: deviceProductionData.burnFirmware,
       unit_price: typeof deviceProductionData.unitPrice === 'number' ? deviceProductionData.unitPrice : parseFloat(String(deviceProductionData.unitPrice || 0)),
       quantity: typeof deviceProductionData.quantity === 'number' ? deviceProductionData.quantity : parseInt(String(deviceProductionData.quantity || 0), 10),
-      updater: deviceProductionData.updater
+      updater: deviceProductionData.updater,
+      creator: deviceProductionData.creator
     };
     console.log('POST /device-production payload:', payload);
     const response = await axios.post('http://121.43.196.106:2829/api/device-production', payload);
@@ -618,7 +619,8 @@ const updateDeviceProduction = async (id: number, deviceProductionData: Partial<
       burn_firmware: deviceProductionData.burnFirmware,
       unit_price: typeof deviceProductionData.unitPrice === 'number' ? deviceProductionData.unitPrice : (deviceProductionData.unitPrice != null ? parseFloat(String(deviceProductionData.unitPrice)) : undefined),
       quantity: typeof deviceProductionData.quantity === 'number' ? deviceProductionData.quantity : (deviceProductionData.quantity != null ? parseInt(String(deviceProductionData.quantity), 10) : undefined),
-      updater: deviceProductionData.updater
+      updater: deviceProductionData.updater,
+      creator: deviceProductionData.creator
     };
     console.log('PUT /device-production payload:', payload);
     const response = await axios.put(`http://121.43.196.106:2829/api/device-production/${id}`, payload);
@@ -1187,7 +1189,8 @@ const handleCreateBatchModalConfirm = async () => {
       burnFirmware: createBatchForm.value.burnFirmware,
       unitPrice: Number(createBatchForm.value.unitPrice || 0),
       quantity: Number(createBatchForm.value.quantity || 0),
-      updater: currentUsername.value
+      updater: currentUsername.value,
+      creator: currentUsername.value
     };
     
     // Send data to API
@@ -1297,7 +1300,8 @@ const handleEditBatchModalConfirm = async () => {
       burnFirmware: editBatchForm.value.burnFirmware,
       unitPrice: Number(editBatchForm.value.unitPrice || 0),
       quantity: Number(editBatchForm.value.quantity || 0),
-      updater: currentUsername.value
+      updater: currentUsername.value,
+      creator: currentRecord.creator || currentUsername.value
     };
     
     // Send update to API
