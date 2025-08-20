@@ -244,12 +244,20 @@
         <div class="modal-body">
           <div class="form-group">
             <label>设备型号</label>
-            <select v-model="editBatchForm.deviceModel" class="form-input" @change="handleEditDeviceModelChange">
-              <option value="">请选择设备型号</option>
-              <option v-for="model in deviceModelOptionsForEdit" :key="model.value" :value="model.value">
-                {{ model.label }}
-              </option>
-            </select>
+            <a-select 
+              v-model:value="editBatchForm.deviceModel" 
+              placeholder="请选择设备型号"
+              @change="handleEditDeviceModelChange"
+              style="width: 100%"
+            >
+              <a-select-option 
+                v-for="deviceModel in deviceModelOptionsForEdit" 
+                :key="deviceModel.value" 
+                :value="deviceModel.value"
+              >
+                {{ deviceModel.label }}
+              </a-select-option>
+            </a-select>
           </div>
 
           <div class="form-group">
@@ -267,38 +275,53 @@
 
           <div class="form-group">
             <label>生产厂家</label>
-            <select v-model="editBatchForm.manufacturer" class="form-input" @change="handleEditManufacturerChange">
-              <option value="">请选择生产厂家</option>
-              <option v-for="manufacturer in manufacturerOptionsForEdit" :key="manufacturer.value" :value="manufacturer.value">
-                {{ manufacturer.label }}
-              </option>
-            </select>
+            <a-input 
+              v-model:value="editBatchForm.manufacturer" 
+              placeholder="请输入生产厂家"
+              @blur="handleManufacturerBlur"
+            />
           </div>
 
           <div class="form-group">
             <label>烧录固件</label>
-            <select v-model="editBatchForm.burnFirmware" class="form-input">
-              <option value="">请选择烧录固件</option>
-              <option v-for="firmware in firmwareOptionsForEdit" :key="firmware.value" :value="firmware.value">
+            <a-select 
+              v-model:value="editBatchForm.burnFirmware" 
+              placeholder="请选择烧录固件"
+              :disabled="!editBatchForm.deviceModel"
+              style="width: 100%"
+            >
+              <a-select-option 
+                v-for="firmware in firmwareOptionsForEdit" 
+                :key="firmware.value" 
+                :value="firmware.value"
+              >
                 {{ firmware.label }}
-              </option>
-            </select>
+              </a-select-option>
+            </a-select>
           </div>
 
           <div class="form-group">
             <label>单价</label>
-            <div class="input-with-suffix">
-              <input type="number" v-model="editBatchForm.unitPrice" class="form-input" placeholder="请输入" step="0.01" min="0" />
-              <span class="suffix">元</span>
-            </div>
+            <a-input-number 
+              v-model:value="editBatchForm.unitPrice" 
+              placeholder="请输入" 
+              style="width: 100%"
+              :min="0"
+              :precision="2"
+              suffix="元"
+            />
           </div>
 
           <div class="form-group">
             <label>数量</label>
-            <div class="input-with-suffix">
-              <input type="number" v-model="editBatchForm.quantity" class="form-input" placeholder="请输入" min="1" />
-              <span class="suffix">个</span>
-            </div>
+            <a-input-number 
+              v-model:value="editBatchForm.quantity" 
+              placeholder="请输入" 
+              style="width: 100%"
+              :min="1"
+              :precision="0"
+              suffix="个"
+            />
           </div>
         </div>
         
@@ -1065,9 +1088,7 @@ const handleDeviceModelChangeInForm = async (value: string) => {
 };
 
 // Handler for device model change in edit form
-const handleEditDeviceModelChange = async (event: Event) => {
-  const target = event.target as HTMLSelectElement;
-  const value = target.value;
+const handleEditDeviceModelChange = async (value: string) => {
   editBatchForm.value.deviceModel = value;
   // Clear firmware selection and production batch when device model changes
   editBatchForm.value.burnFirmware = '';
@@ -1094,14 +1115,14 @@ const handleEditProductionBatchDateChange = (_date: any, dateString: string) => 
   editBatchForm.value.manufacturer = '';
 };
 
-// Handler for manufacturer change in edit form
-const handleEditManufacturerChange = (event: Event) => {
-  const target = event.target as HTMLSelectElement;
-  const value = target.value;
-  editBatchForm.value.manufacturer = value;
-  // Clear firmware when manufacturer changes
-  editBatchForm.value.burnFirmware = '';
-};
+// Handler for manufacturer change in edit form (no longer needed since we use input)
+// const handleEditManufacturerChange = (event: Event) => {
+//   const target = event.target as HTMLSelectElement;
+//   const value = target.value;
+//   editBatchForm.value.manufacturer = value;
+//   // Clear firmware when manufacturer changes
+//   editBatchForm.value.burnFirmware = '';
+// };
 
 const handleManufacturerBlur = () => {
   // This function can be used to save manufacturer as an option for future selection
