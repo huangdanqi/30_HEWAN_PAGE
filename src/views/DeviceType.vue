@@ -295,7 +295,6 @@ interface ColumnConfig {
   sortOrder?: 'ascend' | 'descend';
   defaultSortOrder?: 'ascend' | 'descend';
   customRender?: (record: any) => string | number;
-  customCell?: (record: any) => { children: any; props: any };
   className?: string;
 }
 
@@ -327,30 +326,19 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sorter: config.sorter,
     sortDirections: config.sortDirections,
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    customCell: (record: any) => {
+    customRender: (record: any, index: number) => {
       // Special handling for rowIndex column
       if (config.key === 'rowIndex') {
-        const rowIndex = rawData.value.findIndex(item => item.id === record.id) + 1;
-        const displayIndex = (currentPage.value - 1) * pageSize.value + rowIndex;
-        return {
-          children: displayIndex,
-          props: {}
-        };
+        return (currentPage.value - 1) * pageSize.value + index + 1;
       }
       
       // Handle other columns with customRender
       if (config.customRender) {
-        return {
-          children: config.customRender(record),
-          props: {}
-        };
+        return config.customRender(record);
       }
       
       // Default rendering for other columns
-      return {
-        children: record[config.dataIndex] === undefined || record[config.dataIndex] === null || record[config.dataIndex] === '' ? '-' : record[config.dataIndex],
-        props: {}
-      };
+      return record[config.dataIndex] === undefined || record[config.dataIndex] === null || record[config.dataIndex] === '' ? '-' : record[config.dataIndex];
     },
     className: config.className,
   })) as ColumnsType;
