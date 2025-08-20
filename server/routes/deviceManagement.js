@@ -3,44 +3,6 @@ import pool from '../config/database.js';
 
 const router = express.Router();
 
-// Get all device management records
-router.get('/', async (req, res) => {
-  try {
-    const [rows] = await pool.execute(
-      'SELECT * FROM device_management ORDER BY create_time DESC'
-    );
-    
-    // Transform snake_case to camelCase for frontend
-    const transformedRows = rows.map(row => ({
-      id: row.id,
-      deviceId: row.device_id,
-      boundSubAccount: row.bound_sub_account,
-      deviceModel: row.device_model,
-      productionBatch: row.production_batch,
-      manufacturer: row.manufacturer,
-      initialFirmware: row.initial_firmware,
-      latestFirmware: row.latest_firmware,
-      currentFirmwareVersion: row.current_firmware_version,
-      serialNumberCode: row.serial_number_code,
-      chipId: row.chip_id,
-      wifiMacAddress: row.wifi_mac_address,
-      bluetoothMacAddress: row.bluetooth_mac_address,
-      bluetoothName: row.bluetooth_name,
-      cellularNetworkId: row.cellular_network_id,
-      fourGCardNumber: row.four_g_card_number,
-      cpuSerialNumber: row.cpu_serial_number,
-      creator: row.creator,
-      createTime: row.create_time,
-      updateTime: row.update_time
-    }));
-    
-    res.json(transformedRows);
-  } catch (error) {
-    console.error('Error fetching device management records:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Test database connection and table structure
 router.get('/test-db', async (req, res) => {
   try {
@@ -92,6 +54,44 @@ router.get('/test-db', async (req, res) => {
       error: 'Database test failed: ' + error.message,
       stack: error.stack 
     });
+  }
+});
+
+// Get all device management records
+router.get('/', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT * FROM device_management ORDER BY create_time DESC'
+    );
+    
+    // Transform snake_case to camelCase for frontend
+    const transformedRows = rows.map(row => ({
+      id: row.id,
+      deviceId: row.device_id,
+      boundSubAccount: row.bound_sub_account,
+      deviceModel: row.device_model,
+      productionBatch: row.production_batch,
+      manufacturer: row.manufacturer,
+      initialFirmware: row.initial_firmware,
+      latestFirmware: row.latest_firmware,
+      currentFirmwareVersion: row.current_firmware_version,
+      serialNumberCode: row.serial_number_code,
+      chipId: row.chip_id,
+      wifiMacAddress: row.wifi_mac_address,
+      bluetoothMacAddress: row.bluetooth_mac_address,
+      bluetoothName: row.bluetooth_name,
+      cellularNetworkId: row.cellular_network_id,
+      fourGCardNumber: row.four_g_card_number,
+      cpuSerialNumber: row.cpu_serial_number,
+      creator: row.creator,
+      createTime: row.create_time,
+      updateTime: row.update_time
+    }));
+    
+    res.json(transformedRows);
+  } catch (error) {
+    console.error('Error fetching device management records:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
