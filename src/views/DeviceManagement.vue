@@ -391,6 +391,17 @@
         <div class="modal-body edit-body">
           <div class="edit-form-section">
             <div class="form-group">
+              <label class="required-field"><span class="asterisk">*</span> 设备ID</label>
+              <input v-model="editForm.deviceId" type="text" class="form-input" readonly>
+              <small class="form-hint">设备ID不可编辑</small>
+            </div>
+
+            <div class="form-group">
+              <label>绑定子账户</label>
+              <input v-model="editForm.boundSubAccount" type="text" class="form-input" placeholder="请输入绑定子账户">
+            </div>
+
+            <div class="form-group">
               <label class="required-field"><span class="asterisk">*</span> 设备型号</label>
               <select v-model="editForm.deviceModel" class="form-select" @change="handleEditDeviceModelChange">
                 <option value="">请选择设备型号</option>
@@ -418,6 +429,61 @@
                   {{ manufacturer.label }}
                 </option>
               </select>
+            </div>
+
+            <div class="form-group">
+              <label>初始烧录固件</label>
+              <input v-model="editForm.initialFirmware" type="text" class="form-input" placeholder="请输入初始烧录固件">
+            </div>
+
+            <div class="form-group">
+              <label>最新可更新固件</label>
+              <input v-model="editForm.latestFirmware" type="text" class="form-input" placeholder="请输入最新可更新固件">
+            </div>
+
+            <div class="form-group">
+              <label>当前固件版本</label>
+              <input v-model="editForm.currentFirmwareVersion" type="text" class="form-input" placeholder="请输入当前固件版本">
+            </div>
+
+            <div class="form-group">
+              <label>SN码</label>
+              <input v-model="editForm.serialNumberCode" type="text" class="form-input" placeholder="请输入SN码">
+            </div>
+
+            <div class="form-group">
+              <label>芯片ID</label>
+              <input v-model="editForm.chipId" type="text" class="form-input" placeholder="请输入芯片ID">
+            </div>
+
+            <div class="form-group">
+              <label>Wi-Fi MAC地址</label>
+              <input v-model="editForm.wifiMacAddress" type="text" class="form-input" placeholder="请输入Wi-Fi MAC地址">
+            </div>
+
+            <div class="form-group">
+              <label>蓝牙MAC地址</label>
+              <input v-model="editForm.bluetoothMacAddress" type="text" class="form-input" placeholder="请输入蓝牙MAC地址">
+            </div>
+
+            <div class="form-group">
+              <label>蓝牙名称</label>
+              <input v-model="editForm.bluetoothName" type="text" class="form-input" placeholder="请输入蓝牙名称">
+            </div>
+
+            <div class="form-group">
+              <label>蜂窝网络识别码</label>
+              <input v-model="editForm.cellularNetworkId" type="text" class="form-input" placeholder="请输入蜂窝网络识别码">
+            </div>
+
+            <div class="form-group">
+              <label>4G卡号</label>
+              <input v-model="editForm.fourGCardNumber" type="text" class="form-input" placeholder="请输入4G卡号">
+            </div>
+
+            <div class="form-group">
+              <label>CPU序列号</label>
+              <input v-model="editForm.cpuSerialNumber" type="text" class="form-input" placeholder="请输入CPU序列号">
             </div>
           </div>
         </div>
@@ -770,7 +836,7 @@ const createDeviceManagement = async (deviceManagementData: Omit<DataItem, 'key'
 
 const updateDeviceManagement = async (id: number, deviceManagementData: Partial<DataItem>) => {
   try {
-    const response = await axios.put(`http://121.43.196.106:2829/api/device-management/${id}`, deviceManagementData);
+    const response = await axios.put(constructApiUrl(`device-management/${id}`), deviceManagementData);
     await fetchDeviceManagement(); // Refresh data
     return response.data;
   } catch (error: any) {
@@ -1759,14 +1825,42 @@ const prevStep = () => {
 // Edit Device Modal Logic
 const showEditModal = ref(false);
 const editForm = ref({
+  id: null as number | null,
+  deviceId: '',
   deviceModel: '',
   productionBatch: '',
-  manufacturer: ''
+  manufacturer: '',
+  boundSubAccount: '',
+  initialFirmware: '',
+  latestFirmware: '',
+  currentFirmwareVersion: '',
+  serialNumberCode: '',
+  chipId: '',
+  wifiMacAddress: '',
+  bluetoothMacAddress: '',
+  bluetoothName: '',
+  cellularNetworkId: '',
+  fourGCardNumber: '',
+  cpuSerialNumber: ''
 });
 const originalEditData = ref({
+  id: null as number | null,
+  deviceId: '',
   deviceModel: '',
   productionBatch: '',
-  manufacturer: ''
+  manufacturer: '',
+  boundSubAccount: '',
+  initialFirmware: '',
+  latestFirmware: '',
+  currentFirmwareVersion: '',
+  serialNumberCode: '',
+  chipId: '',
+  wifiMacAddress: '',
+  bluetoothMacAddress: '',
+  bluetoothName: '',
+  cellularNetworkId: '',
+  fourGCardNumber: '',
+  cpuSerialNumber: ''
 });
 
 const openEditModal = async (record: DataItem) => {
@@ -1777,14 +1871,42 @@ const openEditModal = async (record: DataItem) => {
   
   // Pre-fill form with record data
   editForm.value = {
-    deviceModel: record.deviceModel,
-    productionBatch: record.productionBatch,
-    manufacturer: record.manufacturer
+    id: record.id || null,
+    deviceId: record.deviceId || '',
+    deviceModel: record.deviceModel || '',
+    productionBatch: record.productionBatch || '',
+    manufacturer: record.manufacturer || '',
+    boundSubAccount: record.boundSubAccount || '',
+    initialFirmware: record.initialFirmware || '',
+    latestFirmware: record.latestFirmware || '',
+    currentFirmwareVersion: record.currentFirmwareVersion || '',
+    serialNumberCode: record.serialNumberCode || '',
+    chipId: record.chipId || '',
+    wifiMacAddress: record.wifiMacAddress || '',
+    bluetoothMacAddress: record.bluetoothMacAddress || '',
+    bluetoothName: record.bluetoothName || '',
+    cellularNetworkId: record.cellularNetworkId || '',
+    fourGCardNumber: record.fourGCardNumber || '',
+    cpuSerialNumber: record.cpuSerialNumber || ''
   };
   originalEditData.value = {
-    deviceModel: record.deviceModel,
-    productionBatch: record.productionBatch,
-    manufacturer: record.manufacturer
+    id: record.id || null,
+    deviceId: record.deviceId || '',
+    deviceModel: record.deviceModel || '',
+    productionBatch: record.productionBatch || '',
+    manufacturer: record.manufacturer || '',
+    boundSubAccount: record.boundSubAccount || '',
+    initialFirmware: record.initialFirmware || '',
+    latestFirmware: record.latestFirmware || '',
+    currentFirmwareVersion: record.currentFirmwareVersion || '',
+    serialNumberCode: record.serialNumberCode || '',
+    chipId: record.chipId || '',
+    wifiMacAddress: record.wifiMacAddress || '',
+    bluetoothMacAddress: record.bluetoothMacAddress || '',
+    bluetoothName: record.bluetoothName || '',
+    cellularNetworkId: record.cellularNetworkId || '',
+    fourGCardNumber: record.fourGCardNumber || '',
+    cpuSerialNumber: record.cpuSerialNumber || ''
   };
   
   console.log('Form pre-filled with:', editForm.value);
@@ -1795,14 +1917,42 @@ const openEditModal = async (record: DataItem) => {
 const closeEditModal = () => {
   showEditModal.value = false;
   editForm.value = {
+    id: null,
+    deviceId: '',
     deviceModel: '',
     productionBatch: '',
-    manufacturer: ''
+    manufacturer: '',
+    boundSubAccount: '',
+    initialFirmware: '',
+    latestFirmware: '',
+    currentFirmwareVersion: '',
+    serialNumberCode: '',
+    chipId: '',
+    wifiMacAddress: '',
+    bluetoothMacAddress: '',
+    bluetoothName: '',
+    cellularNetworkId: '',
+    fourGCardNumber: '',
+    cpuSerialNumber: ''
   };
   originalEditData.value = {
+    id: null,
+    deviceId: '',
     deviceModel: '',
     productionBatch: '',
-    manufacturer: ''
+    manufacturer: '',
+    boundSubAccount: '',
+    initialFirmware: '',
+    latestFirmware: '',
+    currentFirmwareVersion: '',
+    serialNumberCode: '',
+    chipId: '',
+    wifiMacAddress: '',
+    bluetoothMacAddress: '',
+    bluetoothName: '',
+    cellularNetworkId: '',
+    fourGCardNumber: '',
+    cpuSerialNumber: ''
   };
 };
 
@@ -1824,25 +1974,67 @@ const handleEditProductionBatchChange = () => {
 };
 
 const handleEditConfirm = async () => {
-  // Validate form
-  if (!editForm.value.deviceModel) {
-    alert('请选择设备型号');
-    return;
+  try {
+    // Validate form
+    if (!editForm.value.deviceId || editForm.value.deviceId.trim() === '') {
+      message.error('设备ID不能为空');
+      return;
+    }
+    
+    if (!editForm.value.deviceModel) {
+      message.error('请选择设备型号');
+      return;
+    }
+    if (!editForm.value.productionBatch) {
+      message.error('请选择生产批次');
+      return;
+    }
+    if (!editForm.value.manufacturer) {
+      message.error('请选择生产厂家');
+      return;
+    }
+    
+    if (!editForm.value.id) {
+      message.error('设备ID缺失，无法更新');
+      return;
+    }
+    
+    console.log('Edit confirmed, updating device:', editForm.value);
+    
+    // Prepare the data for update - convert to snake_case for backend
+    const updateData = {
+      device_id: editForm.value.deviceId, // Use the actual device ID from the record
+      bound_sub_account: editForm.value.boundSubAccount,
+      device_model: editForm.value.deviceModel,
+      production_batch: editForm.value.productionBatch,
+      manufacturer: editForm.value.manufacturer,
+      initial_firmware: editForm.value.initialFirmware,
+      latest_firmware: editForm.value.latestFirmware,
+      current_firmware_version: editForm.value.currentFirmwareVersion,
+      serial_number_code: editForm.value.serialNumberCode,
+      chip_id: editForm.value.chipId,
+      wifi_mac_address: editForm.value.wifiMacAddress,
+      bluetooth_mac_address: editForm.value.bluetoothMacAddress,
+      bluetooth_name: editForm.value.bluetoothName,
+      cellular_network_id: editForm.value.cellularNetworkId,
+      four_g_card_number: editForm.value.fourGCardNumber,
+      cpu_serial_number: editForm.value.cpuSerialNumber
+    };
+    
+    console.log('Update data prepared:', updateData);
+    
+    // Call the API to update the device
+    await updateDeviceManagement(editForm.value.id, updateData);
+    
+    message.success('设备信息更新成功！');
+    
+    // Close modal
+    closeEditModal();
+    
+  } catch (error: any) {
+    console.error('Error updating device:', error);
+    message.error(`更新失败: ${error.response?.data?.error || error.message}`);
   }
-  if (!editForm.value.productionBatch) {
-    alert('请选择生产批次');
-    return;
-  }
-  if (!editForm.value.manufacturer) {
-    alert('请选择生产厂家');
-    return;
-  }
-  
-  // Here you would typically update the data
-  console.log('Edit confirmed:', editForm.value);
-  
-  // Close modal
-  closeEditModal();
 };
 
 onMounted(() => {
@@ -2924,32 +3116,16 @@ html, body {
 
 .edit-form-section {
   flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
-.interaction-guidelines {
-  flex: 1;
-  background-color: #fafafa;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  padding: 16px;
-  max-width: 300px;
-}
-
-.guidelines-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(0, 0, 0, 0.85);
-  margin-bottom: 12px;
-}
-
-.guidelines-content {
+.form-hint {
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.65);
-  line-height: 1.5;
-}
-
-.guidelines-content p {
-  margin: 0 0 8px 0;
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: 4px;
+  display: block;
 }
 
 .form-input {
@@ -2968,42 +3144,13 @@ html, body {
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
+.form-input[readonly] {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
 .form-input[type="date"] {
   padding: 7px 12px;
-}
-
-/* Updated required field styling */
-.required-field {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.85);
-  font-weight: 500;
-}
-
-.required-field .asterisk {
-  color: #ff4d4f;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-/* Updated form select styling */
-.form-select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
-  font-size: 14px;
-  background-color: white;
-  color: rgba(0, 0, 0, 0.85);
-}
-
-.form-select:focus {
-  outline: none;
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
 /* No data message styling */
@@ -3128,5 +3275,39 @@ html, body {
   padding: 2px 6px;
   border-radius: 3px;
   border: 1px solid #ffeaa7;
+}
+
+/* Updated required field styling */
+.required-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 500;
+}
+
+.required-field .asterisk {
+  color: #ff4d4f;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Updated form select styling */
+.form-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 </style> 
