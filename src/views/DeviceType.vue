@@ -82,8 +82,11 @@
         @change="handleTableChange"
         :showSorterTooltip="false"
       >
-      <template #bodyCell="{ column, record }">
-      <template v-if="column.key === 'operation_9'">
+      <template #bodyCell="{ column, record, index }">
+      <template v-if="column.key === 'rowIndex'">
+        {{ (currentPage - 1) * pageSize + index + 1 }}
+      </template>
+      <template v-else-if="column.key === 'operation_9'">
         <a-space class="action-cell" direction="horizontal">
           <a class="view-link" @click="$emit('view-record', record)">查看</a>
           <a-divider type="vertical" />
@@ -326,20 +329,9 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sorter: config.sorter,
     sortDirections: config.sortDirections,
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    customRender: ({ record, index }: { record: any; index: number }) => {
-      // Special handling for rowIndex column
-      if (config.key === 'rowIndex') {
-        return (currentPage.value - 1) * pageSize.value + index + 1;
-      }
-      
-      // Handle other columns with customRender
-      if (config.customRender) {
-        return config.customRender(record);
-      }
-      
-      // Default rendering for other columns
-      return record[config.dataIndex] === undefined || record[config.dataIndex] === null || record[config.dataIndex] === '' ? '-' : record[config.dataIndex];
-    },
+    customRender: config.customRender
+      ? config.customRender
+      : ({ text }) => (text === undefined || text === null || text === '' ? '-' : text),
     className: config.className,
   })) as ColumnsType;
 };
