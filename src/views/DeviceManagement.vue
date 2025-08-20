@@ -390,16 +390,16 @@
 
         <div class="modal-body edit-body">
           <div class="edit-form-section">
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label class="required-field"><span class="asterisk">*</span> 设备ID</label>
               <input v-model="editForm.deviceId" type="text" class="form-input" readonly>
               <small class="form-hint">设备ID不可编辑</small>
-            </div>
+            </div> -->
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>绑定子账户</label>
               <input v-model="editForm.boundSubAccount" type="text" class="form-input" placeholder="请输入绑定子账户">
-            </div>
+            </div> -->
 
             <div class="form-group">
               <label class="required-field"><span class="asterisk">*</span> 设备型号</label>
@@ -431,60 +431,60 @@
               </select>
             </div>
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>初始烧录固件</label>
               <input v-model="editForm.initialFirmware" type="text" class="form-input" placeholder="请输入初始烧录固件">
-            </div>
+            </div> -->
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>最新可更新固件</label>
               <input v-model="editForm.latestFirmware" type="text" class="form-input" placeholder="请输入最新可更新固件">
-            </div>
+            </div> -->
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>当前固件版本</label>
               <input v-model="editForm.currentFirmwareVersion" type="text" class="form-input" placeholder="请输入当前固件版本">
-            </div>
-
+            </div> -->
+<!-- 
             <div class="form-group">
               <label>SN码</label>
               <input v-model="editForm.serialNumberCode" type="text" class="form-input" placeholder="请输入SN码">
-            </div>
+            </div> -->
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>芯片ID</label>
               <input v-model="editForm.chipId" type="text" class="form-input" placeholder="请输入芯片ID">
-            </div>
+            </div> -->
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>Wi-Fi MAC地址</label>
               <input v-model="editForm.wifiMacAddress" type="text" class="form-input" placeholder="请输入Wi-Fi MAC地址">
-            </div>
-
+            </div> -->
+<!-- 
             <div class="form-group">
               <label>蓝牙MAC地址</label>
               <input v-model="editForm.bluetoothMacAddress" type="text" class="form-input" placeholder="请输入蓝牙MAC地址">
-            </div>
+            </div> -->
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>蓝牙名称</label>
               <input v-model="editForm.bluetoothName" type="text" class="form-input" placeholder="请输入蓝牙名称">
-            </div>
+            </div> -->
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>蜂窝网络识别码</label>
               <input v-model="editForm.cellularNetworkId" type="text" class="form-input" placeholder="请输入蜂窝网络识别码">
-            </div>
+            </div> -->
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>4G卡号</label>
               <input v-model="editForm.fourGCardNumber" type="text" class="form-input" placeholder="请输入4G卡号">
-            </div>
+            </div> -->
 
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>CPU序列号</label>
               <input v-model="editForm.cpuSerialNumber" type="text" class="form-input" placeholder="请输入CPU序列号">
-            </div>
+            </div> -->
           </div>
         </div>
 
@@ -3115,7 +3115,7 @@ html, body {
 
 /* Edit Modal Styles */
 .edit-modal {
-  max-width: 800px;
+  max-width: 500px;
   width: 90%;
 }
 
@@ -3127,8 +3127,8 @@ html, body {
 
 .edit-form-section {
   flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
