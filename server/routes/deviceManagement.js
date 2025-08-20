@@ -295,6 +295,55 @@ router.get('/device-id/:deviceId', async (req, res) => {
   }
 });
 
+// Test endpoint to debug data structure
+router.post('/test-import', async (req, res) => {
+  try {
+    console.log('=== TEST IMPORT ENDPOINT ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
+    const { devices, deviceModel, productionBatch, manufacturer, creator } = req.body;
+    
+    console.log('Extracted data:', {
+      devicesCount: devices ? devices.length : 'undefined',
+      deviceModel,
+      productionBatch,
+      manufacturer,
+      creator,
+      devicesType: typeof devices,
+      isArray: Array.isArray(devices)
+    });
+    
+    if (devices && Array.isArray(devices)) {
+      devices.forEach((device, index) => {
+        console.log(`Device ${index + 1}:`, {
+          device_id: device.device_id,
+          deviceId: device.deviceId,
+          '设备ID': device['设备ID'],
+          device_model: device.device_model,
+          production_batch: device.production_batch,
+          manufacturer: device.manufacturer,
+          creator: device.creator
+        });
+      });
+    }
+    
+    res.json({
+      message: 'Test endpoint called successfully',
+      receivedData: {
+        devicesCount: devices ? devices.length : 0,
+        deviceModel,
+        productionBatch,
+        manufacturer,
+        creator
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in test endpoint:', error);
+    res.status(500).json({ error: 'Test endpoint error: ' + error.message });
+  }
+});
+
 // Bulk import devices from Excel file
 router.post('/bulk-import', async (req, res) => {
   try {
@@ -329,7 +378,7 @@ router.post('/bulk-import', async (req, res) => {
         console.log(`Processing device ${i + 1}/${devices.length}:`, device);
         
         try {
-          // Map Excel columns to database columns based on the image structure
+          // Map Excel columns to database columns - handle both camelCase and snake_case
           // Ensure production_batch is in correct DATE format (YYYY-MM-DD)
           let formattedProductionBatch = productionBatch;
           if (typeof productionBatch === 'string') {
@@ -343,31 +392,53 @@ router.post('/bulk-import', async (req, res) => {
             }
           }
           
+          // Handle both camelCase and snake_case field names from frontend
           const deviceData = {
-            device_id: device.deviceId || device['设备ID'] || '',
-            bound_sub_account: device.boundSubAccount || device['绑定子账户'] || '-',
+            device_id: device.device_id || device.deviceId || device['设备ID'] || '',
+            bound_sub_account: device.bound_sub_account || device.boundSubAccount || device['绑定子账户'] || '-',
             device_model: deviceModel, // From form selection
             production_batch: formattedProductionBatch, // Formatted date
             manufacturer: manufacturer, // From form selection
-            initial_firmware: device.initialFirmware || device['初始烧录固件'] || `${deviceModel} V 1.0.1`,
-            latest_firmware: device.latestFirmware || device['最新可更新固件'] || `${deviceModel} V 2.0.1`,
-            current_firmware_version: device.currentFirmwareVersion || device['当前固件版本'] || `${deviceModel} V 1.3.0`,
-            serial_number_code: device.serialNumberCode || device['SN码'] || '',
-            chip_id: device.chipId || device['芯片ID'] || '',
-            wifi_mac_address: device.wifiMacAddress || device['Wi-Fi MAC地址'] || '',
-            bluetooth_mac_address: device.bluetoothMacAddress || device['蓝牙MAC地址'] || '',
-            bluetooth_name: device.bluetoothName || device['蓝牙名称'] || '',
-            cellular_network_id: device.cellularNetworkId || device['蜂窝网络识别码'] || '',
-            four_g_card_number: device.fourGCardNumber || device['4G卡号'] || '',
-            cpu_serial_number: device.cpuSerialNumber || device['CPU序列号'] || '',
+            initial_firmware: device.initial_firmware || device.initialFirmware || device['初始烧录固件'] || `${deviceModel} V 1.0.1`,
+            latest_firmware: device.latest_firmware || device.latestFirmware || device['最新可更新固件'] || `${deviceModel} V 2.0.1`,
+            current_firmware_version: device.current_firmware_version || device.currentFirmwareVersion || device['当前固件版本'] || `${deviceModel} V 1.3.0`,
+            serial_number_code: device.serial_number_code || device.serialNumberCode || device['SN码'] || '',
+            chip_id: device.chip_id || device.chipId || device['芯片ID'] || '',
+            wifi_mac_address: device.wifi_mac_address || device.wifiMacAddress || device['Wi-Fi MAC地址'] || '',
+            bluetooth_mac_address: device.bluetooth_mac_address || device.bluetoothMacAddress || device['蓝牙MAC地址'] || '',
+            bluetooth_name: device.bluetooth_name || device.bluetoothName || device['蓝牙名称'] || '',
+            cellular_network_id: device.cellular_network_id || device.cellularNetworkId || device['蜂窝网络识别码'] || '',
+            four_g_card_number: device.four_g_card_number || device.fourGCardNumber || device['4G卡号'] || '',
+            cpu_serial_number: device.cpu_serial_number || device.cpuSerialNumber || device['CPU序列号'] || '',
             creator: creator
           };
           
           console.log('Mapped device data:', deviceData);
           
-          // Validate required fields
-          if (!deviceData.device_id) {
-            throw new Error(`Device ID is required for row ${i + 1}`);
+          // Validate required fields with better error messages
+          if (!deviceData.device_id || deviceData.device_id.toString().trim() === '') {
+            console.error(`Row ${i + 1}: Device ID is empty or whitespace. Raw value: "${device.device_id || device.deviceId || device['设备ID']}"`);
+            throw new Error(`Row ${i + 1}: Device ID is required and cannot be empty`);
+          }
+          
+          // Ensure device_id is a string and trim whitespace
+          deviceData.device_id = deviceData.device_id.toString().trim();
+          
+          // Additional validation for other required fields
+          if (!deviceData.device_model || deviceData.device_model.toString().trim() === '') {
+            throw new Error(`Row ${i + 1}: Device model is required`);
+          }
+          
+          if (!deviceData.production_batch || deviceData.production_batch.toString().trim() === '') {
+            throw new Error(`Row ${i + 1}: Production batch is required`);
+          }
+          
+          if (!deviceData.manufacturer || deviceData.manufacturer.toString().trim() === '') {
+            throw new Error(`Row ${i + 1}: Manufacturer is required`);
+          }
+          
+          if (!deviceData.creator || deviceData.creator.toString().trim() === '') {
+            throw new Error(`Row ${i + 1}: Creator is required`);
           }
           
           // Check if device already exists
@@ -398,7 +469,7 @@ router.post('/bulk-import', async (req, res) => {
           }
         } catch (deviceError) {
           console.error('Error processing device:', deviceError);
-          results.push({ deviceId: device.deviceId || device['设备ID'] || 'Unknown', status: 'error', error: deviceError.message });
+          results.push({ deviceId: device.device_id || device.deviceId || device['设备ID'] || 'Unknown', status: 'error', error: deviceError.message });
         }
       }
       

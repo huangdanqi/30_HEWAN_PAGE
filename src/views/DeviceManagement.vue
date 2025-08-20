@@ -59,6 +59,12 @@
         <a-button type="default" @click="testBulkImport" style="margin-left: 8px;">
           测试批量导入
         </a-button>
+        <a-button type="default" @click="testImportEndpoint" style="margin-left: 8px;">
+          测试导入端点
+        </a-button>
+        <a-button type="default" @click="generateSampleExcel" style="margin-left: 8px;">
+          生成示例Excel
+        </a-button>
         <a-button type="default" @click="debugUserName" style="margin-left: 8px;">
           调试用户名
         </a-button>
@@ -204,6 +210,27 @@
                   {{ manufacturer.label }}
                 </option>
               </select>
+            </div>
+
+            <div class="import-format-info">
+              <h4>Excel文件格式要求：</h4>
+              <p>请确保Excel文件包含以下列（按顺序）：</p>
+              <ul>
+                <li><strong>设备ID</strong> - 必需，设备唯一标识符</li>
+                <li><strong>绑定子账户</strong> - 可选，子账户信息</li>
+                <li><strong>初始烧录固件</strong> - 可选，初始固件版本</li>
+                <li><strong>最新可更新固件</strong> - 可选，最新可用固件</li>
+                <li><strong>当前固件版本</strong> - 可选，当前运行固件</li>
+                <li><strong>SN码</strong> - 可选，序列号</li>
+                <li><strong>芯片ID</strong> - 可选，芯片标识</li>
+                <li><strong>Wi-Fi MAC地址</strong> - 可选，Wi-Fi MAC地址</li>
+                <li><strong>蓝牙MAC地址</strong> - 可选，蓝牙MAC地址</li>
+                <li><strong>蓝牙名称</strong> - 可选，蓝牙设备名称</li>
+                <li><strong>蜂窝网络识别码</strong> - 可选，网络ID</li>
+                <li><strong>4G卡号</strong> - 可选，SIM卡号</li>
+                <li><strong>CPU序列号</strong> - 可选，CPU序列号</li>
+              </ul>
+              <p><em>注意：只有设备ID是必需字段，其他字段可选。系统会自动填充设备型号、生产批次、生产厂家和创建人信息。</em></p>
             </div>
 
             <div v-if="importMethod === 'csv'" class="form-group">
@@ -1425,6 +1452,9 @@ const processSingleFile = async () => {
               '蜂窝网络识别码', '4G卡号', 'CPU序列号'
             ];
             
+            console.log('Expected headers:', expectedHeaders);
+            console.log('Actual headers:', headers);
+            
             // More robust header matching - check for exact matches or contains
             const missingHeaders = expectedHeaders.filter(expectedHeader => {
               return !headers.some(header => {
@@ -1452,6 +1482,8 @@ const processSingleFile = async () => {
               throw new Error(`Excel文件缺少必需的列: ${missingHeaders.join(', ')}`);
             }
             
+            console.log('✅ All required headers found');
+            
             // Validate that we have at least one data row
             if (dataRows.length === 0) {
               throw new Error('Excel文件中没有数据行');
@@ -1470,8 +1502,9 @@ const processSingleFile = async () => {
             });
             
             console.log('Non-empty rows after filtering:', nonEmptyRows.length);
+            console.log('Non-empty rows:', nonEmptyRows);
             
-            // Transform data rows to device objects - match the exact structure expected by backend
+            // Transform data rows to device objects - use snake_case field names expected by backend
             const devices = nonEmptyRows.map((row: unknown, index: number) => {
               const rowArray = row as any[];
               const device: any = {};
@@ -1479,7 +1512,7 @@ const processSingleFile = async () => {
               console.log(`Processing row ${index + 1}:`, rowArray);
               console.log(`Row ${index + 1} headers:`, headers);
               
-              // Map Excel columns to device properties - use exact field names expected by backend
+              // Map Excel columns to device properties - use snake_case field names expected by backend
               headers.forEach((header: string, colIndex: number) => {
                 if (header && rowArray[colIndex] !== undefined) {
                   const value = rowArray[colIndex];
@@ -1487,52 +1520,56 @@ const processSingleFile = async () => {
                   
                   console.log(`Mapping header "${headerStr}" (col ${colIndex}) to value:`, value);
                   
-                  // Map Chinese headers to exact backend field names
-                  if (headerStr.includes('设备ID')) device.deviceId = value;
-                  else if (headerStr.includes('绑定子账户')) device.boundSubAccount = value;
-                  else if (headerStr.includes('初始烧录固件')) device.initialFirmware = value;
-                  else if (headerStr.includes('最新可更新固件')) device.latestFirmware = value;
-                  else if (headerStr.includes('当前固件版本')) device.currentFirmwareVersion = value;
-                  else if (headerStr.includes('SN码')) device.serialNumberCode = value;
-                  else if (headerStr.includes('芯片ID')) device.chipId = value;
-                  else if (headerStr.includes('Wi-Fi MAC地址') || headerStr.includes('Wi-Fi MAC 地址')) device.wifiMacAddress = value;
-                  else if (headerStr.includes('蓝牙MAC地址')) device.bluetoothMacAddress = value;
-                  else if (headerStr.includes('蓝牙名称')) device.bluetoothName = value;
-                  else if (headerStr.includes('蜂窝网络识别码')) device.cellularNetworkId = value;
-                  else if (headerStr.includes('4G卡号')) device.fourGCardNumber = value;
-                  else if (headerStr.includes('CPU序列号')) device.cpuSerialNumber = value;
+                  // Map Chinese headers to snake_case backend field names
+                  if (headerStr.includes('设备ID')) device.device_id = value;
+                  else if (headerStr.includes('绑定子账户')) device.bound_sub_account = value;
+                  else if (headerStr.includes('初始烧录固件')) device.initial_firmware = value;
+                  else if (headerStr.includes('最新可更新固件')) device.latest_firmware = value;
+                  else if (headerStr.includes('当前固件版本')) device.current_firmware_version = value;
+                  else if (headerStr.includes('SN码')) device.serial_number_code = value;
+                  else if (headerStr.includes('芯片ID')) device.chip_id = value;
+                  else if (headerStr.includes('Wi-Fi MAC地址') || headerStr.includes('Wi-Fi MAC 地址')) device.wifi_mac_address = value;
+                  else if (headerStr.includes('蓝牙MAC地址')) device.bluetooth_mac_address = value;
+                  else if (headerStr.includes('蓝牙名称')) device.bluetooth_name = value;
+                  else if (headerStr.includes('蜂窝网络识别码')) device.cellular_network_id = value;
+                  else if (headerStr.includes('4G卡号')) device.four_g_card_number = value;
+                  else if (headerStr.includes('CPU序列号')) device.cpu_serial_number = value;
                 }
               });
               
-              // Add form-selected values - use exact field names expected by backend
-              device.deviceModel = selectedDeviceModel.value;
-              device.productionBatch = selectedProductionBatch.value;
+              // Add form-selected values - use snake_case field names expected by backend
+              device.device_model = selectedDeviceModel.value;
+              device.production_batch = selectedProductionBatch.value;
               device.manufacturer = selectedManufacturer.value;
               
-              // Add dynamic creation time and creator - use exact field names expected by backend
-              device.createTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+              // Add dynamic creation time and creator - use snake_case field names expected by backend
+              device.create_time = new Date().toISOString().slice(0, 19).replace('T', ' ');
               device.creator = userName.value;
               
-              // Only use fallback values if the field is truly empty (not just whitespace)
-              // This prevents Excel content from being replaced with "-"
-              device.deviceId = device.deviceId || `IMPORT_${Date.now()}_${index}`;
-              device.boundSubAccount = device.boundSubAccount || (device.boundSubAccount === '' ? '-' : device.boundSubAccount);
-              device.initialFirmware = device.initialFirmware || (device.initialFirmware === '' ? '-' : device.initialFirmware);
-              device.latestFirmware = device.latestFirmware || (device.latestFirmware === '' ? '-' : device.latestFirmware);
-              device.currentFirmwareVersion = device.currentFirmwareVersion || (device.currentFirmwareVersion === '' ? '-' : device.currentFirmwareVersion);
-              device.serialNumberCode = device.serialNumberCode || (device.serialNumberCode === '' ? '-' : device.serialNumberCode);
-              device.chipId = device.chipId || (device.chipId === '' ? '-' : device.chipId);
-              device.wifiMacAddress = device.wifiMacAddress || (device.wifiMacAddress === '' ? '-' : device.wifiMacAddress);
-              device.bluetoothMacAddress = device.bluetoothMacAddress || (device.bluetoothMacAddress === '' ? '-' : device.bluetoothMacAddress);
-              device.bluetoothName = device.bluetoothName || (device.bluetoothName === '' ? '-' : device.bluetoothName);
-              device.cellularNetworkId = device.cellularNetworkId || (device.cellularNetworkId === '' ? '-' : device.cellularNetworkId);
-              device.fourGCardNumber = device.fourGCardNumber || (device.fourGCardNumber === '' ? '-' : device.fourGCardNumber);
-              device.cpuSerialNumber = device.cpuSerialNumber || (device.cpuSerialNumber === '' ? '-' : device.cpuSerialNumber);
+              // Handle empty values properly - only set fallbacks for truly empty fields
+              // For device_id, we need to ensure it's never empty
+              if (!device.device_id || device.device_id.toString().trim() === '') {
+                device.device_id = `IMPORT_${Date.now()}_${index}`;
+              }
+              
+              // For other fields, use '-' only if they are truly empty strings
+              device.bound_sub_account = device.bound_sub_account || '-';
+              device.initial_firmware = device.initial_firmware || '-';
+              device.latest_firmware = device.latest_firmware || '-';
+              device.current_firmware_version = device.current_firmware_version || '-';
+              device.serial_number_code = device.serial_number_code || '-';
+              device.chip_id = device.chip_id || '-';
+              device.wifi_mac_address = device.wifi_mac_address || '-';
+              device.bluetooth_mac_address = device.bluetooth_mac_address || '-';
+              device.bluetooth_name = device.bluetooth_name || '-';
+              device.cellular_network_id = device.cellular_network_id || '-';
+              device.four_g_card_number = device.four_g_card_number || '-';
+              device.cpu_serial_number = device.cpu_serial_number || '-';
               
               console.log(`Row ${index + 1} final device object:`, device);
               
               return device;
-            }).filter(device => device.deviceId); // Filter out rows without device ID
+            }).filter(device => device.device_id && device.device_id.toString().trim() !== ''); // Filter out rows without device ID
             
             console.log('Transformed devices:', devices);
             
@@ -1543,7 +1580,7 @@ const processSingleFile = async () => {
             // Validate device data
             const validationErrors: string[] = [];
             devices.forEach((device, index) => {
-              if (!device.deviceId || device.deviceId.toString().trim() === '') {
+              if (!device.device_id || device.device_id.toString().trim() === '') {
                 validationErrors.push(`第${index + 2}行: 设备ID不能为空`);
               }
               // Add more validation as needed
@@ -1561,6 +1598,29 @@ const processSingleFile = async () => {
             console.log('Sample device data with creator and creation time:', devices[0]);
             console.log('API URL:', constructApiUrl('device-management/bulk-import'));
             
+            // Validate the data structure before sending
+            console.log('=== VALIDATING DATA STRUCTURE ===');
+            let hasValidData = false;
+            devices.forEach((device, index) => {
+              console.log(`Device ${index + 1} validation:`, {
+                device_id: device.device_id,
+                device_model: device.device_model,
+                production_batch: device.production_batch,
+                manufacturer: device.manufacturer,
+                creator: device.creator,
+                create_time: device.create_time,
+                has_required_fields: !!(device.device_id && device.device_model && device.production_batch && device.manufacturer && device.creator)
+              });
+              
+              if (device.device_id && device.device_model && device.production_batch && device.manufacturer && device.creator) {
+                hasValidData = true;
+              }
+            });
+            
+            if (!hasValidData) {
+              throw new Error('数据验证失败：没有找到包含所有必需字段的有效设备数据');
+            }
+            
             // Log the exact structure being sent
             const requestPayload = {
               devices,
@@ -1577,12 +1637,12 @@ const processSingleFile = async () => {
             console.log('=== DATA VALIDATION ===');
             devices.forEach((device, index) => {
               console.log(`Device ${index + 1}:`, {
-                deviceId: device.deviceId,
-                deviceModel: device.deviceModel,
-                productionBatch: device.productionBatch,
+                device_id: device.device_id,
+                device_model: device.device_model,
+                production_batch: device.production_batch,
                 manufacturer: device.manufacturer,
                 creator: device.creator,
-                createTime: device.createTime
+                create_time: device.create_time
               });
             });
             
@@ -1596,55 +1656,7 @@ const processSingleFile = async () => {
               throw new Error(`连接测试失败: ${testError.message}`);
             }
             
-            // Test the exact API endpoint we'll use (without inserting data)
-            try {
-              console.log('Testing bulk-import endpoint connectivity...');
-              // Just test if the endpoint is reachable by sending a minimal request
-              // but we'll catch the response to verify connectivity without inserting
-              const testBulkResponse = await axios.post(constructApiUrl('device-management/bulk-import'), {
-                devices: [{
-                  deviceId: 'CONNECTIVITY_TEST_ONLY', // This won't be inserted due to validation
-                  boundSubAccount: '',
-                  initialFirmware: '',
-                  latestFirmware: '',
-                  currentFirmwareVersion: '',
-                  serialNumberCode: '',
-                  chipId: '',
-                  wifiMacAddress: '',
-                  bluetoothMacAddress: '',
-                  bluetoothName: '',
-                  cellularNetworkId: '',
-                  fourGCardNumber: '',
-                  cpuSerialNumber: ''
-                }],
-                deviceModel: '',
-                productionBatch: '',
-                manufacturer: '',
-                creator: ''
-              });
-              console.log('✅ Bulk-import endpoint is reachable');
-            } catch (testBulkError: any) {
-              // We expect this to fail due to validation, but it proves the endpoint is reachable
-              if (testBulkError.response && testBulkError.response.status === 400) {
-                console.log('✅ Bulk-import endpoint is reachable (validation error expected)');
-              } else {
-                console.error('❌ Bulk-import endpoint connectivity test failed:', testBulkError);
-                throw new Error(`批量导入端点连接测试失败: ${testBulkError.response?.data?.error || testBulkError.message}`);
-              }
-            }
-            
-            // Compare with working test data structure
-            console.log('=== COMPARING WITH WORKING TEST DATA ===');
-            const workingTestData = {
-              deviceId: 'TEST_DEVICE_ID',
-              deviceModel: 'TEST_MODEL',
-              productionBatch: '2025-08-20',
-              manufacturer: 'TEST_MANUFACTURER',
-              creator: userName.value
-            };
-            console.log('Working test data structure:', workingTestData);
-            console.log('Excel import data structure (first device):', devices[0]);
-            
+            // Send the bulk import request
             try {
               console.log('Sending bulk import request...');
               const requestPayload = {
@@ -1951,19 +1963,19 @@ const testBulkImport = async () => {
     
     const testDevices = [
       {
-        deviceId: `TEST_${Date.now()}_1`,
-        boundSubAccount: 'TEST_ACCOUNT',
-        initialFirmware: 'TEST_FW_V1.0',
-        latestFirmware: 'TEST_FW_V2.0',
-        currentFirmwareVersion: 'TEST_FW_V1.5',
-        serialNumberCode: 'TEST_SN_001',
-        chipId: 'TEST_CHIP_001',
-        wifiMacAddress: 'AA:BB:CC:DD:EE:FF',
-        bluetoothMacAddress: 'AA:BB:CC:DD:EE:FF',
-        bluetoothName: 'TEST_BT_001',
-        cellularNetworkId: 'TEST_CELL_001',
-        fourGCardNumber: 'TEST_4G_001',
-        cpuSerialNumber: 'TEST_CPU_001'
+        device_id: `TEST_${Date.now()}_1`,
+        bound_sub_account: 'TEST_ACCOUNT',
+        initial_firmware: 'TEST_FW_V1.0',
+        latest_firmware: 'TEST_FW_V2.0',
+        current_firmware_version: 'TEST_FW_V1.5',
+        serial_number_code: 'TEST_SN_001',
+        chip_id: 'TEST_CHIP_001',
+        wifi_mac_address: 'AA:BB:CC:DD:EE:FF',
+        bluetooth_mac_address: 'AA:BB:CC:DD:EE:FF',
+        bluetooth_name: 'TEST_BT_001',
+        cellular_network_id: 'TEST_CELL_001',
+        four_g_card_number: 'TEST_4G_001',
+        cpu_serial_number: 'TEST_CPU_001'
       }
     ];
     
@@ -1988,6 +2000,45 @@ const testBulkImport = async () => {
   } catch (error: any) {
     console.error('Bulk import test failed:', error);
     message.error(`批量导入测试失败: ${error.response?.data?.error || error.message}`);
+  }
+};
+
+const testImportEndpoint = async () => {
+  try {
+    console.log('Testing import endpoint...');
+    const response = await axios.post(constructApiUrl('device-management/test-import'), {
+      devices: [
+        {
+          device_id: `TEST_${Date.now()}_1`,
+          bound_sub_account: 'TEST_ACCOUNT',
+          initial_firmware: 'TEST_FW_V1.0',
+          latest_firmware: 'TEST_FW_V2.0',
+          current_firmware_version: 'TEST_FW_V1.5',
+          serial_number_code: 'TEST_SN_001',
+          chip_id: 'TEST_CHIP_001',
+          wifi_mac_address: 'AA:BB:CC:DD:EE:FF',
+          bluetooth_mac_address: 'AA:BB:CC:DD:EE:FF',
+          bluetooth_name: 'TEST_BT_001',
+          cellular_network_id: 'TEST_CELL_001',
+          four_g_card_number: 'TEST_4G_001',
+          cpu_serial_number: 'TEST_CPU_001'
+        }
+      ],
+      deviceModel: 'TEST_MODEL',
+      productionBatch: '2025-08-20',
+      manufacturer: 'TEST_MANUFACTURER',
+      creator: userName.value
+    });
+    
+    console.log('Import endpoint test successful:', response.data);
+    message.success(`导入端点测试成功！${response.data.message}`);
+    
+    // Refresh the device list to see the new record
+    await fetchDeviceManagement();
+    
+  } catch (error: any) {
+    console.error('Import endpoint test failed:', error);
+    message.error(`导入端点测试失败: ${error.response?.data?.error || error.message}`);
   }
 };
 
@@ -2160,6 +2211,37 @@ const manufacturerOptionsForEdit = computed(() => {
   
   return [];
 });
+
+const generateSampleExcel = () => {
+  try {
+    // Create sample data
+    const sampleData = [
+      ['设备ID', '绑定子账户', '初始烧录固件', '最新可更新固件', '当前固件版本', 'SN码', '芯片ID', 'Wi-Fi MAC地址', '蓝牙MAC地址', '蓝牙名称', '蜂窝网络识别码', '4G卡号', 'CPU序列号'],
+      [`SAMPLE_${Date.now()}_001`, '183****7953', 'HW2001 V 1.0.1', 'HW2001 V 2.0.1', 'HW2001 V 1.3.0', 'SAMPLE_SN_001', 'ESP32-SAMPLE001', 'AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:01', 'SAMPLE_BT_001', 'SAMPLE_CELL_001', 'SAMPLE_4G_001', '0xFFFFFF01'],
+      [`SAMPLE_${Date.now()}_002`, '-', 'HW2001 V 1.0.1', 'HW2001 V 2.0.1', 'HW2001 V 1.3.0', 'SAMPLE_SN_002', 'ESP32-SAMPLE002', 'AA:BB:CC:DD:EE:02', 'AA:BB:CC:DD:EE:02', 'SAMPLE_BT_002', 'SAMPLE_CELL_002', 'SAMPLE_4G_002', '0xFFFFFF02']
+    ];
+    
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet(sampleData);
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, '设备数据');
+    
+    // Generate filename
+    const filename = `sample_device_import_${Date.now()}.xlsx`;
+    
+    // Save file
+    XLSX.writeFile(workbook, filename);
+    
+    message.success(`示例Excel文件已生成: ${filename}`);
+    
+  } catch (error) {
+    console.error('Error generating sample Excel:', error);
+    message.error('生成示例Excel文件失败');
+  }
+};
+
 </script>
 <style scoped>
 #components-table-demo-summary tfoot th,
@@ -2984,5 +3066,67 @@ html, body {
   color: rgba(0, 0, 0, 0.45);
   margin-top: 4px;
   line-height: 1.4;
+}
+
+.import-format-info {
+  margin: 20px 0;
+  padding: 16px;
+  background-color: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.import-format-info h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #24292e;
+  border-bottom: 1px solid #e1e4e8;
+  padding-bottom: 8px;
+}
+
+.import-format-info p {
+  font-size: 12px;
+  color: #586069;
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.import-format-info ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.import-format-info li {
+  margin-bottom: 6px;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+}
+
+.import-format-info li:before {
+  content: "•";
+  color: #0366d6;
+  font-weight: bold;
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.import-format-info strong {
+  color: #24292e;
+  font-weight: 600;
+  min-width: 120px;
+  display: inline-block;
+}
+
+.import-format-info em {
+  font-style: italic;
+  color: #6a737d;
+  background-color: #fff3cd;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #ffeaa7;
 }
 </style> 

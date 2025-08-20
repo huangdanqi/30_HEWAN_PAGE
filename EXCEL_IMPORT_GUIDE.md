@@ -1,100 +1,107 @@
-# Excel Import Guide for Device Management
+# 设备导入 Excel 文件格式指南
 
-## Overview
-The device import functionality allows users to upload Excel files (.xlsx, .xls) containing device information and automatically import them into the system. The system will map the Excel columns to the database fields and add the selected device model, production batch, manufacturer, and creator information.
+## 概述
+本指南说明如何准备Excel文件以导入设备信息到设备管理系统。
 
-## Excel File Structure
+## 支持的Excel格式
+- `.xlsx` (推荐)
+- `.xls`
 
-### Required Columns
-Your Excel file should contain the following columns (in any order):
+## 文件大小限制
+- 最大文件大小：50MB
 
-| Column Name (Chinese) | Column Name (English) | Description | Required |
-|----------------------|----------------------|-------------|----------|
-| 设备ID | Device ID | Unique device identifier | ✅ Yes |
-| 绑定子账户 | Bound Sub-account | Sub-account binding information | ❌ No |
-| 初始烧录固件 | Initial Burned Firmware | Initial firmware version | ❌ No |
-| 最新可更新固件 | Latest Updatable Firmware | Latest available firmware | ❌ No |
-| 当前固件版本 | Current Firmware Version | Current running firmware | ❌ No |
-| SN码 | SN Code | Serial number code | ❌ No |
-| 芯片ID | Chip ID | Device chip identifier | ❌ No |
-| Wi-Fi MAC地址 | Wi-Fi MAC Address | Wi-Fi interface MAC address | ❌ No |
-| 蓝牙MAC地址 | Bluetooth MAC Address | Bluetooth interface MAC address | ❌ No |
-| 蓝牙名称 | Bluetooth Name | Bluetooth device name | ❌ No |
-| 蜂窝网络识别码 | Cellular Network ID | Cellular network identifier | ❌ No |
-| 4G卡号 | 4G Card Number | 4G SIM card number | ❌ No |
-| CPU序列号 | CPU Serial Number | CPU serial identifier | ❌ No |
+## 必需列结构
 
-### Form Fields (Automatically Added)
-When importing, the system will automatically add these fields from the form selection:
+Excel文件必须包含以下列（按顺序）：
 
-- **设备型号 (Device Model)**: Selected from dropdown
-- **生产批次 (Production Batch)**: Selected from dropdown  
-- **生产厂家 (Manufacturer)**: Selected from dropdown
-- **创建人 (Creator)**: Automatically set to current user name
+| 列序号 | 列名 | 说明 | 是否必需 | 示例 |
+|--------|------|------|----------|------|
+| 1 | 设备ID | 设备的唯一标识符 | ✅ 必需 | `0075A1B2SZTDS25061982X01` |
+| 2 | 绑定子账户 | 绑定的子账户信息 | ❌ 可选 | `183****7953` |
+| 3 | 初始烧录固件 | 设备初始固件版本 | ❌ 可选 | `HW2001 V 1.0.1` |
+| 4 | 最新可更新固件 | 最新可用固件版本 | ❌ 可选 | `HW2001 V 2.0.1` |
+| 5 | 当前固件版本 | 当前安装的固件版本 | ❌ 可选 | `HW2001 V 1.3.0` |
+| 6 | SN码 | 设备序列号 | ❌ 可选 | `SZTDS25061982X01` |
+| 7 | 芯片ID | 设备芯片标识 | ❌ 可选 | `ESP32-0075A1B01` |
+| 8 | Wi-Fi MAC地址 | Wi-Fi模块MAC地址 | ❌ 可选 | `DC:54:75:62:01:70` |
+| 9 | 蓝牙MAC地址 | 蓝牙模块MAC地址 | ❌ 可选 | `DC:54:75:62:01:70` |
+| 10 | 蓝牙名称 | 蓝牙设备名称 | ❌ 可选 | `ZBMU 001 250619X01` |
+| 11 | 蜂窝网络识别码 | 蜂窝网络ID | ❌ 可选 | `353801003000174` |
+| 12 | 4G卡号 | 4G SIM卡号 | ❌ 可选 | `14776294300136` |
+| 13 | CPU序列号 | CPU序列号 | ❌ 可选 | `0xFFFFFF6B` |
 
-## Import Process
+## 导入流程
 
-### Step 1: Select Basic Information
-1. Choose **设备型号** (Device Model)
-2. Choose **生产批次** (Production Batch)
-3. Choose **生产厂家** (Manufacturer)
+### 第一步：选择基本信息
+1. **设备型号**: 选择要导入的设备型号
+2. **生产批次**: 选择生产批次
+3. **生产厂家**: 选择生产厂家
 
-### Step 2: Upload Excel File
-1. Click the upload area or drag & drop your Excel file
-2. Supported formats: .xlsx, .xls
-3. Maximum file size: 50MB
-4. The system will automatically parse the file and validate the structure
+### 第二步：上传Excel文件
+1. 点击"选择文件"或拖拽Excel文件到上传区域
+2. 系统自动验证文件格式和内容
+3. 点击"导入"开始处理
 
-### Step 3: Processing
-- The system reads the Excel file
-- Maps Chinese column headers to database fields
-- Validates required data (Device ID)
-- Sends data to the server for import
-- Updates existing devices or creates new ones
+## 数据验证规则
 
-## Data Mapping
+### 必需字段验证
+- 设备ID不能为空
+- 设备ID必须唯一（如果已存在则更新）
 
-The system automatically maps Excel columns to database fields:
+### 数据格式验证
+- 日期格式：YYYY-MM-DD
+- MAC地址格式：XX:XX:XX:XX:XX:XX
+- 固件版本格式：建议使用标准版本号格式
 
-```javascript
-// Example mapping
-{
-  '设备ID': 'deviceId',
-  '绑定子账户': 'boundSubAccount', 
-  '初始烧录固件': 'initialFirmware',
-  '最新可更新固件': 'latestFirmware',
-  '当前固件版本': 'currentFirmwareVersion',
-  'SN码': 'serialNumberCode',
-  '芯片ID': 'chipId',
-  'Wi-Fi MAC地址': 'wifiMacAddress',
-  '蓝牙MAC地址': 'bluetoothMacAddress',
-  '蓝牙名称': 'bluetoothName',
-  '蜂窝网络识别码': 'cellularNetworkId',
-  '4G卡号': 'fourGCardNumber',
-  'CPU序列号': 'cpuSerialNumber'
-}
+## 示例Excel文件
+
+### 表头行（第一行）
+```
+设备ID	绑定子账户	初始烧录固件	最新可更新固件	当前固件版本	SN码	芯片ID	Wi-Fi MAC地址	蓝牙MAC地址	蓝牙名称	蜂窝网络识别码	4G卡号	CPU序列号
 ```
 
-## Error Handling
+### 数据行示例
+```
+0075A1B2SZTDS25061982X01	183****7953	HW2001 V 1.0.1	HW2001 V 2.0.1	HW2001 V 1.3.0	SZTDS25061982X01	ESP32-0075A1B01	DC:54:75:62:01:70	DC:54:75:62:01:70	ZBMU 001 250619X01	353801003000174	14776294300136	0xFFFFFF6B
+0075A1B2SZTDS25061982X02	-	HW2001 V 1.0.1	HW2001 V 2.0.1	HW2001 V 1.3.0	SZTDS25061982X02	ESP32-0075A1B02	DC:54:75:62:02:70	DC:54:75:62:02:70	ZBMU 001 250619X02	353801003000274	14776294300236	0xFFFFFF6A
+```
 
-The system will show errors for:
-- Missing required columns
-- Invalid file format
-- File size exceeding 50MB
-- Empty device ID values
-- Server connection issues
+## 注意事项
 
-## Success Response
+### 数据完整性
+- 确保每行都有设备ID
+- 空值可以用"-"表示或留空
+- 系统会自动填充缺失的固件信息
 
-On successful import, you'll see:
-- Total number of devices processed
-- Number of devices created/updated
-- Any errors encountered
-- Automatic refresh of the device list
+### 重复处理
+- 如果设备ID已存在，系统会更新现有记录
+- 如果设备ID不存在，系统会创建新记录
 
-## Notes
+### 错误处理
+- 导入过程中出现错误的行会被记录
+- 成功的行会正常导入
+- 系统会显示详细的导入结果
 
-- **Duplicate Handling**: If a device with the same Device ID already exists, it will be updated with new information
-- **Data Validation**: Only rows with valid Device ID values will be processed
-- **Transaction Safety**: All imports are wrapped in database transactions for data integrity
-- **User Tracking**: The creator field is automatically populated with the current user's name
+## 常见问题
+
+### Q: 为什么导入失败？
+A: 请检查：
+- Excel文件格式是否正确
+- 是否包含必需的列
+- 设备ID是否为空
+- 文件大小是否超过50MB
+
+### Q: 如何处理重复的设备ID？
+A: 系统会自动处理：
+- 如果设备ID已存在，会更新现有记录
+- 如果设备ID不存在，会创建新记录
+
+### Q: 导入后数据在哪里？
+A: 导入成功后，数据会立即显示在设备管理列表中，并自动刷新页面。
+
+## 技术支持
+
+如果遇到问题，请：
+1. 检查浏览器控制台的错误信息
+2. 确认Excel文件格式符合要求
+3. 联系系统管理员获取支持
