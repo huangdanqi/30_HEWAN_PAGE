@@ -1317,39 +1317,48 @@ const handleEditBatchModalCancel = () => {
 
 const handleEditBatchModalConfirm = async () => {
   console.log('🚀 handleEditBatchModalConfirm function called!');
+  console.log('Step 1: Function entered');
+  
   try {
+    console.log('Step 2: Try block entered');
     console.log('=== Starting edit batch modal confirm ===');
     console.log('Current editing record:', currentEditingRecord.value);
     console.log('Edit batch form data:', editBatchForm.value);
     
     // Validate form
-    console.log('About to validate form with ref:', editBatchFormRef.value);
+    console.log('Step 3: About to validate form');
+    console.log('Form ref value:', editBatchFormRef.value);
+    
     if (!editBatchFormRef.value) {
-      console.error('Form ref is null!');
+      console.error('ERROR: Form ref is null!');
       message.error('表单引用错误，请重试');
       return;
     }
     
+    console.log('Step 4: Form ref exists, validating...');
+    
     try {
       await editBatchFormRef.value.validate();
-      console.log('Form validation passed');
+      console.log('Step 5: Form validation passed');
     } catch (validationError) {
-      console.error('Form validation failed:', validationError);
+      console.error('ERROR: Form validation failed:', validationError);
       message.error('表单验证失败，请检查输入');
       return;
     }
     
     // Get the record ID from the stored editing record
+    console.log('Step 6: Checking current editing record');
     if (!currentEditingRecord.value || !currentEditingRecord.value.id) {
+      console.error('ERROR: No current editing record found');
       message.error('无法找到要更新的记录');
-      console.error('No current editing record found');
       return;
     }
     
     const currentRecord = currentEditingRecord.value;
-    console.log('Current record to update:', currentRecord);
+    console.log('Step 7: Current record found:', currentRecord);
     
     // Prepare data for API update
+    console.log('Step 8: Preparing update data');
     const updateData = {
       productionDeviceId: currentRecord.productionDeviceId,
       deviceModel: editBatchForm.value.deviceModel,
@@ -1363,18 +1372,25 @@ const handleEditBatchModalConfirm = async () => {
       creator: currentRecord.creator || currentUsername.value
     };
     
-    console.log('Update data prepared:', updateData);
-    console.log('About to call updateDeviceProduction with ID:', currentRecord.id);
+    console.log('Step 9: Update data prepared:', updateData);
+    console.log('Step 10: About to call updateDeviceProduction with ID:', currentRecord.id);
     
     // Send update to API
+    console.log('Step 11: Calling updateDeviceProduction...');
     const result = await updateDeviceProduction(currentRecord.id!, updateData);
-    console.log('Update API call successful:', result);
+    console.log('Step 12: Update API call successful:', result);
     
+    console.log('Step 13: Update successful, showing success message');
     message.success('设备更新成功！');
+    
+    console.log('Step 14: Closing modal');
     showEditBatchModal.value = false;
+    
+    console.log('Step 15: Resetting form');
     editBatchFormRef.value?.resetFields();
     
     // Reset form data and stored record
+    console.log('Step 16: Resetting form data');
     editBatchForm.value = {
       deviceModel: '',
       productionBatch: '',
@@ -1383,12 +1399,15 @@ const handleEditBatchModalConfirm = async () => {
       unitPrice: 0,
       quantity: 0
     };
+    
+    console.log('Step 17: Clearing current editing record');
     currentEditingRecord.value = null;
     
     // Refresh the data
-    console.log('Refreshing device production data...');
+    console.log('Step 18: Refreshing device production data...');
     await fetchDeviceProduction();
-    console.log('Data refresh completed');
+    console.log('Step 19: Data refresh completed');
+    console.log('✅ Edit batch modal confirm completed successfully!');
     
   } catch (error: unknown) {
     console.error('=== Edit batch modal confirm failed ===');
