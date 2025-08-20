@@ -71,15 +71,11 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Generate filename with device info and timestamp
-    const deviceModel = req.body.deviceModel || 'unknown';
-    const productionBatch = req.body.productionBatch || 'unknown';
-    const manufacturer = req.body.manufacturer || 'unknown';
+    // Use a temporary filename first, we'll rename it after processing
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const extension = path.extname(file.originalname);
-    
-    const filename = `BOM_${deviceModel}_${productionBatch}_${manufacturer}_${timestamp}${extension}`;
-    cb(null, filename);
+    const tempFilename = `temp_BOM_${timestamp}${extension}`;
+    cb(null, tempFilename);
   }
 });
 
@@ -108,14 +104,26 @@ router.post('/upload-bom', upload.single('bomFile'), async (req, res) => {
 
     const { deviceModel, productionBatch, manufacturer, uploader } = req.body;
     
-    // Store file information in database (you can create a bom_files table)
-    // For now, we'll just return success
+    // Now rename the file with the correct device information
+    const bomDir = path.join(__dirname, '../../public/bom-files');
+    const oldPath = path.join(bomDir, req.file.filename);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const extension = path.extname(req.file.originalname);
+    
+    // Create the proper filename
+    const newFilename = `BOM_${deviceModel}_${productionBatch}_${manufacturer}_${timestamp}${extension}`;
+    const newPath = path.join(bomDir, newFilename);
+    
+    // Rename the file
+    fs.renameSync(oldPath, newPath);
+    
+    console.log(`File renamed from ${req.file.filename} to ${newFilename}`);
     
     res.json({
       success: true,
       message: 'BOM file uploaded successfully',
       file: {
-        filename: req.file.filename,
+        filename: newFilename,
         originalName: req.file.originalname,
         size: req.file.size,
         deviceModel,
