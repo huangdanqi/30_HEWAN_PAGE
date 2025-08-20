@@ -299,7 +299,7 @@ interface ColumnConfig {
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1, sorter: (a, b) => a.id - b.id, sortDirections: ['ascend', 'descend'] },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }) => (currentPage.value - 1) * pageSize.value + index + 1 },
   { key: 'deviceModelId_1', title: '设备型号ID', dataIndex: 'deviceModelId', width: 150, sorter: (a, b) => a.deviceModelId.localeCompare(b.deviceModelId), sortDirections: ['ascend', 'descend'] },
   { key: 'deviceModelName_2', title: '设备型号名称', dataIndex: 'deviceModelName', width: 120, sorter: (a, b) => a.deviceModelName.localeCompare(b.deviceModelName), sortDirections: ['ascend', 'descend'] },
   { key: 'introduction_3', title: '介绍', dataIndex: 'introduction', width: 300, sorter: (a, b) => (a.introduction || '').localeCompare(b.introduction || ''), sortDirections: ['ascend', 'descend'] },

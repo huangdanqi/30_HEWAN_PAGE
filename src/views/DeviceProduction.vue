@@ -53,7 +53,7 @@
             </template>
           </a-input>
           <a-button type="primary" @click="handleCreateDevice">新建设备</a-button>
-          <a-button @click="handleBomCleanup" style="margin-left: 8px;">清理BOM</a-button>
+          <!-- <a-button @click="handleBomCleanup" style="margin-left: 8px;">清理BOM</a-button> -->
           <ReloadOutlined @click="onRefresh" />
           <a-dropdown>
             <ColumnHeightOutlined @click.prevent />
@@ -382,12 +382,12 @@
                 </svg>
               </button>
             </div>
-            <div class="progress-container">
+            <!-- <div class="progress-container">
               <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
               </div>
               <span class="progress-text">{{ uploadProgress }}%</span>
-            </div>
+            </div> -->
           </div>
         </div>
         
