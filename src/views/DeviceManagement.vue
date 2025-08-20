@@ -1391,7 +1391,8 @@ const processSingleFile = async () => {
             
             // Extract headers (first row)
             const headers = jsonData[0] as string[];
-            console.log('Headers:', headers);
+            console.log('Raw headers from Excel:', headers);
+            console.log('Headers after processing:', headers.map(h => h ? h.toString().trim() : 'null'));
             
             // Extract data rows (skip header row)
             const dataRows = jsonData.slice(1);
@@ -1404,11 +1405,30 @@ const processSingleFile = async () => {
               '蜂窝网络识别码', '4G卡号', 'CPU序列号'
             ];
             
-            const missingHeaders = expectedHeaders.filter(header => 
-              !headers.some(h => h && h.toString().includes(header))
-            );
+            // More robust header matching - check for exact matches or contains
+            const missingHeaders = expectedHeaders.filter(expectedHeader => {
+              return !headers.some(header => {
+                if (!header) return false;
+                const headerStr = header.toString().trim();
+                
+                // Check for exact match or contains
+                if (headerStr === expectedHeader || headerStr.includes(expectedHeader)) {
+                  return true;
+                }
+                
+                // Handle special cases with slight variations
+                if (expectedHeader === 'Wi-Fi MAC地址' && (headerStr.includes('Wi-Fi MAC') || headerStr.includes('WiFi MAC'))) {
+                  return true;
+                }
+                
+                return false;
+              });
+            });
             
             if (missingHeaders.length > 0) {
+              console.error('Expected headers:', expectedHeaders);
+              console.error('Actual headers:', headers);
+              console.error('Missing headers:', missingHeaders);
               throw new Error(`Excel文件缺少必需的列: ${missingHeaders.join(', ')}`);
             }
             
@@ -1426,21 +1446,22 @@ const processSingleFile = async () => {
               headers.forEach((header: string, colIndex: number) => {
                 if (header && rowArray[colIndex] !== undefined) {
                   const value = rowArray[colIndex];
+                  const headerStr = header.toString().trim();
                   
-                  // Map Chinese headers to English properties
-                  if (header.includes('设备ID')) device.deviceId = value;
-                  else if (header.includes('绑定子账户')) device.boundSubAccount = value;
-                  else if (header.includes('初始烧录固件')) device.initialFirmware = value;
-                  else if (header.includes('最新可更新固件')) device.latestFirmware = value;
-                  else if (header.includes('当前固件版本')) device.currentFirmwareVersion = value;
-                  else if (header.includes('SN码')) device.serialNumberCode = value;
-                  else if (header.includes('芯片ID')) device.chipId = value;
-                  else if (header.includes('Wi-Fi MAC地址')) device.wifiMacAddress = value;
-                  else if (header.includes('蓝牙MAC地址')) device.bluetoothMacAddress = value;
-                  else if (header.includes('蓝牙名称')) device.bluetoothName = value;
-                  else if (header.includes('蜂窝网络识别码')) device.cellularNetworkId = value;
-                  else if (header.includes('4G卡号')) device.fourGCardNumber = value;
-                  else if (header.includes('CPU序列号')) device.cpuSerialNumber = value;
+                  // Map Chinese headers to English properties with more robust matching
+                  if (headerStr.includes('设备ID')) device.deviceId = value;
+                  else if (headerStr.includes('绑定子账户')) device.boundSubAccount = value;
+                  else if (headerStr.includes('初始烧录固件')) device.initialFirmware = value;
+                  else if (headerStr.includes('最新可更新固件')) device.latestFirmware = value;
+                  else if (headerStr.includes('当前固件版本')) device.currentFirmwareVersion = value;
+                  else if (headerStr.includes('SN码')) device.serialNumberCode = value;
+                  else if (headerStr.includes('芯片ID')) device.chipId = value;
+                  else if (headerStr.includes('Wi-Fi MAC地址') || headerStr.includes('Wi-Fi MAC 地址')) device.wifiMacAddress = value;
+                  else if (headerStr.includes('蓝牙MAC地址')) device.bluetoothMacAddress = value;
+                  else if (headerStr.includes('蓝牙名称')) device.bluetoothName = value;
+                  else if (headerStr.includes('蜂窝网络识别码')) device.cellularNetworkId = value;
+                  else if (headerStr.includes('4G卡号')) device.fourGCardNumber = value;
+                  else if (headerStr.includes('CPU序列号')) device.cpuSerialNumber = value;
                 }
               });
               
