@@ -469,7 +469,7 @@ const columnConfigs: ColumnConfig[] = [
   { key: 'totalPrice_8', title: '总价 (元)', dataIndex: 'totalPrice', width: 120, sorter: (a, b) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
   { key: 'updater_9', title: '更新人', dataIndex: 'creator', width: 120, sorter: (a, b) => (a.creator || '').localeCompare(b.creator || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'createTime_10', title: '创建时间', dataIndex: 'createTime', width: 180, sorter: (a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'updateTime_11', title: '更新时间', dataIndex: 'updateTime', width: 180, sorter: (a, b) => new Date(b.updateTime).getTime() - new Date(a.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
+  { key: 'updateTime_11', title: '更新时间', dataIndex: 'updateTime', width: 180 },
   { key: 'operation_12', title: '操作', dataIndex: '', width: 330, fixed: 'right' },
 ];
 
@@ -487,7 +487,7 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     fixed: config.fixed,
     sorter: config.sorter,
     sortDirections: config.sortDirections,
-    sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
+    sortOrder: undefined, // No Ant Design sorting for updateTime column
     customRender: config.customRender
       ? config.customRender
       : ({ text, record }) => {
@@ -754,10 +754,8 @@ const handleManufacturerChange = (val: any) => {
 const currentPage = ref(1);
 const pageSize = ref(10);
 
-const sorterInfo = ref<any>({
-  columnKey: 'updateTime_11',
-  order: 'descend',
-});
+// No sorterInfo needed since we're using plain JavaScript sorting for updateTime
+const sorterInfo = ref<any>(null);
 
 const pagination = computed(() => ({
   total: total.value, 
@@ -786,12 +784,6 @@ const onRefresh = () => {
   searchInputValue.value = '';
   currentPage.value = 1;
   resetColumns(); // Reset column order and visibility
-
-  // Reset sorter to 更新时间 descending
-  sorterInfo.value = {
-    columnKey: 'updateTime_11',
-    order: 'descend',
-  };
 
   // Reset all selector values to '全部'
   deviceModelValue.value = { key: 'all', label: '全部', value: 'all' };
@@ -834,37 +826,13 @@ const filteredData = computed(() => {
     dataToFilter = dataToFilter.filter(item => item.manufacturer === selectedManufacturer);
   }
 
-  // Sorting logic - prioritize plain JavaScript sort for updateTime
-  if (sorterInfo.value && sorterInfo.value.order) {
-    const { columnKey, order } = sorterInfo.value;
-    
-    // Special handling for updateTime column - always use plain JavaScript descending sort
-    if (columnKey === 'updateTime_11') {
-      console.log('Applying plain JavaScript descending sort for updateTime');
-      dataToFilter.sort((a, b) => {
-        const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
-        const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
-        return timeB - timeA; // Always descending for updateTime
-      });
-    } else {
-      // Use Ant Design sorter for other columns
-      const sorterFn = columnConfigs.find(c => c.key === columnKey)?.sorter;
-      if (sorterFn) {
-        dataToFilter.sort((a, b) => {
-          const result = sorterFn(a, b);
-          return order === 'ascend' ? result : -result;
-        });
-      }
-    }
-  } else {
-    // No sorter info, apply default updateTime descending sort
-    console.log('No sorter info, applying default updateTime descending sort');
-    dataToFilter.sort((a, b) => {
-      const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
-      const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
-      return timeB - timeA; // Always descending for updateTime
-    });
-  }
+  // Always apply plain JavaScript descending sort for updateTime (no Ant Design sorter)
+  console.log('Applying plain JavaScript descending sort for updateTime');
+  dataToFilter.sort((a, b) => {
+    const timeA = a.updateTime ? new Date(a.updateTime).getTime() : 0;
+    const timeB = b.updateTime ? new Date(b.updateTime).getTime() : 0;
+    return timeB - timeA; // Always descending for updateTime
+  });
 
   console.log('filteredData final - first few updateTime values:', dataToFilter.slice(0, 3).map(item => item.updateTime));
   return dataToFilter;
@@ -878,22 +846,10 @@ const handleTableChange = (
   sorter: any,
 ) => {
   console.log('Table change:', paginationData, filters, sorter);
-  const currentSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-
-  if (currentSorter && currentSorter.order) {
-    sorterInfo.value = {
-      columnKey: currentSorter.columnKey,
-      order: currentSorter.order,
-    };
-  } else {
-    // When sorting is cleared, revert to default
-    sorterInfo.value = {
-      columnKey: 'updateTime_11',
-      order: 'descend',
-    };
-  }
   
-  // When table changes, we should probably go back to the first page
+  // Since we're using plain JavaScript sorting for updateTime, 
+  // we don't need to handle Ant Design sorting
+  // Just go back to the first page when table changes
   currentPage.value = 1;
 };
 
