@@ -5,11 +5,11 @@
       <h2>商品列表</h2>
     </div>
 <!-- Temporary test button - add this somewhere in your template -->
-<a-button @click="testSimpleProductCreation" style="margin-left: 10px;">测试简单创建</a-button>
+<!-- <a-button @click="testSimpleProductCreation" style="margin-left: 10px;">测试简单创建</a-button>
 <a-button @click="testBatchAddEndpoint" style="margin-left: 10px;">测试批量新增端点</a-button>
 <a-button @click="testDatabaseConnection" style="margin-left: 10px;">测试数据库连接</a-button>
 <a-button @click="testTableStructure" style="margin-left: 10px;">测试表结构</a-button>
-<a-button @click="testFileGeneration" style="margin-left: 10px;">测试文件生成</a-button>
+<a-button @click="testFileGeneration" style="margin-left: 10px;">测试文件生成</a-button> -->
     <!-- select item area -->
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
@@ -231,6 +231,71 @@
       </div>
     </a-modal>
 
+    <!-- File Export Modal -->
+    <a-modal
+      v-model:open="exportModalVisible"
+      title="文件导出"
+      :footer="null"
+      width="600px"
+      @cancel="handleExportCancel"
+    >
+      <div class="modal-content">
+        <a-form layout="vertical">
+          <a-form-item label="产品名称" required>
+            <a-select
+              v-model:value="exportForm.productName"
+              placeholder="请选择"
+              style="width: 100%"
+              :options="exportProductNameOptions"
+              :loading="toyProductionLoading"
+              @change="handleExportProductNameChange"
+            />
+          </a-form-item>
+
+          <a-form-item label="生产批次" required>
+            <a-select
+              v-model:value="exportForm.productionBatch"
+              placeholder="请选择"
+              style="width: 100%"
+              :disabled="!exportForm.productName"
+              :options="exportProductionBatchOptions"
+              :loading="toyProductionLoading"
+              @change="handleExportProductionBatchChange"
+            />
+          </a-form-item>
+
+          <a-form-item label="生产厂家" required>
+            <a-select
+              v-model:value="exportForm.manufacturer"
+              placeholder="请选择"
+              style="width: 100%"
+              :disabled="!exportForm.productionBatch"
+              :options="exportManufacturerOptions"
+              :loading="toyProductionLoading"
+            />
+          </a-form-item>
+
+          <a-form-item label="导出类型" required>
+            <a-radio-group v-model:value="exportForm.exportType">
+              <a-radio value="qr">二维码</a-radio>
+              <a-radio value="barcode">条形码</a-radio>
+            </a-radio-group>
+          </a-form-item>
+
+          <a-form-item label="仅导出未导出过的数据" required>
+            <a-radio-group v-model:value="exportForm.onlyUnexported">
+              <a-radio :value="true">是</a-radio>
+              <a-radio :value="false">否</a-radio>
+            </a-radio-group>
+          </a-form-item>
+        </a-form>
+
+        <div class="modal-footer">
+          <a-button @click="handleExportCancel">取消</a-button>
+          <a-button type="primary" :loading="exportLoading" @click="handleExportConfirm">确定</a-button>
+        </div>
+      </div>
+    </a-modal>
     <!-- Secondary Confirmation Modal -->
     <a-modal
       v-model:open="confirmationModalVisible"
@@ -309,6 +374,7 @@
 import type { ColumnsType } from 'ant-design-vue/es/table';
 const formConfirmationModalVisible = ref(false);
 import { ref, computed, onMounted, h } from 'vue';
+import { useAuthStore } from '../stores/auth';
 import zh_CN from 'ant-design-vue/es/locale/zh_CN';
 import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined, ExclamationCircleOutlined, CheckCircleOutlined} from '@ant-design/icons-vue';
@@ -323,14 +389,38 @@ import JsBarcode from 'jsbarcode';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
+const currentUserId = computed(() => authStore.user?.id ?? 1);
+const currentUserName = computed(() => authStore.user?.name || authStore.user?.username || '管理员');
 
 // API calls use constructApiUrl helper
 
-// Helper to build static file URLs from current origin (avoids /api prefix and localhost usage)
+// Helper to build static file URLs using API base without /api (works when backend is remote)
 const getStaticFileUrl = (relativePath: string) => {
-  const base = window.location.origin;
+  const apiBase = (import.meta.env.VITE_API_BASE_URL as string) || '';
+  const fileBase = apiBase && apiBase.endsWith('/api') ? apiBase.slice(0, -4) : (apiBase || window.location.origin);
   const path = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
-  return `${base}${path}`;
+  return `${fileBase}${path}`;
+};
+
+// Force download by fetching as Blob and using a temporary object URL
+const downloadFile = async (fileUrl: string, filename: string) => {
+  try {
+    const response = await fetch(fileUrl, { method: 'GET' });
+    if (!response.ok) return false;
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 // Export functions for QR code and barcode
@@ -347,25 +437,11 @@ const handleExportQRCode = async (record: DataItem) => {
     
     console.log('QR Code URL:', qrCodeUrl);
     
-    // Test if the file exists by making a HEAD request
-    try {
-      const response = await fetch(qrCodeUrl, { method: 'HEAD' });
-      if (!response.ok) {
-        message.warning('二维码文件不存在或无法访问');
-        return;
-      }
-    } catch (fetchError) {
-      console.warn('File existence check failed, proceeding with download:', fetchError);
+    const ok = await downloadFile(qrCodeUrl, `QRCode_${record.productId}_${record.productName}.png`);
+    if (!ok) {
+      message.warning('二维码文件不存在或无法访问');
+      return;
     }
-    
-    // Create temporary link element
-    const link = document.createElement('a');
-    link.href = qrCodeUrl;
-    link.download = `QRCode_${record.productId}_${record.productName}.png`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 
     // Update export status to "是"
     await updateQRCodeExportStatus(record.id!, '是');
@@ -394,25 +470,11 @@ const handleExportBarcode = async (record: DataItem) => {
     
     console.log('Barcode URL:', barcodeUrl);
     
-    // Test if the file exists by making a HEAD request
-    try {
-      const response = await fetch(barcodeUrl, { method: 'HEAD' });
-      if (!response.ok) {
-        message.warning('条形码文件不存在或无法访问');
-        return;
-      }
-    } catch (fetchError) {
-      console.warn('File existence check failed, proceeding with download:', fetchError);
+    const ok = await downloadFile(barcodeUrl, `Barcode_${record.productId}_${record.productName}.png`);
+    if (!ok) {
+      message.warning('条形码文件不存在或无法访问');
+      return;
     }
-    
-    // Create temporary link element
-    const link = document.createElement('a');
-    link.href = barcodeUrl;
-    link.download = `Barcode_${record.productId}_${record.productName}.png`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 
     // Update export status to "是"
     await updateBarcodeExportStatus(record.id!, '是');
@@ -862,7 +924,8 @@ const createBatchProducts = async () => {
           subAccountId: '', // Can be null as requested
           fileExportTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // Use current datetime
           firstBindingTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // Use current datetime
-          creatorId: 1,
+          creatorId: currentUserId.value,
+          creatorName: currentUserName.value,
           creationTime: new Date().toISOString().slice(0, 19).replace('T', ' ') // Provide creation_time for cloud backend
         };
         
@@ -1117,7 +1180,7 @@ const generateBarcode = async (productData: any) => {
     console.error('Error generating barcode:', error);
     // Return a default path if generation fails
     return `/barcode/default_${Date.now()}.png`;
-    }
+  }
 };
 
 const handleConfirmationCancel = () => {
@@ -1134,8 +1197,113 @@ const handleConfirmationConfirm = async () => {
   }
 };
 
+// Export modal state and options
+const exportModalVisible = ref(false);
+const exportLoading = ref(false);
+const exportForm = ref({
+  productName: '',
+  productionBatch: '',
+  manufacturer: '',
+  exportType: 'qr' as 'qr' | 'barcode',
+  onlyUnexported: true as boolean,
+});
+
+const exportProductNameOptions = computed(() => [{ value: '', label: '请选择' }, ...batchProductNameOptions.value]);
+const exportProductionBatchOptions = computed(() => {
+  if (!exportForm.value.productName) return [];
+  return Array.from(new Set(
+    toyProductionData.value
+      .filter(item => item.productName === exportForm.value.productName && item.productionBatchDate)
+      .map(item => item.productionBatchDate)
+  )).map(v => ({ value: v, label: v }));
+});
+const exportManufacturerOptions = computed(() => {
+  if (!exportForm.value.productName || !exportForm.value.productionBatch) return [];
+  return Array.from(new Set(
+    toyProductionData.value
+      .filter(item => item.productName === exportForm.value.productName && item.productionBatchDate === exportForm.value.productionBatch && item.manufacturer)
+      .map(item => item.manufacturer)
+  )).map(v => ({ value: v, label: v }));
+});
+
+const resetExportForm = () => {
+  exportForm.value = {
+    productName: '',
+    productionBatch: '',
+    manufacturer: '',
+    exportType: 'qr',
+    onlyUnexported: true,
+  };
+};
+
 const handleFileExport = () => {
-  message.info('文件导出功能开发中');
+  exportModalVisible.value = true;
+  resetExportForm();
+  // reuse toy production list for cascaded options
+  fetchToyProductionData();
+};
+
+const handleExportCancel = () => {
+  exportModalVisible.value = false;
+};
+
+const handleExportProductNameChange = () => {
+  exportForm.value.productionBatch = '';
+  exportForm.value.manufacturer = '';
+};
+
+const handleExportProductionBatchChange = () => {
+  exportForm.value.manufacturer = '';
+};
+
+// Compute records to export from current table data
+const exportCandidates = computed(() => {
+  return rawData.value.filter(item =>
+    (!exportForm.value.productName || item.productName === exportForm.value.productName) &&
+    (!exportForm.value.productionBatch || item.productionBatch === exportForm.value.productionBatch) &&
+    (!exportForm.value.manufacturer || item.manufacturer === exportForm.value.manufacturer)
+  ).filter(item => {
+    if (!exportForm.value.onlyUnexported) return true;
+    return exportForm.value.exportType === 'qr' ? (item.qrCodeExported !== '是') : (item.barcodeExported !== '是');
+  });
+});
+
+const handleExportConfirm = async () => {
+  try {
+    if (!exportForm.value.productName || !exportForm.value.productionBatch || !exportForm.value.manufacturer) {
+      message.warning('请先选择完整的筛选条件');
+      return;
+    }
+    const list = exportCandidates.value;
+    if (list.length === 0) {
+      message.info('没有可导出的数据');
+      return;
+    }
+    exportLoading.value = true;
+
+    for (const rec of list) {
+      const url = exportForm.value.exportType === 'qr' ? getStaticFileUrl(rec.qrCodeFileDirectory) : getStaticFileUrl(rec.barcodeFileDirectory);
+      const filename = exportForm.value.exportType === 'qr'
+        ? `QRCode_${rec.productId}_${rec.productName}.png`
+        : `Barcode_${rec.productId}_${rec.productName}.png`;
+      const ok = await downloadFile(url, filename);
+      if (ok) {
+        if (exportForm.value.exportType === 'qr' && rec.id) await updateQRCodeExportStatus(rec.id, '是');
+        if (exportForm.value.exportType === 'barcode' && rec.id) await updateBarcodeExportStatus(rec.id, '是');
+      }
+      // small delay to avoid flooding
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    await fetchProductList();
+    message.success(`导出完成，共处理 ${list.length} 条`);
+    exportModalVisible.value = false;
+  } catch (e) {
+    console.error(e);
+    message.error('导出失败');
+  } finally {
+    exportLoading.value = false;
+  }
 };
 
 const customLocale = computed(() => ({
@@ -1167,6 +1335,7 @@ interface DataItem {
   fileExportTime: string; // 文件导出时间
   firstBindingTime: string; // 首次绑定时间
   creatorId: number; // 创建人
+  creatorName?: string; // 创建人姓名
   creationTime?: string; // 创建时间 (optional, handled by database)
   updateTime: string; // 更新时间
   serialNumber?: number; // Added for batch creation
@@ -1252,7 +1421,20 @@ const columnConfigs = [
   }},
   { key: 'fileExportTime', title: '文件导出时间', dataIndex: 'fileExportTime', width: 160, sorter: (a: any, b: any) => new Date(a.fileExportTime).getTime() - new Date(b.fileExportTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'firstBindingTime', title: '首次绑定时间', dataIndex: 'firstBindingTime', width: 160, sorter: (a: any, b: any) => new Date(a.firstBindingTime).getTime() - new Date(b.firstBindingTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'creatorId', title: '创建人', dataIndex: 'creatorId', width: 80 },
+  { key: 'creatorId', title: '创建人', dataIndex: 'creatorId', width: 100, customRender: ({ text, record }: { text: any, record: any }) => {
+    // First try to use the creatorName if available
+    if (record.creatorName && record.creatorName.trim() !== '') {
+      return record.creatorName;
+    }
+    // Fallback to current user name if creatorId matches current user
+    const valueNum = Number(text);
+    const myId = Number(authStore.user?.id ?? -1);
+    if (!Number.isNaN(valueNum) && valueNum === myId) {
+      return currentUserName.value;
+    }
+    // Final fallback: show the numeric id
+    return text ?? '-';
+  }},
   { key: 'creationTime', title: '创建时间', dataIndex: 'creationTime', width: 160, sorter: (a: any, b: any) => new Date(a.creationTime).getTime() - new Date(b.creationTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'operation', title: '操作', dataIndex: 'operation', width: 200, fixed: 'right' },
@@ -1340,6 +1522,7 @@ const fetchProductList = async () => {
       fileExportTime: item.file_export_time || item.fileExportTime || '',
       firstBindingTime: item.first_binding_time || item.firstBindingTime || '',
       creatorId: item.creator_id || item.creatorId || 0,
+      creatorName: item.creator_name || item.creatorName || '',
       creationTime: item.creation_time || item.creationTime || '',
       updateTime: item.update_time || item.updateTime || '',
       serialNumber: item.serial_number || 1 // Ensure serialNumber is present
@@ -1388,7 +1571,8 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
       sub_account_id: productListData.subAccountId || '', // Allow empty as requested
       file_export_time: productListData.fileExportTime || new Date().toISOString().slice(0, 19).replace('T', ' '), // Use provided datetime or current
       first_binding_time: productListData.firstBindingTime || new Date().toISOString().slice(0, 19).replace('T', ' '), // Use provided datetime or current
-      creator_id: productListData.creatorId || 1,
+      creator_id: productListData.creatorId || currentUserId.value,
+      creator_name: productListData.creatorName || currentUserName.value,
       creation_time: productListData.creationTime || new Date().toISOString().slice(0, 19).replace('T', ' ') // Provide creation_time for cloud backend
     };
     
