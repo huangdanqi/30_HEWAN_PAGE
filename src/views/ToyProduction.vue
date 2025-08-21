@@ -357,7 +357,7 @@ interface DataItem {
   unitPrice: number; // 单价(元)
   quantity: number; // 数量(个)
   totalPrice: number; // 总价(元)
-  updaterId: number; // 更新人
+  updater: string; // 更新人
   createTime: string; // 创建时间
   updateTime: string; // 更新时间
 }
@@ -385,7 +385,7 @@ const columnConfigs = [
   { key: 'unitPrice', title: '单价(元)', dataIndex: 'unitPrice', width: 100, sorter: (a: any, b: any) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
   { key: 'quantity', title: '数量(个)', dataIndex: 'quantity', width: 100, sorter: (a: any, b: any) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
   { key: 'totalPrice', title: '总价(元)', dataIndex: 'totalPrice', width: 120, sorter: (a: any, b: any) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'updaterId', title: '更新人', dataIndex: 'updaterId', width: 100, sorter: (a: any, b: any) => (a.updaterId || '').localeCompare(b.updaterId || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'updater', title: '更新人', dataIndex: 'updater', width: 100, sorter: (a: any, b: any) => (a.updater || '').localeCompare(b.updater || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'createTime', title: '创建时间', dataIndex: 'createTime', width: 160, sorter: (a: any, b: any) => a.createTime.localeCompare(b.createTime), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => a.updateTime.localeCompare(b.updateTime), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
   { key: 'operation', title: '操作', dataIndex: 'operation', width: 200, fixed: 'right' },
@@ -421,6 +421,11 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
             style: { cursor: 'pointer' },
             onClick: () => router.push({ path: '/product-type', query: { search: text } })
           }, text) : '-';
+        }
+        // Handle updater column - show updater or fallback to creator
+        if (config.key === 'updater') {
+          const updaterValue = record.updater || record.creator;
+          return updaterValue && updaterValue !== '' ? updaterValue : '未设置';
         }
         // Default rendering for other columns
         return text === undefined || text === null || text === '' ? '-' : text;
@@ -514,7 +519,7 @@ const fetchToyProductionData = async () => {
         console.log('unitPrice:', firstItem.unitPrice);
         console.log('quantity:', firstItem.quantity);
         console.log('totalPrice:', firstItem.totalPrice);
-        console.log('updaterId:', firstItem.updaterId);
+        console.log('updater:', firstItem.updater);
         console.log('createTime:', firstItem.createTime);
         console.log('updateTime:', firstItem.updateTime);
       }
@@ -534,7 +539,7 @@ const fetchToyProductionData = async () => {
           unitPrice: typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(item.unitPrice) || 0,
           quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 0,
           totalPrice: typeof item.totalPrice === 'number' ? item.totalPrice : parseFloat(String(item.totalPrice).replace(/,/g, '')) || 0,
-          updaterId: typeof item.updaterId === 'number' ? item.updaterId : parseInt(item.updaterId) || 0,
+          updater: item.updater || item.creator || '未设置',
           createTime: item.createTime || '',
           updateTime: item.updateTime || ''
         };
@@ -950,7 +955,7 @@ const handleBatchOk = async () => {
         unitPrice: newBatchData.unit_price,
         quantity: newBatchData.quantity,
         totalPrice: totalPrice,
-        updaterId: newBatchData.creator,
+        updater: String(newBatchData.creator),
         createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
         updateTime: new Date().toISOString().replace('T', ' ').substring(0, 19)
       };
