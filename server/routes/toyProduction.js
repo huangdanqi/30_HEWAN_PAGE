@@ -98,24 +98,24 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const {
-      production_batch_id,
-      product_model,
+      product_id,
+      device_model,
       product_name,
-      production_batch_date,
+      production_batch,
       manufacturer,
       unit_price,
       quantity,
-      updater_id
+      creator
     } = req.body;
 
     // Validate required fields
-    if (!production_batch_id || !product_model || !product_name || !production_batch_date || !manufacturer || !unit_price || !quantity) {
-      return res.status(400).json({ error: 'Production batch ID, product model, product name, production batch date, manufacturer, unit price, and quantity are required' });
+    if (!product_id || !device_model || !product_name || !production_batch || !manufacturer || !unit_price || !quantity) {
+      return res.status(400).json({ error: 'Product ID, device model, product name, production batch, manufacturer, unit price, and quantity are required' });
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO toy_production_new (production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id]
+      'INSERT INTO toy_production_new (product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator]
     );
 
     res.status(201).json({
@@ -132,24 +132,24 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const {
-      production_batch_id,
-      product_model,
+      product_id,
+      device_model,
       product_name,
-      production_batch_date,
+      production_batch,
       manufacturer,
       unit_price,
       quantity,
-      updater_id
+      creator
     } = req.body;
 
     // Validate required fields
-    if (!production_batch_id || !product_model || !product_name || !production_batch_date || !manufacturer || !unit_price || !quantity) {
-      return res.status(400).json({ error: 'Production batch ID, product model, product name, production batch date, manufacturer, unit price, and quantity are required' });
+    if (!product_id || !device_model || !product_name || !production_batch || !manufacturer || !unit_price || !quantity) {
+      return res.status(400).json({ error: 'Product ID, device model, product name, production batch, manufacturer, unit price, and quantity are required' });
     }
 
     const [result] = await pool.execute(
-      'UPDATE toy_production_new SET production_batch_id = ?, product_model = ?, product_name = ?, production_batch_date = ?, manufacturer = ?, unit_price = ?, quantity = ?, updater_id = ? WHERE id = ?',
-      [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id, req.params.id]
+      'UPDATE toy_production_new SET product_id = ?, device_model = ?, product_name = ?, production_batch = ?, manufacturer = ?, unit_price = ?, quantity = ?, creator = ? WHERE id = ?',
+      [product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator, req.params.id]
     );
 
     if (result.affectedRows === 0) {

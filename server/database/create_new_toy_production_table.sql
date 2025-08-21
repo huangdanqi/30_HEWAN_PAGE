@@ -3,33 +3,33 @@
 
 CREATE TABLE IF NOT EXISTS `toy_production_new` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `production_batch_id` VARCHAR(50) NOT NULL COMMENT '生产批次ID',
-  `product_model` VARCHAR(50) NOT NULL COMMENT '产品型号',
+  `product_id` VARCHAR(50) NOT NULL COMMENT '生产批次ID',
+  `device_model` VARCHAR(50) NOT NULL COMMENT '产品型号',
   `product_name` VARCHAR(200) NOT NULL COMMENT '产品名称',
-  `production_batch_date` DATE NOT NULL COMMENT '生产批次日期',
+  `production_batch` VARCHAR(50) NOT NULL COMMENT '生产批次',
   `manufacturer` VARCHAR(200) NOT NULL COMMENT '生产厂家',
   `unit_price` DECIMAL(10,2) NOT NULL COMMENT '单价(元)',
   `quantity` INT NOT NULL COMMENT '数量(个)',
   `total_price` DECIMAL(12,2) GENERATED ALWAYS AS (unit_price * quantity) STORED COMMENT '总价(元)',
-  `updater_id` INT NOT NULL COMMENT '更新人ID',
+  `creator` INT NOT NULL COMMENT '创建人',
   `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   
-  INDEX idx_production_batch_id (production_batch_id),
-  INDEX idx_product_model (product_model),
+  INDEX idx_product_id (product_id),
+  INDEX idx_device_model (device_model),
   INDEX idx_product_name (product_name),
-  INDEX idx_production_batch_date (production_batch_date),
+  INDEX idx_production_batch (production_batch),
   INDEX idx_manufacturer (manufacturer),
   INDEX idx_unit_price (unit_price),
   INDEX idx_quantity (quantity),
   INDEX idx_total_price (total_price),
-  INDEX idx_updater_id (updater_id),
+  INDEX idx_creator (creator),
   INDEX idx_create_time (create_time),
   INDEX idx_update_time (update_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩具生产表(新结构)';
 
 -- Insert sample data based on the current data
-INSERT INTO `toy_production_new` (production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id) VALUES
+INSERT INTO `toy_production_new` (product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator) VALUES
 ('HWSZ001001_001', 'HWSZ001001', '粉色啵啵盲盒挂件', '2025-06-30', '扬州华中韵工艺品有限公司', 25.80, 200, 33),
 ('HWSZ001002_001', 'HWSZ001002', '蓝色小熊玩偶', '2025-06-30', '扬州华中韵工艺品有限公司', 30.50, 150, 44),
 ('HWSZ001003_001', 'HWSZ001003', '绿色恐龙模型', '2025-06-30', '扬州华中韵工艺品有限公司', 18.20, 300, 55),

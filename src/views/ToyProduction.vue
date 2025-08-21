@@ -922,14 +922,14 @@ const handleBatchOk = async () => {
     
     // Prepare data for API - match the backend expected format (snake_case)
     const newBatchData = {
-      production_batch_id: `BATCH_${Date.now()}`, // Auto-generate batch ID
-      product_model: batchFormData.value.productName, // Use product name as product model
+      product_id: `BATCH_${Date.now()}`, // Auto-generate batch ID
+      device_model: batchFormData.value.productName, // Use product name as device model
       product_name: batchFormData.value.productName,
-      production_batch_date: batchFormData.value.productionBatch ? batchFormData.value.productionBatch.format('YYYY-MM-DD') : '',
+      production_batch: batchFormData.value.productionBatch ? batchFormData.value.productionBatch.format('YYYY-MM-DD') : '',
       manufacturer: batchFormData.value.manufacturer,
       unit_price: parseFloat(batchFormData.value.unitPrice) || 0,
       quantity: parseInt(batchFormData.value.quantity) || 0,
-      updater_id: 1 // Default updater ID
+      creator: 1 // Default creator ID
     };
     
     // Send data to MySQL database via API
@@ -942,15 +942,15 @@ const handleBatchOk = async () => {
       const newRecord = {
         id: response.data.id,
         key: response.data.id,
-        productionBatchId: newBatchData.production_batch_id,
-        productModel: newBatchData.product_model,
+        productionBatchId: newBatchData.product_id,
+        productModel: newBatchData.device_model,
         productName: batchFormData.value.productName,
-        productionBatchDate: newBatchData.production_batch_date,
+        productionBatchDate: newBatchData.production_batch,
         manufacturer: batchFormData.value.manufacturer,
         unitPrice: newBatchData.unit_price,
         quantity: newBatchData.quantity,
         totalPrice: totalPrice,
-        updaterId: newBatchData.updater_id,
+        updaterId: newBatchData.creator,
         createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
         updateTime: new Date().toISOString().replace('T', ' ').substring(0, 19)
       };
