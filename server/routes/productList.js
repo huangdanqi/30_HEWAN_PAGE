@@ -262,6 +262,46 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// ==================== UPDATE PRODUCT EXPORT STATUS ====================
+router.patch('/:id', async (req, res) => {
+  try {
+    const { qr_code_exported, barcode_exported } = req.body;
+    
+    if (!qr_code_exported && !barcode_exported) {
+      return res.status(400).json({ error: 'At least one export status must be provided' });
+    }
+    
+    let sql = 'UPDATE product_list SET ';
+    const values = [];
+    
+    if (qr_code_exported) {
+      sql += 'qr_code_exported = ?, ';
+      values.push(qr_code_exported);
+    }
+    
+    if (barcode_exported) {
+      sql += 'barcode_exported = ?, ';
+      values.push(barcode_exported);
+    }
+    
+    // Remove trailing comma and space
+    sql = sql.slice(0, -2);
+    sql += ', update_time = NOW() WHERE id = ?';
+    values.push(req.params.id);
+    
+    const [result] = await pool.execute(sql, values);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    res.json({ message: 'Export status updated successfully' });
+  } catch (error) {
+    console.error('UPDATE EXPORT STATUS ERROR:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ==================== DELETE PRODUCT ====================
 router.delete('/:id', async (req, res) => {
   try {

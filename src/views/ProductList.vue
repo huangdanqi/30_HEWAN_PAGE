@@ -113,7 +113,9 @@
       <template #bodyCell="{ column, record }">
       <template v-if="column.key === 'operation'">
         <a-space class="action-cell" direction="horizontal">
-          <a class="export-link" @click="handleExportClick(record)">导出二维码/条形码</a>
+          <a class="export-link" @click="handleExportQRCode(record)">导出二维码</a>
+          <a-divider type="vertical" />
+          <a class="export-link" @click="handleExportBarcode(record)">导出条形码</a>
           <a-divider type="vertical" />
           <a-popconfirm
             title="确定要删除该信息吗?"
@@ -323,24 +325,100 @@ const router = useRouter();
 
 // API calls use constructApiUrl helper
 
-// const handleEditClick = () => {
-//   message.info('开发中');
-// };
+// Export functions for QR code and barcode
+const handleExportQRCode = async (record: DataItem) => {
+  try {
+    // Check if QR code file exists
+    if (!record.qrCodeFileDirectory || record.qrCodeFileDirectory === '') {
+      message.warning('该商品没有二维码文件');
+      return;
+    }
 
-// const handleExportClick = (record: DataItem) => {
-//   message.info(`导出 ${record.productName} 的二维码/事务码`);
-// };
-// const handleEditClick = () => {
-//   message.info('开发中');
-// };
+    // Create download link for QR code - use direct static file URL
+    const qrCodeUrl = constructApiUrl('') + record.qrCodeFileDirectory;
+    
+    // Test if the file exists by making a HEAD request
+    try {
+      const response = await fetch(qrCodeUrl, { method: 'HEAD' });
+      if (!response.ok) {
+        message.warning('二维码文件不存在或无法访问');
+        return;
+      }
+    } catch (fetchError) {
+      console.warn('File existence check failed, proceeding with download:', fetchError);
+    }
+    
+    // Create temporary link element
+    const link = document.createElement('a');
+    link.href = qrCodeUrl;
+    link.download = `QRCode_${record.productId}_${record.productName}.png`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-// const handleExportClick = (record: DataItem) => {
-//   message.info(`导出 ${record.productName} 的二维码/事务码`);
-// };
-// handleEditClick removed - not used in this component
+    // Update export status to "是"
+    await updateQRCodeExportStatus(record.id!, '是');
+    
+    message.success('二维码导出成功');
+    
+    // Refresh the data to show updated status
+    await fetchProductList();
+    
+  } catch (error) {
+    console.error('Error exporting QR code:', error);
+    message.error('二维码导出失败');
+  }
+};
 
+const handleExportBarcode = async (record: DataItem) => {
+  try {
+    // Check if barcode file exists
+    if (!record.barcodeFileDirectory || record.barcodeFileDirectory === '') {
+      message.warning('该商品没有条形码文件');
+      return;
+    }
+
+    // Create download link for barcode - use direct static file URL
+    const barcodeUrl = constructApiUrl('') + record.barcodeFileDirectory;
+    
+    // Test if the file exists by making a HEAD request
+    try {
+      const response = await fetch(barcodeUrl, { method: 'HEAD' });
+      if (!response.ok) {
+        message.warning('条形码文件不存在或无法访问');
+        return;
+      }
+    } catch (fetchError) {
+      console.warn('File existence check failed, proceeding with download:', fetchError);
+    }
+    
+    // Create temporary link element
+    const link = document.createElement('a');
+    link.href = barcodeUrl;
+    link.download = `Barcode_${record.productId}_${record.productName}.png`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Update export status to "是"
+    await updateBarcodeExportStatus(record.id!, '是');
+    
+    message.success('条形码导出成功');
+    
+    // Refresh the data to show updated status
+    await fetchProductList();
+    
+  } catch (error) {
+    console.error('Error exporting barcode:', error);
+    message.error('条形码导出失败');
+  }
+};
+
+// Keep the old function for backward compatibility
 const handleExportClick = (record: DataItem) => {
-  message.info(`导出 ${record.productName} 的二维码/事务码`);
+  message.info(`导出 ${record.productName} 的二维码/条形码`);
 };
 // Add the two new handler functions
 // Batch Add Modal related data
@@ -1320,6 +1398,30 @@ const deleteProductList = async (id: number) => {
   }
 };
 
+// Update QR code export status
+const updateQRCodeExportStatus = async (id: number, status: string) => {
+  try {
+    await axios.patch(constructApiUrl(`product-list/${id}`), {
+      qr_code_exported: status
+    });
+  } catch (error) {
+    console.error('Error updating QR code export status:', error);
+    throw error;
+  }
+};
+
+// Update barcode export status
+const updateBarcodeExportStatus = async (id: number, status: string) => {
+  try {
+    await axios.patch(constructApiUrl(`product-list/${id}`), {
+      barcode_exported: status
+    });
+  } catch (error) {
+    console.error('Error updating barcode export status:', error);
+    throw error;
+  }
+};
+
 const searchInputValue = ref('');
 
 // Handle search parameter from URL
@@ -1708,11 +1810,17 @@ html, body {
   display: flex;
   align-items: center;
   gap: 4px;
-  min-width: 150px;
+  min-width: 200px; /* Increased width to accommodate two export buttons */
 }
 :deep(.ant-table-cell .action-cell .export-link) {
   color: #1890ff !important; /* Ant Design blue */
   font-weight: bold;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+:deep(.ant-table-cell .action-cell .export-link:hover) {
+  color: #40a9ff !important; /* Lighter blue on hover */
+  text-decoration: underline;
 }
 :deep(.ant-table-cell .action-cell .danger-link) {
   color: #ff4d4f !important; /* Ant Design red */

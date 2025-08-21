@@ -5,6 +5,7 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
+import fs from 'fs';
 
 // Import database configuration
 import pool from './config/database.js';
@@ -52,6 +53,8 @@ app.use('/images', express.static(path.join(__dirname, '..', 'public', 'images')
 app.use('/videos', express.static(path.join(__dirname, '..', 'public', 'videos')));
 app.use('/firmware', express.static(path.join(__dirname, '..', 'public', 'firmware')));
 app.use('/bom-files', express.static(path.join(__dirname, '..', 'public', 'bom-files')));
+app.use('/QRcode', express.static(path.join(__dirname, '..', 'public', 'QRcode')));
+app.use('/barcode', express.static(path.join(__dirname, '..', 'public', 'barcode')));
 app.use('/public', express.static(path.join(__dirname, '..', 'public')));
 
 // API Routes - Original routes
@@ -96,6 +99,41 @@ app.use((error, req, res, next) => {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// General file download endpoint
+app.get('/api/files/download', (req, res) => {
+  try {
+    const { filePath } = req.query;
+    
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path is required' });
+    }
+    
+    // Construct the full file path
+    const fullPath = path.join(__dirname, '..', 'public', filePath);
+    
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // Get file stats
+    const stats = fs.statSync(fullPath);
+    
+    // Set appropriate headers
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Length', stats.size);
+    res.setHeader('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`);
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(fullPath);
+    fileStream.pipe(res);
+    
+  } catch (error) {
+    console.error('File download error:', error);
+    res.status(500).json({ error: 'File download failed' });
+  }
 });
 
 // Start server
