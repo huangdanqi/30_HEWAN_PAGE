@@ -917,37 +917,64 @@ const handleBatchOk = async () => {
       return;
     }
     
-    // Create new batch record
-    const newBatch = {
-      key: Date.now(), // Generate unique key
-      id: Date.now(),
-      productionBatchId: `BATCH_${Date.now()}`, // Auto-generate batch ID
-      productModel: '', // Will be populated from product name mapping
-      productName: batchFormData.value.productName,
-      productionBatchDate: batchFormData.value.productionBatch ? batchFormData.value.productionBatch.format('YYYY-MM-DD') : '',
+    // Calculate total price
+    const totalPrice = (parseFloat(batchFormData.value.unitPrice) || 0) * (parseInt(batchFormData.value.quantity) || 0);
+    
+    // Prepare data for API - match the backend expected format (snake_case)
+    const newBatchData = {
+      production_batch_id: `BATCH_${Date.now()}`, // Auto-generate batch ID
+      product_model: batchFormData.value.productName, // Use product name as product model
+      product_name: batchFormData.value.productName,
+      production_batch_date: batchFormData.value.productionBatch ? batchFormData.value.productionBatch.format('YYYY-MM-DD') : '',
       manufacturer: batchFormData.value.manufacturer,
-      unitPrice: parseFloat(batchFormData.value.unitPrice) || 0,
+      unit_price: parseFloat(batchFormData.value.unitPrice) || 0,
       quantity: parseInt(batchFormData.value.quantity) || 0,
-      totalPrice: (parseFloat(batchFormData.value.unitPrice) || 0) * (parseInt(batchFormData.value.quantity) || 0),
-      updaterId: 0, // Default value
-      createTime: new Date().toISOString(),
-      updateTime: new Date().toISOString()
+      updater_id: 1 // Default updater ID
     };
     
-    // Add to raw data
-    rawData.value.unshift(newBatch);
+    // Send data to MySQL database via API
+    const response = await axios.post(constructApiUrl('toy-production'), newBatchData);
     
-    // Reset form
-    resetBatchForm();
+    if (response.status === 201) {
+      message.success('批次创建成功！');
+      
+      // Add the new record to frontend with proper structure
+      const newRecord = {
+        id: response.data.id,
+        key: response.data.id,
+        productionBatchId: newBatchData.production_batch_id,
+        productModel: newBatchData.product_model,
+        productName: batchFormData.value.productName,
+        productionBatchDate: newBatchData.production_batch_date,
+        manufacturer: batchFormData.value.manufacturer,
+        unitPrice: newBatchData.unit_price,
+        quantity: newBatchData.quantity,
+        totalPrice: totalPrice,
+        updaterId: newBatchData.updater_id,
+        createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        updateTime: new Date().toISOString().replace('T', ' ').substring(0, 19)
+      };
+      
+      // Add to frontend data
+      rawData.value.unshift(newRecord);
+      
+      // Close modal and reset form
+      handleBatchModalClose();
+      
+      // Refresh data from server to ensure consistency
+      await fetchToyProductionData();
+    } else {
+      message.error('批次创建失败，请重试');
+    }
     
-    // Close modal
-    showBatchModal.value = false;
-    
-    // Show success message
-    message.success('新增批次成功');
-    
-  } catch (error) {
-    console.error('Form validation failed:', error);
+  } catch (error: any) {
+    if (error.response) {
+      message.error(`创建失败: ${error.response.data?.error || '未知错误'}`);
+    } else if (error.request) {
+      message.error('网络请求失败，请检查网络连接');
+    } else {
+      message.error(`创建失败: ${error.message}`);
+    }
   }
 };
 

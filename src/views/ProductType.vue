@@ -153,18 +153,18 @@
       </a-table>
       
       <!-- No data message -->
-      <div v-if="showNoDataMessage" class="no-data-message">
-        <a-empty 
+      <!-- <div v-if="showNoDataMessage" class="no-data-message"> -->
+        <!-- <a-empty 
           :description="noDataMessage"
           :image="Empty.PRESENTED_IMAGE_SIMPLE"
-        >
-          <div class="no-data-actions">
+        > -->
+          <!-- <div class="no-data-actions">
             <a-button type="primary" @click="clearSearch" v-if="searchInputValue">清除搜索</a-button>
             <a-button @click="clearAllFilters" v-if="deviceModelValue.value !== 'all' || productTypeValue.value !== 'all' || ipNameValue.value !== 'all'">清除筛选</a-button>
             <a-button @click="onRefresh" v-if="!searchInputValue && deviceModelValue.value === 'all' && productTypeValue.value === 'all' && ipNameValue.value === 'all'">刷新数据</a-button>
-          </div>
-        </a-empty>
-      </div>
+          </div> -->
+        <!-- </a-empty> -->
+      <!-- </div> -->
     </div>
 
     <!-- Create Product Modal -->
@@ -368,8 +368,10 @@ import {
 import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
 import { message } from 'ant-design-vue';
+import { useAuthStore } from '../stores/auth'; // Import the auth store
 
 const router = useRouter();
+const authStore = useAuthStore(); // Get the auth store instance
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -546,17 +548,19 @@ const fetchDeviceModelOptions = async () => {
         console.log('First item keys:', Object.keys(dataArray[0]));
       }
       
-      // Extract device model IDs from the response
+      // Extract device model names from the response - use deviceModelName field
       const options = dataArray
         .filter((item: any) => {
           console.log('Checking item:', item);
-          const hasDeviceModel = item.deviceModelId || item.device_model_id;
-          console.log('Has device model:', hasDeviceModel);
-          return hasDeviceModel;
+          // Check for device model name field (设备型号名称)
+          const hasDeviceModelName = item.deviceModelName || item.device_model_name || item.deviceModel || item.device_model;
+          console.log('Has device model name:', hasDeviceModelName);
+          return hasDeviceModelName;
         })
         .map((item: any) => {
-          const value = item.deviceModelId || item.device_model_id;
-          console.log('Mapping device model:', value);
+          // Use device model name as both value and label
+          const value = item.deviceModelName || item.device_model_name || item.deviceModel || item.device_model;
+          console.log('Mapping device model name:', value);
           return {
             value: value,
             label: value
@@ -688,11 +692,22 @@ const createProductType = async (productTypeData: {
 
 const updateProductType = async (id: number, productTypeData: Partial<DataItem>) => {
   try {
+    console.log('=== UPDATE PRODUCT DEBUG ===');
+    console.log('API URL:', constructApiUrl(`product-type/${id}`));
+    console.log('Update data being sent:', productTypeData);
+    
     const response = await axios.put(constructApiUrl(`product-type/${id}`), productTypeData);
+    console.log('Success response:', response);
     await fetchProductTypes(); // Refresh data
     return response.data;
-  } catch (error) {
-    console.error('Error updating product type:', error);
+  } catch (error: any) {
+    console.error('=== UPDATE PRODUCT ERROR ===');
+    console.error('Error object:', error);
+    console.error('Error response:', error.response);
+    console.error('Error status:', error.response?.status);
+    console.error('Error statusText:', error.response?.statusText);
+    console.error('Error data:', error.response?.data);
+    console.error('Error message:', error.message);
     throw error;
   }
 };
@@ -918,7 +933,20 @@ const handleView = (record: DataItem) => {
 
 const handleEdit = (record: DataItem) => {
   console.log('Edit:', record);
-  editForm.value = { ...record }; // Pre-fill edit form
+  // Properly map the record data to edit form fields
+  editForm.value = {
+    id: record.id,
+    key: record.key || 0,
+    productId: record.productId || '', // Include productId
+    deviceModel: record.deviceModel || '',
+    productModel: record.productModel || '',
+    productName: record.productName || '',
+    productType: record.productType || '',
+    color: record.color || '',
+    productDetails: record.productDetails || '',
+    ipRoleName: record.ipRoleName || ''
+  };
+  console.log('Edit form populated:', editForm.value);
   showEditModal.value = true;
 };
 
@@ -979,8 +1007,15 @@ const colorSuggestions = ref([
 // Handle device model change in create form to auto-generate product model
 const handleDeviceModelChangeInForm = (value: string) => {
   if (value) {
-    // Auto-generate product model based on device model
-    createForm.value.productModel = `${value}001`;
+    // Generate unique product model by checking existing ones
+    let uniqueProductModel = `${value}001`;
+    let counter = 1;
+    while (rawData.value.some(item => item.productModel === uniqueProductModel)) {
+      uniqueProductModel = `${value}${counter.toString().padStart(3, '0')}`;
+      counter++;
+    }
+    createForm.value.productModel = uniqueProductModel;
+    console.log('Generated unique product model:', createForm.value.productModel);
   } else {
     createForm.value.productModel = '';
   }
@@ -1028,22 +1063,41 @@ const handleCreateConfirm = async () => {
       return;
     }
 
+    // Generate unique product ID and model
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8); // 6 character random string
+    const uniqueProductId = `${createForm.value.deviceModel}_${timestamp}_${randomSuffix}`;
+    
+    // Generate unique product model by checking existing ones
+    let uniqueProductModel = createForm.value.productModel;
+    let counter = 1;
+    while (rawData.value.some(item => item.productModel === uniqueProductModel)) {
+      uniqueProductModel = `${createForm.value.deviceModel}${counter.toString().padStart(3, '0')}`;
+      counter++;
+    }
+    
     // Prepare data for API - use correct field names that match database schema
     const newProductData = {
-      product_id: `${createForm.value.deviceModel}_${Date.now()}`,
-      device_model: createForm.value.deviceModel,
-      product_model: createForm.value.productModel,
+      product_id: uniqueProductId,
+      device_model: createForm.value.deviceModel, // This now contains the device model name
+      product_model: uniqueProductModel,
       product_name: createForm.value.productName,
       product_type: createForm.value.productType,
       color: createForm.value.color,
       product_details: createForm.value.productDetails,
       ip_name: createForm.value.ipRoleName, // Fixed: use ip_name to match database column
-      creator: '管理员', // Required field
+      creator: authStore.user?.name || authStore.user?.username || '管理员', // Use username from auth store
       create_time: new Date().toISOString(), // Required field
       update_time: new Date().toISOString() // Required field
     };
 
     console.log('Creating new product with corrected data:', newProductData);
+    console.log('Generated unique product ID:', uniqueProductId);
+    console.log('Generated unique product model:', uniqueProductModel);
+    console.log('Using creator:', authStore.user?.name || authStore.user?.username || '管理员');
+    console.log('Checking for existing conflicts...');
+    console.log('Existing product IDs:', rawData.value.map(item => item.productId));
+    console.log('Existing product models:', rawData.value.map(item => item.productModel));
 
     // Call API to create product
     await createProductType(newProductData);
@@ -1075,7 +1129,9 @@ const handleCreateConfirm = async () => {
 
 const showEditModal = ref(false);
 const editForm = ref<Partial<DataItem>>({
+  id: 0,
   key: 0, // Ensure key is always a number
+  productId: '', // Add productId field
   deviceModel: '',
   productModel: '',
   productName: '',
@@ -1089,7 +1145,9 @@ const closeEditModal = () => {
   showEditModal.value = false;
   // Reset form
   editForm.value = {
+    id: 0,
     key: 0, // Ensure key is always a number
+    productId: '', // Reset productId
     deviceModel: '',
     productModel: '',
     productName: '',
@@ -1100,10 +1158,81 @@ const closeEditModal = () => {
   };
 };
 
-const handleEditConfirm = () => {
-  console.log('Edit product form submitted:', editForm.value);
-  // Here you would typically send the data to your API
-  closeEditModal();
+const handleEditConfirm = async () => {
+  try {
+    // Validate required fields
+    if (!editForm.value.deviceModel) {
+      message.error('请选择设备型号');
+      return;
+    }
+    if (!editForm.value.productName) {
+      message.error('请输入产品名称');
+      return;
+    }
+    if (!editForm.value.productType) {
+      message.error('请输入产品类型');
+      return;
+    }
+    if (!editForm.value.color) {
+      message.error('请输入颜色');
+      return;
+    }
+    if (!editForm.value.productDetails) {
+      message.error('请输入产品详情');
+      return;
+    }
+    if (!editForm.value.ipRoleName) {
+      message.error('请选择IP角色名称');
+      return;
+    }
+
+    // Prepare data for API update - include all required fields
+    const updateData = {
+      product_id: editForm.value.productId || '', // Include product_id if available
+      device_model: editForm.value.deviceModel,
+      product_model: editForm.value.productModel,
+      product_name: editForm.value.productName,
+      product_type: editForm.value.productType,
+      color: editForm.value.color,
+      product_details: editForm.value.productDetails,
+      ip_name: editForm.value.ipRoleName,
+      creator: authStore.user?.name || authStore.user?.username || '管理员', // Use username from auth store
+      update_time: new Date().toISOString()
+    };
+
+    console.log('Updating product with data:', updateData);
+    console.log('Using creator:', authStore.user?.name || authStore.user?.username || '管理员');
+    console.log('Edit form values:', editForm.value);
+    console.log('Record ID being updated:', editForm.value.id);
+
+    // Call API to update product
+    if (editForm.value.id) {
+      await updateProductType(editForm.value.id, updateData);
+      
+      // Show success message
+      message.success('产品更新成功！');
+      
+      // Close modal and reset form
+      closeEditModal();
+      
+      // Refresh the table data
+      await fetchProductTypes();
+    }
+    
+  } catch (error: any) {
+    console.error('Error updating product:', error);
+    
+    // Show specific error message
+    if (error.response?.data?.error) {
+      message.error(`更新失败: ${error.response.data.error}`);
+    } else if (error.response?.data?.message) {
+      message.error(`更新失败: ${error.response.data.message}`);
+    } else if (error.message) {
+      message.error(`更新失败: ${error.message}`);
+    } else {
+      message.error('产品更新失败，请检查网络连接');
+    }
+  }
 };
 
 onMounted(() => {
@@ -1249,38 +1378,7 @@ defineExpose({
   font-weight: bold;
 }
 
-:deep(.link-text) {
-  color: #1890ff !important;
-  font-weight: bold;
-  cursor: pointer;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
 
-:deep(.link-text:hover) {
-  color: #40a9ff !important;
-  text-decoration: underline;
-}
-
-:deep(.link-text:active) {
-  color: #096dd9 !important;
-}
-
-/* Hyperlink styling for table cells */
-:deep(.ant-table-tbody .ant-table-cell a) {
-  color: #1890ff;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-:deep(.ant-table-tbody .ant-table-cell a:hover) {
-  color: #40a9ff;
-  text-decoration: underline;
-}
-
-:deep(.ant-table-tbody .ant-table-cell a:active) {
-  color: #096dd9;
-}
 
 :deep(.creator-cell) {
   display: flex;

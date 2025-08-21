@@ -22,22 +22,22 @@ router.get('/', async (req, res) => {
     console.log('Raw database rows:', rows);
     console.log('First row keys:', rows.length > 0 ? Object.keys(rows[0]) : 'No rows');
     
-    // Transform snake_case to camelCase for frontend with fallbacks
+    // Transform database fields to frontend expected format
     const transformedRows = rows.map(row => {
       console.log('Processing row:', row);
       
       return {
         id: row.id,
         key: row.id, // Add key for table
-        productionBatchId: row.production_batch_id || '',
-        productModel: row.product_model || '',
+        productionBatchId: row.product_id || '',
+        productModel: row.device_model || '',
         productName: row.product_name || '',
-        productionBatchDate: row.production_batch_date || '',
+        productionBatchDate: row.production_batch || '',
         manufacturer: row.manufacturer || '',
         unitPrice: parseFloat(row.unit_price || 0),
         quantity: parseInt(row.quantity || 0),
         totalPrice: parseFloat(row.total_price || 0),
-        updaterId: parseInt(row.updater_id || 0),
+        updaterId: parseInt(row.creator || 0),
         createTime: row.create_time || '',
         updateTime: row.update_time || ''
       };
@@ -71,18 +71,18 @@ router.get('/:id', async (req, res) => {
     }
     
     const row = rows[0];
-    // Transform snake_case to camelCase for frontend
+    // Transform database fields to frontend expected format
     const transformedRow = {
       id: row.id,
-      productionBatchId: row.production_batch_id,
-      productModel: row.product_model,
+      productionBatchId: row.product_id,
+      productModel: row.device_model,
       productName: row.product_name,
-      productionBatchDate: row.production_batch_date,
+      productionBatchDate: row.production_batch,
       manufacturer: row.manufacturer,
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
       totalPrice: parseFloat(row.total_price),
-      updaterId: row.updater_id,
+      updaterId: row.creator,
       createTime: row.create_time,
       updateTime: row.update_time
     };
@@ -114,7 +114,7 @@ router.post('/', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO toy_production (production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO toy_production (product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id]
     );
 
@@ -148,7 +148,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'UPDATE toy_production SET production_batch_id = ?, product_model = ?, product_name = ?, production_batch_date = ?, manufacturer = ?, unit_price = ?, quantity = ?, updater_id = ? WHERE id = ?',
+      'UPDATE toy_production SET product_id = ?, device_model = ?, product_name = ?, production_batch = ?, manufacturer = ?, unit_price = ?, quantity = ?, creator = ? WHERE id = ?',
       [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id, req.params.id]
     );
 
@@ -193,15 +193,15 @@ router.get('/product/:productName', async (req, res) => {
 
     const transformedRows = rows.map(row => ({
       id: row.id,
-      productionBatchId: row.production_batch_id,
-      productModel: row.product_model,
+      productionBatchId: row.product_id,
+      productModel: row.device_model,
       productName: row.product_name,
-      productionBatchDate: row.production_batch_date,
+      productionBatchDate: row.production_batch,
       manufacturer: row.manufacturer,
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
       totalPrice: parseFloat(row.total_price),
-      updaterId: row.updater_id,
+      updaterId: row.creator,
       createTime: row.create_time,
       updateTime: row.update_time
     }));
@@ -223,15 +223,15 @@ router.get('/manufacturer/:manufacturer', async (req, res) => {
     
     const transformedRows = rows.map(row => ({
       id: row.id,
-      productionBatchId: row.production_batch_id,
-      productModel: row.product_model,
+      productionBatchId: row.product_id,
+      productModel: row.device_model,
       productName: row.product_name,
-      productionBatchDate: row.production_batch_date,
+      productionBatchDate: row.production_batch,
       manufacturer: row.manufacturer,
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
       totalPrice: parseFloat(row.total_price),
-      updaterId: row.updater_id,
+      updaterId: row.creator,
       createTime: row.create_time,
       updateTime: row.update_time
     }));

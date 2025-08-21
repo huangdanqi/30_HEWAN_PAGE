@@ -53,7 +53,7 @@
             </template>
           </a-input>
           <a-button type="primary" @click="handleDeviceImportClick">设备导入</a-button>
-        <a-button type="default" @click="testApiConnection" style="margin-left: 8px;">
+        <!-- <a-button type="default" @click="testApiConnection" style="margin-left: 8px;">
           测试API连接
         </a-button>
         <a-button type="default" @click="testBulkImport" style="margin-left: 8px;">
@@ -73,7 +73,7 @@
         </a-button>
         <a-button type="default" @click="autoLogin" style="margin-left: 8px;">
           自动登录
-        </a-button>
+        </a-button> -->
           <ReloadOutlined @click="onRefresh" />
           <!-- <a-button type="default" @click="debugApiCall" style="margin-left: 8px;">调试API</a-button>
           <a-button type="default" @click="healthCheck" style="margin-left: 8px;">健康检查</a-button> -->

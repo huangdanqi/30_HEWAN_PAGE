@@ -1303,11 +1303,6 @@ defineExpose({
   font-weight: bold;
 }
 
-:deep(.link-text) {
-  color: #1890ff !important;
-  font-weight: bold;
-}
-
 :deep(.updater-cell) {
   display: flex;
   align-items: center;
@@ -1321,39 +1316,6 @@ defineExpose({
 
 :deep(.nowrap-header) {
   white-space: nowrap !important;
-}
-
-/* Hyperlink styling */
-:deep(.ant-table-tbody .ant-table-cell a) {
-  color: #1890ff;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-:deep(.ant-table-tbody .ant-table-cell a:hover) {
-  color: #40a9ff;
-  text-decoration: underline;
-}
-
-:deep(.ant-table-tbody .ant-table-cell a:active) {
-  color: #096dd9;
-}
-
-/* Link text styling for IP Name column */
-:deep(.ant-table-tbody .ant-table-cell .link-text) {
-  color: #1890ff;
-  text-decoration: none;
-  transition: color 0.3s ease;
-  cursor: pointer;
-}
-
-:deep(.ant-table-tbody .ant-table-cell .link-text:hover) {
-  color: #40a9ff;
-  text-decoration: underline;
-}
-
-:deep(.ant-table-tbody .ant-table-cell .link-text:active) {
-  color: #096dd9;
 }
 
 /* Modal Styles */
