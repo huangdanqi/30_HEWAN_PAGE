@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
         unitPrice: parseFloat(row.unit_price || 0),
         quantity: parseInt(row.quantity || 0),
         totalPrice: parseFloat(row.total_price || 0),
-        updaterId: parseInt(row.creator || 0),
+        updater: row.updater || row.creator || '',
         createTime: row.create_time || '',
         updateTime: row.update_time || ''
       };
@@ -82,7 +82,7 @@ router.get('/:id', async (req, res) => {
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
       totalPrice: parseFloat(row.total_price),
-      updaterId: row.creator,
+              updater: row.updater || row.creator || '',
       createTime: row.create_time,
       updateTime: row.update_time
     };
@@ -105,7 +105,8 @@ router.post('/', async (req, res) => {
       manufacturer,
       unit_price,
       quantity,
-      creator
+      creator,
+      updater
     } = req.body;
 
     // Validate required fields
@@ -114,8 +115,8 @@ router.post('/', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO toy_production_new (product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator]
+      'INSERT INTO toy_production_new (product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator, updater) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator, updater || creator]
     );
 
     res.status(201).json({
@@ -139,7 +140,8 @@ router.put('/:id', async (req, res) => {
       manufacturer,
       unit_price,
       quantity,
-      creator
+      creator,
+      updater
     } = req.body;
 
     // Validate required fields
@@ -148,8 +150,8 @@ router.put('/:id', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'UPDATE toy_production_new SET product_id = ?, device_model = ?, product_name = ?, production_batch = ?, manufacturer = ?, unit_price = ?, quantity = ?, creator = ? WHERE id = ?',
-      [product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator, req.params.id]
+      'UPDATE toy_production_new SET product_id = ?, device_model = ?, product_name = ?, production_batch = ?, manufacturer = ?, unit_price = ?, quantity = ?, creator = ?, updater = ? WHERE id = ?',
+      [product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator, updater || creator, req.params.id]
     );
 
     if (result.affectedRows === 0) {
@@ -201,7 +203,7 @@ router.get('/product/:productName', async (req, res) => {
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
       totalPrice: parseFloat(row.total_price),
-      updaterId: row.creator,
+      updater: row.updater || row.creator || '',
       createTime: row.create_time,
       updateTime: row.update_time
     }));
@@ -231,7 +233,7 @@ router.get('/manufacturer/:manufacturer', async (req, res) => {
       unitPrice: parseFloat(row.unit_price),
       quantity: row.quantity,
       totalPrice: parseFloat(row.total_price),
-      updaterId: row.creator,
+      updater: row.updater || row.creator || '',
       createTime: row.create_time,
       updateTime: row.update_time
     }));
