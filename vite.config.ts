@@ -47,7 +47,7 @@ export default defineConfig({
   },
   server: {
     port: parseInt(process.env.VITE_PORT || '2830'),
-    host: process.env.VITE_HOST || '121.43.196.106', // Use public IP or environment variable
+    host: '0.0.0.0', // Bind to all network interfaces
     strictPort: true, // Fail if port is already in use
     proxy: {
       '/api': {

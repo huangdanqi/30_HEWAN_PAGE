@@ -38,7 +38,7 @@ fi
 export NODE_ENV=development
 export VITE_API_BASE_URL=http://$PUBLIC_IP:2829
 export VITE_PORT=2830
-export VITE_HOST=$PUBLIC_IP
+export VITE_HOST=0.0.0.0
 
 echo "🌐 Server will be accessible at:"
 echo "   Local: http://localhost:2830"
