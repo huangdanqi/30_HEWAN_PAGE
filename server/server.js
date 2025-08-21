@@ -136,6 +136,114 @@ app.get('/api/files/download', (req, res) => {
   }
 });
 
+// File upload endpoint for QR codes and barcodes
+app.post('/api/files/upload', express.json({ limit: '10mb' }), async (req, res) => {
+  try {
+    const { fileType, filename, data, productId } = req.body;
+    
+    if (!fileType || !filename || !data) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Determine the directory based on file type
+    let uploadDir;
+    if (fileType === 'qrcode') {
+      uploadDir = path.join(__dirname, '..', 'public', 'QRcode');
+    } else if (fileType === 'barcode') {
+      uploadDir = path.join(__dirname, '..', 'public', 'barcode');
+    } else {
+      return res.status(400).json({ error: 'Invalid file type' });
+    }
+    
+    // Ensure directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    // Remove data URL prefix if present
+    let base64Data = data;
+    if (data.startsWith('data:image/png;base64,')) {
+      base64Data = data.split(',')[1];
+    }
+    
+    // Save the file
+    const filePath = path.join(uploadDir, filename);
+    fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+    
+    // Return the relative path for storage in database
+    const relativePath = `/${fileType === 'qrcode' ? 'QRcode' : 'barcode'}/${filename}`;
+    
+    res.json({
+      success: true,
+      filePath: relativePath,
+      message: 'File uploaded successfully'
+    });
+    
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({ error: 'File upload failed' });
+  }
+});
+
+// Test endpoint to generate sample QR codes and barcodes
+app.post('/api/files/generate-test', async (req, res) => {
+  try {
+    const { productId, productName, ipRole, productModel, manufacturer, productionBatch } = req.body;
+    
+    // Ensure directories exist
+    const qrCodeDir = path.join(__dirname, '..', 'public', 'QRcode');
+    const barcodeDir = path.join(__dirname, '..', 'public', 'barcode');
+    
+    if (!fs.existsSync(qrCodeDir)) {
+      fs.mkdirSync(qrCodeDir, { recursive: true });
+    }
+    if (!fs.existsSync(barcodeDir)) {
+      fs.mkdirSync(barcodeDir, { recursive: true });
+    }
+    
+    // Generate QR code data
+    const qrData = JSON.stringify({
+      productId: productId,
+      productName: productName,
+      ipRole: ipRole,
+      productModel: productModel,
+      manufacturer: manufacturer,
+      productionBatch: productionBatch,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Generate barcode data (just the product ID for simplicity)
+    const barcodeData = productId;
+    
+    // Create filenames
+    const timestamp = Date.now();
+    const qrFilename = `QR_${productId}_${timestamp}.png`;
+    const barcodeFilename = `BAR_${productId}_${timestamp}.png`;
+    
+    // For now, create simple text files as placeholders
+    // In production, you would use a QR code and barcode library
+    const qrFilePath = path.join(qrCodeDir, qrFilename);
+    const barcodeFilePath = path.join(barcodeDir, barcodeFilename);
+    
+    // Write QR code data to file (placeholder)
+    fs.writeFileSync(qrFilePath, `QR Code Data: ${qrData}`);
+    
+    // Write barcode data to file (placeholder)
+    fs.writeFileSync(barcodeFilePath, `Barcode Data: ${barcodeData}`);
+    
+    res.json({
+      success: true,
+      qrCodePath: `/QRcode/${qrFilename}`,
+      barcodePath: `/barcode/${barcodeFilename}`,
+      message: 'Test files generated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Test file generation error:', error);
+    res.status(500).json({ error: 'Test file generation failed' });
+  }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);

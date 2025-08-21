@@ -9,6 +9,7 @@
 <a-button @click="testBatchAddEndpoint" style="margin-left: 10px;">测试批量新增端点</a-button>
 <a-button @click="testDatabaseConnection" style="margin-left: 10px;">测试数据库连接</a-button>
 <a-button @click="testTableStructure" style="margin-left: 10px;">测试表结构</a-button>
+<a-button @click="testFileGeneration" style="margin-left: 10px;">测试文件生成</a-button>
     <!-- select item area -->
     <div class="top-controls-wrapper">
       <div class="left-aligned-section">
@@ -325,6 +326,13 @@ const router = useRouter();
 
 // API calls use constructApiUrl helper
 
+// Helper to build static file URLs from current origin (avoids /api prefix and localhost usage)
+const getStaticFileUrl = (relativePath: string) => {
+  const base = window.location.origin;
+  const path = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+  return `${base}${path}`;
+};
+
 // Export functions for QR code and barcode
 const handleExportQRCode = async (record: DataItem) => {
   try {
@@ -334,8 +342,10 @@ const handleExportQRCode = async (record: DataItem) => {
       return;
     }
 
-    // Create download link for QR code - use direct static file URL
-    const qrCodeUrl = constructApiUrl('') + record.qrCodeFileDirectory;
+    // Create download link for QR code - use direct static file URL from current origin
+    const qrCodeUrl = getStaticFileUrl(record.qrCodeFileDirectory);
+    
+    console.log('QR Code URL:', qrCodeUrl);
     
     // Test if the file exists by making a HEAD request
     try {
@@ -379,8 +389,10 @@ const handleExportBarcode = async (record: DataItem) => {
       return;
     }
 
-    // Create download link for barcode - use direct static file URL
-    const barcodeUrl = constructApiUrl('') + record.barcodeFileDirectory;
+    // Create download link for barcode - use direct static file URL from current origin
+    const barcodeUrl = getStaticFileUrl(record.barcodeFileDirectory);
+    
+    console.log('Barcode URL:', barcodeUrl);
     
     // Test if the file exists by making a HEAD request
     try {
@@ -791,6 +803,7 @@ const createBatchProducts = async () => {
     const productModel = selectedToyProduction.productModel;
     console.log('Searching for related data using product model:', productModel);
     
+    // Enhanced data searching with proper table relationships
     const [productTypeInfo, ipManagementInfo, toyProductionInfo] = await Promise.all([
       searchProductTypeData(productModel),
       searchIPManagementData(batchAddForm.value.productName), // Use product name as IP role
@@ -811,7 +824,7 @@ const createBatchProducts = async () => {
       try {
         const productId = generateUniqueProductId();
         
-        // Generate QR code and barcode
+        // Prepare data for QR code and barcode generation
         const tempProductData = {
           productId,
           productName: batchAddForm.value.productName,
@@ -819,12 +832,16 @@ const createBatchProducts = async () => {
           manufacturer: batchAddForm.value.manufacturer,
           productionBatch: batchAddForm.value.productionBatch,
           ipRole: productTypeInfo?.ipName || batchAddForm.value.productName,
+          ipRoleId: ipManagementInfo?.ipId || '',
+          productTypeId: productTypeInfo?.productTypeId || '',
+          productionBatchId: toyProductionInfo?.productionBatchId || '',
           creationTime: new Date().toISOString().slice(0, 19).replace('T', ' ')
         };
         
+        // Generate QR code and barcode with enhanced data
         const [qrCodePath, barcodePath] = await Promise.all([
-          generateQRCode(tempProductData),
-          generateBarcode(tempProductData)
+          generateEnhancedQRCode(tempProductData),
+          generateEnhancedBarcode(tempProductData)
         ]);
         
         const productData = {
@@ -899,13 +916,67 @@ const createBatchProducts = async () => {
     batchAddLoading.value = false;
   }
 };
-// Generate QR code and save to public folder
+// Generate enhanced QR code with all required data
+const generateEnhancedQRCode = async (productData: any) => {
+  try {
+    const timestamp = Date.now();
+    const productId = productData.productId;
+    const filename = `QR_${productId}_${timestamp}.png`;
+    
+    // Create comprehensive QR code data with all required fields
+    const qrData = {
+      商品ID: productData.productId,
+      IP角色ID: productData.ipRoleId || 'N/A',
+      产品型号ID: productData.productTypeId || 'N/A',
+      产品生产ID: productData.productionBatchId || 'N/A',
+      产品名称: productData.productName,
+      产品型号: productData.productModel,
+      IP角色: productData.ipRole,
+      生产厂家: productData.manufacturer,
+      生产批次: productData.productionBatch,
+      创建时间: productData.creationTime,
+      时间戳: new Date().toISOString()
+    };
+    
+    // Generate QR code as base64 data URL
+    const qrCodeDataUrl = await QRCode.toDataURL(JSON.stringify(qrData, null, 2), {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      },
+      errorCorrectionLevel: 'H' // High error correction for better readability
+    });
+    
+    // Upload the QR code to the server
+    const uploadResponse = await axios.post(constructApiUrl('files/upload'), {
+      fileType: 'qrcode',
+      filename: filename,
+      data: qrCodeDataUrl,
+      productId: productId
+    });
+    
+    if (uploadResponse.data.success) {
+      console.log('Enhanced QR Code uploaded successfully:', uploadResponse.data.filePath);
+      return uploadResponse.data.filePath;
+    } else {
+      throw new Error('Failed to upload enhanced QR code');
+    }
+    
+  } catch (error) {
+    console.error('Error generating enhanced QR code:', error);
+    // Return a default path if generation fails
+    return `/QRcode/default_${Date.now()}.png`;
+  }
+};
+
+// Generate QR code and save to server (legacy function)
 const generateQRCode = async (productData: any) => {
   try {
     const timestamp = Date.now();
     const productId = productData.productId;
     const filename = `${productId}_${timestamp}.png`;
-    const filepath = `/QRcode/${filename}`;
     
     // Create QR code data with product information
     const qrData = JSON.stringify({
@@ -919,7 +990,7 @@ const generateQRCode = async (productData: any) => {
     });
     
     // Generate QR code as base64 data URL
-    await QRCode.toDataURL(qrData, {
+    const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
       width: 200,
       margin: 2,
       color: {
@@ -928,24 +999,86 @@ const generateQRCode = async (productData: any) => {
       }
     });
     
-    // Convert base64 to blob and save (in real application, you'd send this to server)
-    // For now, we'll just return the filepath
-    console.log('QR Code generated for:', productId, 'Data:', qrData);
+    // Upload the QR code to the server
+    const uploadResponse = await axios.post(constructApiUrl('files/upload'), {
+      fileType: 'qrcode',
+      filename: filename,
+      data: qrCodeDataUrl,
+      productId: productId
+    });
     
-    return filepath;
+    if (uploadResponse.data.success) {
+      console.log('QR Code uploaded successfully:', uploadResponse.data.filePath);
+      return uploadResponse.data.filePath;
+    } else {
+      throw new Error('Failed to upload QR code');
+    }
+    
   } catch (error) {
     console.error('Error generating QR code:', error);
+    // Return a default path if generation fails
     return `/QRcode/default_${Date.now()}.png`;
   }
 };
 
-// Generate barcode and save to public folder
+// Generate enhanced barcode with all required data
+const generateEnhancedBarcode = async (productData: any) => {
+  try {
+    const timestamp = Date.now();
+    const productId = productData.productId;
+    const filename = `BAR_${productId}_${timestamp}.png`;
+    
+    // Create a canvas element for barcode generation
+    const canvas = document.createElement('canvas');
+    
+    // Create comprehensive barcode data string with all required fields
+    const barcodeData = `${productData.productId}|${productData.ipRoleId || 'N/A'}|${productData.productTypeId || 'N/A'}|${productData.productionBatchId || 'N/A'}`;
+    
+    // Generate barcode using comprehensive data
+    JsBarcode(canvas, barcodeData, {
+      format: 'CODE128',
+      width: 2,
+      height: 120,
+      displayValue: true,
+      fontSize: 14,
+      textAlign: 'center',
+      textPosition: 'bottom',
+      margin: 15,
+      background: '#FFFFFF',
+      lineColor: '#000000'
+    });
+    
+    // Convert canvas to base64 data URL
+    const barcodeDataUrl = canvas.toDataURL('image/png');
+    
+    // Upload the barcode to the server
+    const uploadResponse = await axios.post(constructApiUrl('files/upload'), {
+      fileType: 'barcode',
+      filename: filename,
+      data: barcodeDataUrl,
+      productId: productId
+    });
+    
+    if (uploadResponse.data.success) {
+      console.log('Enhanced Barcode uploaded successfully:', uploadResponse.data.filePath);
+      return uploadResponse.data.filePath;
+    } else {
+      throw new Error('Failed to upload enhanced barcode');
+    }
+    
+  } catch (error) {
+    console.error('Error generating enhanced barcode:', error);
+    // Return a default path if generation fails
+    return `/barcode/default_${Date.now()}.png`;
+  }
+};
+
+// Generate barcode and save to server (legacy function)
 const generateBarcode = async (productData: any) => {
   try {
     const timestamp = Date.now();
     const productId = productData.productId;
     const filename = `${productId}_${timestamp}.png`;
-    const filepath = `/barcode/${filename}`;
     
     // Create a canvas element for barcode generation
     const canvas = document.createElement('canvas');
@@ -962,14 +1095,29 @@ const generateBarcode = async (productData: any) => {
       margin: 10
     });
     
-    // In real application, you'd save the canvas data to server
-    console.log('Barcode generated for:', productId);
+    // Convert canvas to base64 data URL
+    const barcodeDataUrl = canvas.toDataURL('image/png');
     
-    return filepath;
+    // Upload the barcode to the server
+    const uploadResponse = await axios.post(constructApiUrl('files/upload'), {
+      fileType: 'barcode',
+      filename: filename,
+      data: barcodeDataUrl,
+      productId: productId
+    });
+    
+    if (uploadResponse.data.success) {
+      console.log('Barcode uploaded successfully:', uploadResponse.data.filePath);
+      return uploadResponse.data.filePath;
+    } else {
+      throw new Error('Failed to upload barcode');
+    }
+    
   } catch (error) {
     console.error('Error generating barcode:', error);
+    // Return a default path if generation fails
     return `/barcode/default_${Date.now()}.png`;
-  }
+    }
 };
 
 const handleConfirmationCancel = () => {
@@ -1384,6 +1532,44 @@ const testTableStructure = async () => {
       console.error('Response data:', error.response.data);
     }
     message.error('表结构测试失败');
+  }
+};
+
+// Test file generation
+const testFileGeneration = async () => {
+  try {
+    console.log('Testing file generation...');
+    
+    // Test data with enhanced information
+    const testProductData = {
+      productId: 'TEST_' + Date.now(),
+      productName: '测试产品',
+      productModel: '测试型号',
+      manufacturer: '测试厂家',
+      productionBatch: '2025-01-27',
+      ipRole: '测试角色',
+      ipRoleId: 'IP_001',
+      productTypeId: 'PT_001',
+      productionBatchId: 'PB_001',
+      creationTime: new Date().toISOString().slice(0, 19).replace('T', ' ')
+    };
+    
+    // Generate and upload enhanced QR code
+    console.log('Generating enhanced QR code...');
+    const qrCodePath = await generateEnhancedQRCode(testProductData);
+    console.log('Enhanced QR Code path:', qrCodePath);
+    
+    // Generate and upload enhanced barcode
+    console.log('Generating enhanced barcode...');
+    const barcodePath = await generateEnhancedBarcode(testProductData);
+    console.log('Enhanced Barcode path:', barcodePath);
+    
+    message.success('增强文件生成测试成功！');
+    console.log('Enhanced test completed successfully');
+    
+  } catch (error: any) {
+    console.error('Enhanced file generation test failed:', error);
+    message.error('增强文件生成测试失败: ' + (error.message || '未知错误'));
   }
 };
 // updateProductList function removed - not used in this component
