@@ -767,8 +767,8 @@ const createBatchProducts = async () => {
           subAccountId: '', // Can be null as requested
           fileExportTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // Use current datetime
           firstBindingTime: new Date().toISOString().slice(0, 19).replace('T', ' '), // Use current datetime
-          creatorId: 1
-          // creationTime is handled by the database automatically
+          creatorId: 1,
+          creationTime: new Date().toISOString().slice(0, 19).replace('T', ' ') // Provide creation_time for cloud backend
         };
         
         console.log(`Creating enhanced product ${i + 1}/${batchAddForm.value.quantity}:`, productData);
@@ -1162,14 +1162,15 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
       sub_account_id: productListData.subAccountId || '', // Allow empty as requested
       file_export_time: productListData.fileExportTime || new Date().toISOString().slice(0, 19).replace('T', ' '), // Use provided datetime or current
       first_binding_time: productListData.firstBindingTime || new Date().toISOString().slice(0, 19).replace('T', ' '), // Use provided datetime or current
-      creator_id: productListData.creatorId || 1
+      creator_id: productListData.creatorId || 1,
+      creation_time: productListData.creationTime || new Date().toISOString().slice(0, 19).replace('T', ' ') // Provide creation_time for cloud backend
     };
     
-    // Debug: Verify we have exactly 18 fields as expected by the database
+    // Debug: Verify we have exactly 19 fields as expected by the database (including creation_time)
     console.log('Number of fields being sent:', Object.keys(apiData).length);
-    console.log('Expected: 18 fields');
-    if (Object.keys(apiData).length !== 18) {
-      console.error('FIELD COUNT MISMATCH! Expected 18, got:', Object.keys(apiData).length);
+    console.log('Expected: 19 fields');
+    if (Object.keys(apiData).length !== 19) {
+      console.error('FIELD COUNT MISMATCH! Expected 19, got:', Object.keys(apiData).length);
     }
     
     console.log('Sending API data (matching DB schema):', apiData);
