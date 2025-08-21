@@ -35,7 +35,7 @@ import { resolve } from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/30_HEWAN_PAGE/' : '/',
+  base: '/', // Always use root path for cloud deployment
   plugins: [vue()],
   resolve: {
     alias: {
