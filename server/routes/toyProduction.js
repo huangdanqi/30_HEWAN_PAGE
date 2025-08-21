@@ -11,12 +11,12 @@ router.get('/', async (req, res) => {
     const offset = (page - 1) * pageSize;
     
     // Get total count
-    const [countResult] = await pool.execute('SELECT COUNT(*) as total FROM toy_production');
+    const [countResult] = await pool.execute('SELECT COUNT(*) as total FROM toy_production_new');
     const total = countResult[0].total;
     
     // Get paginated data
     const [rows] = await pool.execute(
-      `SELECT * FROM toy_production ORDER BY create_time DESC LIMIT ${pageSize} OFFSET ${offset}`
+      `SELECT * FROM toy_production_new ORDER BY create_time DESC LIMIT ${pageSize} OFFSET ${offset}`
     );
     
     console.log('Raw database rows:', rows);
@@ -63,7 +63,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT * FROM toy_production WHERE id = ?',
+      'SELECT * FROM toy_production_new WHERE id = ?',
       [req.params.id]
     );
     if (rows.length === 0) {
@@ -114,7 +114,7 @@ router.post('/', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO toy_production (product_id, device_model, product_name, production_batch, manufacturer, unit_price, quantity, creator) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO toy_production_new (production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id]
     );
 
@@ -148,7 +148,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      'UPDATE toy_production SET product_id = ?, device_model = ?, product_name = ?, production_batch = ?, manufacturer = ?, unit_price = ?, quantity = ?, creator = ? WHERE id = ?',
+      'UPDATE toy_production_new SET production_batch_id = ?, product_model = ?, product_name = ?, production_batch_date = ?, manufacturer = ?, unit_price = ?, quantity = ?, updater_id = ? WHERE id = ?',
       [production_batch_id, product_model, product_name, production_batch_date, manufacturer, unit_price, quantity, updater_id, req.params.id]
     );
 
@@ -167,7 +167,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const [result] = await pool.execute(
-      'DELETE FROM toy_production WHERE id = ?',
+      'DELETE FROM toy_production_new WHERE id = ?',
       [req.params.id]
     );
 
@@ -187,7 +187,7 @@ router.get('/product/:productName', async (req, res) => {
   try {
     const productName = req.params.productName;
     const [rows] = await pool.execute(
-      'SELECT * FROM toy_production WHERE product_name LIKE ? ORDER BY create_time DESC',
+      'SELECT * FROM toy_production_new WHERE product_name LIKE ? ORDER BY create_time DESC',
       [`%${productName}%`]
     );
 
@@ -217,7 +217,7 @@ router.get('/product/:productName', async (req, res) => {
 router.get('/manufacturer/:manufacturer', async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT * FROM toy_production WHERE manufacturer LIKE ? ORDER BY create_time DESC',
+      'SELECT * FROM toy_production_new WHERE manufacturer LIKE ? ORDER BY create_time DESC',
       [`%${req.params.manufacturer}%`]
     );
     
