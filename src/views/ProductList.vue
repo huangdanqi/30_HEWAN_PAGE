@@ -1437,7 +1437,7 @@ const columnConfigs = [
   }},
   { key: 'creationTime', title: '创建时间', dataIndex: 'creationTime', width: 160, sorter: (a: any, b: any) => new Date(a.creationTime).getTime() - new Date(b.creationTime).getTime(), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => new Date(a.updateTime).getTime() - new Date(b.updateTime).getTime(), sortDirections: ['ascend', 'descend'] },
-  { key: 'operation', title: '操作', dataIndex: 'operation', width: 200, fixed: 'right' },
+  { key: 'operation', title: '操作', dataIndex: 'operation', width: 280, fixed: 'right' },
   // ... rest of your columns remain the same
 ];
 // Store column order and visibility separately
@@ -2074,7 +2074,7 @@ const handleDeleteRecord = async (record: DataItem) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .left-aligned-section {
@@ -2123,7 +2123,7 @@ html, body {
 }
 
 .table-container {
-  padding: 10px ;
+  padding: 5px;
   padding-right: 50px;
 }
 
@@ -2131,6 +2131,27 @@ html, body {
 .select-container {
   position: relative;
   display: inline-block;
+  margin-bottom: 0;
+}
+
+/* Reduce spacing between filter elements */
+.left-aligned-section .select-container {
+  margin-right: 8px;
+}
+
+.left-aligned-section .select-container:last-child {
+  margin-right: 0;
+}
+
+/* Make the overall layout more compact */
+.top-controls-wrapper {
+  padding: 5px 0;
+}
+
+/* Reduce any extra spacing in the main content area */
+.main-content {
+  margin-top: 0;
+  padding-top: 0;
 }
 .select-always-placeholder {
   position: absolute;
@@ -2284,6 +2305,84 @@ html, body {
 /* Modal styling */
 .modal-content {
   padding: 20px 0;
+}
+
+/* Remove padding from form fields to align text to top-left */
+:deep(.ant-form-item-control-input) {
+  min-height: auto;
+}
+
+:deep(.ant-form-item-control-input-content) {
+  line-height: 1;
+}
+
+:deep(.ant-select-selector) {
+  padding: 0 !important;
+  height: auto !important;
+  min-height: 32px;
+}
+
+:deep(.ant-select-selection-item) {
+  padding: 4px 0 !important;
+  line-height: 1.2 !important;
+}
+
+:deep(.ant-input-number) {
+  padding: 0 !important;
+}
+
+:deep(.ant-input-number-input) {
+  padding: 4px 0 !important;
+  line-height: 1.2 !important;
+}
+
+:deep(.ant-select-selection-placeholder) {
+  padding: 4px 0 !important;
+  line-height: 1.2 !important;
+}
+
+/* Additional styling to ensure minimal padding and top-left alignment */
+:deep(.ant-form-item) {
+  margin-bottom: 16px;
+}
+
+:deep(.ant-form-item-label) {
+  padding-bottom: 4px;
+}
+
+:deep(.ant-form-item-label > label) {
+  height: auto;
+  line-height: 1.2;
+}
+
+:deep(.ant-select) {
+  width: 100%;
+}
+
+:deep(.ant-select-selection-search-input) {
+  padding: 4px 0 !important;
+  line-height: 1.2 !important;
+}
+
+/* Ensure consistent height and alignment */
+:deep(.ant-select-selector),
+:deep(.ant-input-number),
+:deep(.ant-input) {
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+}
+
+:deep(.ant-select-selector:hover),
+:deep(.ant-input-number:hover),
+:deep(.ant-input:hover) {
+  border-color: #40a9ff;
+}
+
+:deep(.ant-select-selector:focus),
+:deep(.ant-input-number:focus),
+:deep(.ant-input:focus) {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
 .section-header {
