@@ -22,6 +22,7 @@
               :allowClear="true"
               label-in-value
               class="product-name-select"
+              :loading="productTypeLoading"
             >
               <a-select-option value="all">全部</a-select-option>
             </a-select>
@@ -198,50 +199,73 @@
     >
       <a-form layout="vertical" :model="batchFormData" :rules="batchFormRules" ref="batchFormRef">
         <a-form-item required label="产品名称" name="productName">
-          <a-select 
-            v-model:value="batchFormData.productName" 
-            placeholder="请选择"
-            show-search
-            :options="productNameOptions"
-            :filter-option="filterProductOptions"
-          />
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <a-select 
+              v-model:value="batchFormData.productName" 
+              placeholder="请选择产品名称"
+              show-search
+              :options="productNameOptions"
+              :filter-option="filterProductOptions"
+              :allowClear="false"
+              :loading="productTypeLoading"
+              style="flex: 1;"
+            />
+            <a-button 
+              v-if="productTypeProductNames.length === 0 && !productTypeLoading" 
+              type="link" 
+              size="small" 
+              @click="retryFetchProductNames"
+              style="flex-shrink: 0;"
+            >
+              重试
+            </a-button>
+          </div>
         </a-form-item>
         <a-form-item required label="生产批次" name="productionBatch">
           <a-date-picker 
             v-model:value="batchFormData.productionBatch" 
             style="width: 100%;" 
-            placeholder="请选择"
+            placeholder="请选择生产批次日期"
             format="YYYY-MM-DD"
+            :allowClear="false"
           />
         </a-form-item>
         <a-form-item required label="生产厂家" name="manufacturer">
           <a-auto-complete
             v-model:value="batchFormData.manufacturer"
-            placeholder="请输入"
+            placeholder="请输入生产厂家名称"
             :maxlength="15"
             :options="batchManufacturerOptions"
             @input="handleManufacturerInput"
+            @search="handleManufacturerSearch"
             allow-clear
+            show-search
           />
         </a-form-item>
-        <a-form-item required label="单价" name="unitPrice">
-          <a-input 
-            v-model:value="batchFormData.unitPrice" 
-            suffix="元" 
-            placeholder="请输入"
-            type="number"
-            step="0.01"
-            min="0"
-          />
-        </a-form-item>
+                  <a-form-item required label="单价" name="unitPrice">
+            <a-input-number
+              v-model:value="batchFormData.unitPrice" 
+              suffix="元" 
+              placeholder="请输入单价"
+              :min="0.01"
+              :step="0.01"
+              :precision="2"
+              style="width: 100%"
+              :formatter="(value: number | string | undefined) => `${value || 0}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+              :parser="(value: string | undefined) => (value || '').replace(/\$\s?|(,*)/g, '')"
+            />
+          </a-form-item>
         <a-form-item required label="数量" name="quantity">
-          <a-input 
+          <a-input-number
             v-model:value="batchFormData.quantity" 
             suffix="个" 
-            placeholder="请输入"
-            type="number"
-            min="1"
-            step="1"
+            placeholder="请输入数量"
+            :min="1"
+            :step="1"
+            :precision="0"
+            style="width: 100%"
+            :formatter="(value: number | string | undefined) => `${value || 0}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+            :parser="(value: string | undefined) => (value || '').replace(/\$\s?|(,*)/g, '')"
           />
         </a-form-item>
       </a-form>
@@ -251,65 +275,107 @@
     <a-modal
       v-model:open="showEditBatchModal"
       title="编辑批次"
-      @ok="handleEditBatchOk"
       @cancel="handleEditBatchModalClose"
       width="500px"
+      :confirmLoading="editFormLoading"
+      :okButtonProps="{ disabled: editFormLoading }"
+      :cancelButtonProps="{ disabled: editFormLoading }"
     >
       <a-form layout="vertical" :model="editBatchFormData" :rules="editBatchFormRules" ref="editBatchFormRef">
         <a-form-item required label="产品名称" name="productName">
-          <a-select 
-            v-model:value="editBatchFormData.productName" 
-            placeholder="请选择"
-            show-search
-            :options="productNameOptions"
-            :filter-option="filterProductOptions"
-            :disabled="isEditFieldsDisabled"
-            class="disabled-field"
-          />
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <a-select 
+              v-model:value="editBatchFormData.productName" 
+              placeholder="请选择产品名称"
+              show-search
+              :options="productNameOptions"
+              :filter-option="filterProductOptions"
+              :disabled="isEditFieldsDisabled"
+              class="disabled-field"
+              :allowClear="false"
+              :loading="productTypeLoading"
+              style="flex: 1;"
+            />
+            <a-button 
+              v-if="productTypeProductNames.length === 0 && !productTypeLoading" 
+              type="link" 
+              size="small" 
+              @click="retryFetchProductNames"
+              style="flex-shrink: 0;"
+            >
+              重试
+            </a-button>
+          </div>
         </a-form-item>
         <a-form-item required label="生产批次" name="productionBatch">
           <a-date-picker 
             v-model:value="editBatchFormData.productionBatch" 
             style="width: 100%;" 
-            placeholder="请选择"
+            placeholder="请选择生产批次日期"
             format="YYYY-MM-DD"
             :disabled="isEditFieldsDisabled"
             class="disabled-field"
+            :allowClear="false"
           />
         </a-form-item>
         <a-form-item required label="生产厂家" name="manufacturer">
           <a-auto-complete
             v-model:value="editBatchFormData.manufacturer"
-            placeholder="请输入"
+            placeholder="请输入生产厂家名称"
             :maxlength="15"
             :options="batchManufacturerOptions"
             @input="handleEditManufacturerInput"
-            allow-clear
+            @search="handleManufacturerSearch"
+            :allow-clear="!isEditFieldsDisabled"
+            show-search
             :disabled="isEditFieldsDisabled"
             class="disabled-field"
           />
         </a-form-item>
         <a-form-item required label="单价" name="unitPrice">
-          <a-input 
+          <a-input-number
             v-model:value="editBatchFormData.unitPrice" 
             suffix="元" 
-            placeholder="请输入"
-            type="number"
-            step="0.01"
-            min="0"
+            placeholder="请输入单价"
+            :min="0.01"
+            :step="0.01"
+            :precision="2"
+            style="width: 100%"
+            :formatter="(value: number | string | undefined) => `${value || 0}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+            :parser="(value: string | undefined) => (value || '').replace(/\$\s?|(,*)/g, '')"
           />
         </a-form-item>
         <a-form-item required label="数量" name="quantity">
           <a-input-number
-            v-model:value="editBatchFormData.quantity"
-            suffix="个"
-            placeholder="请输入"
+            v-model:value="editBatchFormData.quantity" 
+            suffix="个" 
+            placeholder="请输入数量"
             :min="1"
             :step="1"
+            :precision="0"
             style="width: 100%"
+            :formatter="(value: number | string | undefined) => `${value || 0}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+            :parser="(value: string | undefined) => (value || '').replace(/\$\s?|(,*)/g, '')"
           />
         </a-form-item>
       </a-form>
+      
+      <!-- Custom footer with confirm button -->
+      <template #footer>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <a-button @click="handleEditBatchModalClose" :disabled="editFormLoading">
+            取消
+          </a-button>
+          <a-button 
+            type="primary" 
+            @click="handleEditBatchOk"
+            :loading="editFormLoading"
+            :disabled="editFormLoading"
+          >
+            {{ editFormLoading ? '更新中...' : '确定' }}
+          </a-button>
+        </div>
+      </template>
     </a-modal>
 
   </a-config-provider>
@@ -334,8 +400,15 @@ import {
 } from '../utils/tableConfig';
 import { constructApiUrl } from '../utils/api';
 import dayjs from 'dayjs';
+import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
+const authStore = useAuthStore();
+
+// Get current username from auth store
+const currentUsername = computed(() => {
+  return authStore.user?.name || authStore.user?.username || '管理员';
+});
 
 const customLocale = computed(() => ({
   ...zh_CN,
@@ -358,6 +431,7 @@ interface DataItem {
   quantity: number; // 数量(个)
   totalPrice: number; // 总价(元)
   updater: string; // 更新人
+  creator: string; // 创建人
   createTime: string; // 创建时间
   updateTime: string; // 更新时间
 }
@@ -385,7 +459,7 @@ const columnConfigs = [
   { key: 'unitPrice', title: '单价(元)', dataIndex: 'unitPrice', width: 100, sorter: (a: any, b: any) => a.unitPrice - b.unitPrice, sortDirections: ['ascend', 'descend'] },
   { key: 'quantity', title: '数量(个)', dataIndex: 'quantity', width: 100, sorter: (a: any, b: any) => a.quantity - b.quantity, sortDirections: ['ascend', 'descend'] },
   { key: 'totalPrice', title: '总价(元)', dataIndex: 'totalPrice', width: 120, sorter: (a: any, b: any) => a.totalPrice - b.totalPrice, sortDirections: ['ascend', 'descend'] },
-  { key: 'updater', title: '更新人', dataIndex: 'updater', width: 100, sorter: (a: any, b: any) => (a.updater || '').localeCompare(b.updater || ''), sortDirections: ['ascend', 'descend'] },
+  { key: 'updater', title: '更新人', dataIndex: 'creator', width: 100, sorter: (a: any, b: any) => (a.creator || '').localeCompare(b.creator || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'createTime', title: '创建时间', dataIndex: 'createTime', width: 160, sorter: (a: any, b: any) => a.createTime.localeCompare(b.createTime), sortDirections: ['ascend', 'descend'] },
   { key: 'updateTime', title: '更新时间', dataIndex: 'updateTime', width: 160, sorter: (a: any, b: any) => a.updateTime.localeCompare(b.updateTime), sortDirections: ['ascend', 'descend'], defaultSortOrder: 'descend' },
   { key: 'operation', title: '操作', dataIndex: 'operation', width: 200, fixed: 'right' },
@@ -424,8 +498,8 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
         }
         // Handle updater column - show updater or fallback to creator
         if (config.key === 'updater') {
-          const updaterValue = record.updater || record.creator;
-          return updaterValue && updaterValue !== '' ? updaterValue : '未设置';
+          const creatorValue = record.creator;
+          return creatorValue && creatorValue !== '' ? creatorValue : '未设置';
         }
         // Default rendering for other columns
         return text === undefined || text === null || text === '' ? '-' : text;
@@ -478,6 +552,103 @@ const total = ref<number>(0); // Ensure it's typed as number
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // API functions
+const fetchProductTypeProductNames = async () => {
+  try {
+    productTypeLoading.value = true;
+    console.log('=== FETCHING PRODUCT TYPE PRODUCT NAMES ===');
+    
+    const response = await axios.get(constructApiUrl('product-type'));
+    
+    if (response.data && Array.isArray(response.data)) {
+      // Extract unique product names from the product-type data
+      const productNames = Array.from(new Set(response.data.map((item: any) => 
+        item.productName || item.product_name || ''
+      ))).filter(name => name && name.trim() !== '');
+      
+      productTypeProductNames.value = productNames;
+      console.log('=== PRODUCT TYPE PRODUCT NAMES FETCHED ===');
+      console.log('Product names count:', productNames.length);
+      console.log('Product names:', productNames);
+      
+      if (productNames.length === 0) {
+        message.warning('产品类型表中暂无产品名称数据');
+      }
+    } else {
+      console.log('No valid data in product-type response');
+      productTypeProductNames.value = [];
+      message.warning('产品类型表数据格式异常');
+    }
+  } catch (error: any) {
+    console.error('Error fetching product type product names:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+    productTypeProductNames.value = [];
+    
+    if (error.response?.status === 404) {
+      message.error('产品类型表不存在，请检查数据库');
+    } else if (error.response?.status === 500) {
+      message.error('获取产品名称失败：服务器错误');
+    } else if (error.request) {
+      message.error('获取产品名称失败：网络连接错误');
+    } else {
+      message.error(`获取产品名称失败：${error.message}`);
+    }
+  } finally {
+    productTypeLoading.value = false;
+  }
+};
+
+// API function to update toy production record
+const updateToyProduction = async (id: number, updateData: Partial<DataItem>) => {
+  try {
+    console.log('=== UPDATE TOY PRODUCTION API CALL ===');
+    console.log('ID:', id);
+    console.log('Update data:', updateData);
+    console.log('Current username being sent:', currentUsername.value);
+    
+    // Prepare payload for API - match the backend expected format (snake_case)
+    const payload = {
+      product_id: updateData.productionBatchId,
+      device_model: updateData.productModel,
+      product_name: updateData.productName,
+      production_batch: updateData.productionBatchDate,
+      manufacturer: updateData.manufacturer,
+      unit_price: updateData.unitPrice,
+      quantity: updateData.quantity,
+      updater: updateData.updater,
+      creator: updateData.creator
+    };
+    
+    console.log('PUT /toy-production payload:', payload);
+    console.log('Making PUT request to:', constructApiUrl(`toy-production/${id}`));
+    
+    const response = await axios.put(constructApiUrl(`toy-production/${id}`), payload);
+    console.log('PUT response received:', response);
+    console.log('Response data:', response.data);
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('=== Error in updateToyProduction ===');
+    console.error('Error details:', error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errorResponse = error as any;
+      console.error('Error response status:', errorResponse.response?.status);
+      console.error('Error response data:', errorResponse.response?.data);
+    }
+    throw error;
+  }
+};
+
+// Function to retry fetching product names
+const retryFetchProductNames = () => {
+  console.log('Retrying to fetch product names...');
+  fetchProductTypeProductNames();
+};
+
 const fetchToyProductionData = async () => {
   try {
     loading.value = true;
@@ -520,6 +691,7 @@ const fetchToyProductionData = async () => {
         console.log('quantity:', firstItem.quantity);
         console.log('totalPrice:', firstItem.totalPrice);
         console.log('updater:', firstItem.updater);
+        console.log('creator:', firstItem.creator);
         console.log('createTime:', firstItem.createTime);
         console.log('updateTime:', firstItem.updateTime);
       }
@@ -540,6 +712,7 @@ const fetchToyProductionData = async () => {
           quantity: typeof item.quantity === 'number' ? item.quantity : parseInt(item.quantity) || 0,
           totalPrice: typeof item.totalPrice === 'number' ? item.totalPrice : parseFloat(String(item.totalPrice).replace(/,/g, '')) || 0,
           updater: item.updater || item.creator || '未设置',
+          creator: item.creator || item.updater || '未设置',
           createTime: item.createTime || '',
           updateTime: item.updateTime || ''
         };
@@ -619,8 +792,24 @@ const deviceModelOptions = computed(() => {
 });
 
 const productNameOptions = computed(() => {
-  const unique = Array.from(new Set(rawData.value.map(item => item.productName)));
-  return [{ key: 'all', value: 'all', label: '全部' }, ...unique.map(v => ({ key: v, value: v, label: v }))];
+  // Use product names from product-type API instead of toy production data
+  if (productTypeProductNames.value.length > 0) {
+    return [
+      { key: 'all', value: 'all', label: '全部' }, 
+      ...productTypeProductNames.value.map(v => ({ key: v, value: v, label: v }))
+    ];
+  } else {
+    // Fallback to toy production data if product-type API hasn't loaded yet
+    const unique = Array.from(new Set(rawData.value.map(item => item.productName)));
+    const fallbackOptions = unique.map(v => ({ key: v, value: v, label: v }));
+    
+    // If no fallback options either, show a message
+    if (fallbackOptions.length === 0 && !productTypeLoading.value) {
+      console.warn('No product names available from either source');
+    }
+    
+    return [{ key: 'all', value: 'all', label: '全部' }, ...fallbackOptions];
+  }
 });
 
 const manufacturerOptions = computed(() => {
@@ -632,6 +821,10 @@ const batchManufacturerOptions = computed(() => {
   const unique = Array.from(new Set(rawData.value.map(item => item.manufacturer)));
   return unique.map(v => ({ key: v, value: v, label: v }));
 });
+
+// New reactive variable to store product names from product-type API
+const productTypeProductNames = ref<string[]>([]);
+const productTypeLoading = ref(false);
 
 const handleProductNameChange = (val: any) => {
   productNameValue.value = !val || !val.value || val.value === 'all'
@@ -689,8 +882,9 @@ const onRefresh = () => {
   productNameValue.value = { key: 'all', label: '全部', value: 'all' };
   manufacturerValue.value = { key: 'all', label: '全部', value: 'all' };
 
-  // Fetch fresh data from API
-  fetchToyProductionData();
+  // Fetch fresh data from APIs
+  fetchProductTypeProductNames(); // Refresh product names from product-type API
+  fetchToyProductionData(); // Fetch fresh data from API
 };
 
 const searchInputValue = ref('');
@@ -780,6 +974,19 @@ watch([filteredData, columns], ([newFilteredData, newColumns]) => {
   console.log('columns changed:', newColumns);
   console.log('filteredData length:', newFilteredData.length);
   console.log('columns length:', newColumns.length);
+}, { immediate: true });
+
+// Watch for product names changes
+watch(productTypeProductNames, (newProductNames) => {
+  console.log('=== PRODUCT NAMES CHANGED ===');
+  console.log('New product names count:', newProductNames.length);
+  console.log('New product names:', newProductNames);
+}, { immediate: true });
+
+// Watch for username changes
+watch(currentUsername, (newUsername) => {
+  console.log('=== USERNAME CHANGED ===');
+  console.log('New username:', newUsername);
 }, { immediate: true });
 
 const handleTableChange = (
@@ -875,8 +1082,8 @@ const handleEditRecord = (record: any) => {
     productName: record.productName || '',
     productionBatch: record.productionBatchDate ? dayjs(record.productionBatchDate) : null,
     manufacturer: record.manufacturer || '',
-    unitPrice: record.unitPrice?.toString() || '',
-    quantity: record.quantity?.toString() || '',
+    unitPrice: record.unitPrice || 0,
+    quantity: record.quantity || 1,
   };
   
   editRecord.value = record;
@@ -907,13 +1114,20 @@ const handleProductCreateSubmit = (_data: any) => {
 const showBatchModal = ref(false);
 const handleBatchOk = async () => {
   try {
+    // Check if product names are available
+    if (productTypeProductNames.value.length === 0) {
+      message.error('产品名称列表未加载，请重试');
+      return;
+    }
+    
     // Validate form
     await batchFormRef.value.validate();
     
     // Check uniqueness: Product Name + Production Batch + Manufacturer combination must be unique
+    const productionBatchDate = batchFormData.value.productionBatch ? batchFormData.value.productionBatch.format('YYYY-MM-DD') : '';
     const isDuplicate = rawData.value.some(item => 
       item.productName === batchFormData.value.productName &&
-      item.productionBatchDate === batchFormData.value.productionBatch &&
+      item.productionBatchDate === productionBatchDate &&
       item.manufacturer === batchFormData.value.manufacturer
     );
     
@@ -923,7 +1137,7 @@ const handleBatchOk = async () => {
     }
     
     // Calculate total price
-    const totalPrice = (parseFloat(batchFormData.value.unitPrice) || 0) * (parseInt(batchFormData.value.quantity) || 0);
+    const totalPrice = (batchFormData.value.unitPrice || 0) * (batchFormData.value.quantity || 0);
     
     // Prepare data for API - match the backend expected format (snake_case)
     const newBatchData = {
@@ -932,10 +1146,15 @@ const handleBatchOk = async () => {
       product_name: batchFormData.value.productName,
       production_batch: batchFormData.value.productionBatch ? batchFormData.value.productionBatch.format('YYYY-MM-DD') : '',
       manufacturer: batchFormData.value.manufacturer,
-      unit_price: parseFloat(batchFormData.value.unitPrice) || 0,
-      quantity: parseInt(batchFormData.value.quantity) || 0,
-      creator: 1 // Default creator ID
+      unit_price: batchFormData.value.unitPrice || 0,
+      quantity: batchFormData.value.quantity || 0,
+      creator: currentUsername.value, // Use dynamic username from auth store
+      updater: currentUsername.value // Use dynamic username from auth store
     };
+    
+    console.log('=== CREATING NEW BATCH WITH DYNAMIC USERNAME ===');
+    console.log('Current username:', currentUsername.value);
+    console.log('New batch data:', newBatchData);
     
     // Send data to MySQL database via API
     const response = await axios.post(constructApiUrl('toy-production'), newBatchData);
@@ -955,7 +1174,8 @@ const handleBatchOk = async () => {
         unitPrice: newBatchData.unit_price,
         quantity: newBatchData.quantity,
         totalPrice: totalPrice,
-        updater: String(newBatchData.creator),
+        updater: currentUsername.value,
+        creator: currentUsername.value,
         createTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
         updateTime: new Date().toISOString().replace('T', ' ').substring(0, 19)
       };
@@ -988,8 +1208,8 @@ const resetBatchForm = () => {
     productName: '',
     productionBatch: null,
     manufacturer: '',
-    unitPrice: '',
-    quantity: '',
+    unitPrice: 0,
+    quantity: 1,
   };
   // Clear form validation errors
   if (batchFormRef.value) {
@@ -1006,8 +1226,8 @@ const batchFormData = ref({
   productName: '',
   productionBatch: null as any,
   manufacturer: '',
-  unitPrice: '',
-  quantity: '',
+  unitPrice: 0,
+  quantity: 1,
 });
 
 const batchFormRules = {
@@ -1019,11 +1239,11 @@ const batchFormRules = {
   ],
   unitPrice: [
     { required: true, message: '请输入单价' },
-    { pattern: /^[0-9]+(\.[0-9]{1,2})?$/, message: '请输入有效的价格，最多支持2位小数' }
+    { type: 'number', min: 0.01, message: '单价必须大于0，最多支持2位小数' }
   ],
   quantity: [
     { required: true, message: '请输入数量' },
-    { pattern: /^[1-9][0-9]*$/, message: '请输入正整数' }
+    { type: 'number', min: 1, message: '数量必须为正整数' }
   ],
 };
 
@@ -1039,13 +1259,22 @@ const handleManufacturerInput = (e: Event) => {
   batchFormData.value.manufacturer = value.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, ''); // 只允许中英文数字
 };
 
+const handleManufacturerSearch = (value: string) => {
+  // Filter manufacturer options based on search input
+  const searchValue = value.toLowerCase();
+  const filteredOptions = batchManufacturerOptions.value.filter(option => 
+    option.label.toLowerCase().includes(searchValue)
+  );
+  return filteredOptions;
+};
+
 const showEditBatchModal = ref(false);
 const editBatchFormData = ref({
   productName: '',
   productionBatch: null as any,
   manufacturer: '',
-  unitPrice: '',
-  quantity: '',
+  unitPrice: 0,
+  quantity: 1,
 });
 
 const editBatchFormRules = {
@@ -1057,18 +1286,28 @@ const editBatchFormRules = {
   ],
   unitPrice: [
     { required: true, message: '请输入单价' },
-    { pattern: /^[0-9]+(\.[0-9]{1,2})?$/, message: '请输入有效的价格，最多支持2位小数' }
+    { type: 'number', min: 0.01, message: '单价必须大于0，最多支持2位小数' }
   ],
   quantity: [
     { required: true, message: '请输入数量' },
-    { pattern: /^[1-9][0-9]*$/, message: '请输入正整数' }
+    { type: 'number', min: 1, message: '数量必须为正整数' }
   ],
 };
 
 const isEditFieldsDisabled = ref(false);
+const editFormLoading = ref(false);
 
 const handleEditBatchOk = async () => {
   try {
+    // Check if product names are available
+    if (productTypeProductNames.value.length === 0) {
+      message.error('产品名称列表未加载，请重试');
+      return;
+    }
+    
+    // Set loading state
+    editFormLoading.value = true;
+    
     await editBatchFormRef.value.validate();
 
     const originalRecord = rawData.value.find(item => item.id === editRecord.value.id);
@@ -1077,9 +1316,10 @@ const handleEditBatchOk = async () => {
       return;
     }
 
+    const productionBatchDate = editBatchFormData.value.productionBatch ? editBatchFormData.value.productionBatch.format('YYYY-MM-DD') : '';
     const isDuplicate = rawData.value.some(item => 
       item.productName === editBatchFormData.value.productName &&
-      item.productionBatchDate === editBatchFormData.value.productionBatch &&
+      item.productionBatchDate === productionBatchDate &&
       item.manufacturer === editBatchFormData.value.manufacturer &&
       item.id !== originalRecord.id // Exclude the current record itself
     );
@@ -1094,22 +1334,64 @@ const handleEditBatchOk = async () => {
       productName: editBatchFormData.value.productName,
       productionBatchDate: editBatchFormData.value.productionBatch ? editBatchFormData.value.productionBatch.format('YYYY-MM-DD') : '',
       manufacturer: editBatchFormData.value.manufacturer,
-      unitPrice: parseFloat(editBatchFormData.value.unitPrice) || 0,
-      quantity: parseInt(editBatchFormData.value.quantity) || 0,
-      totalPrice: (parseFloat(editBatchFormData.value.unitPrice) || 0) * (parseInt(editBatchFormData.value.quantity) || 0),
+      unitPrice: editBatchFormData.value.unitPrice || 0,
+      quantity: editBatchFormData.value.quantity || 0,
+      totalPrice: (editBatchFormData.value.unitPrice || 0) * (editBatchFormData.value.quantity || 0),
+      updater: currentUsername.value, // Use dynamic username from auth store
       updateTime: new Date().toISOString(),
     };
+    
+    console.log('=== UPDATING BATCH WITH DYNAMIC USERNAME ===');
+    console.log('Current username:', currentUsername.value);
+    console.log('Updated record:', updatedRecord);
 
-    const index = rawData.value.findIndex(item => item.id === originalRecord.id);
-    if (index !== -1) {
-      rawData.value[index] = updatedRecord;
+    // Call API to update the record in the backend
+    try {
+      await updateToyProduction(originalRecord.id!, updatedRecord);
+      console.log('=== BACKEND UPDATE SUCCESSFUL ===');
+      
+      // Update frontend data after successful backend update
+      const index = rawData.value.findIndex(item => item.id === originalRecord.id);
+      if (index !== -1) {
+        rawData.value[index] = updatedRecord;
+      }
+
+      resetEditBatchForm();
+      showEditBatchModal.value = false;
+      message.success(`编辑批次成功！更新人：${currentUsername.value}`);
+      
+      // Refresh data from server to ensure consistency
+      await fetchToyProductionData();
+    } catch (apiError: any) {
+      console.error('=== BACKEND UPDATE FAILED ===');
+      console.error('API Error:', apiError);
+      
+      // Handle different types of API errors
+      if (apiError.response) {
+        if (apiError.response.status === 404) {
+          message.error('错误：要更新的记录不存在，请刷新页面重试');
+        } else if (apiError.response.status === 500) {
+          message.error('错误：服务器内部错误，请稍后重试');
+        } else {
+          message.error(`更新失败：${apiError.response.data?.message || '服务器错误'}`);
+        }
+      } else if (apiError.request) {
+        message.error('错误：网络连接失败，请检查网络连接');
+      } else {
+        message.error(`更新失败：${apiError.message}`);
+      }
+      
+      // Don't close the modal or reset form on error
+      return;
+    } finally {
+      // Reset loading state
+      editFormLoading.value = false;
     }
-
-    resetEditBatchForm();
-    showEditBatchModal.value = false;
-    message.success('编辑批次成功');
   } catch (error) {
     console.error('Form validation failed:', error);
+    message.error('表单验证失败，请检查输入内容');
+    // Reset loading state on validation error
+    editFormLoading.value = false;
   }
 };
 
@@ -1118,8 +1400,8 @@ const resetEditBatchForm = () => {
     productName: '',
     productionBatch: null,
     manufacturer: '',
-    unitPrice: '',
-    quantity: '',
+    unitPrice: 0,
+    quantity: 1,
   };
   if (editBatchFormRef.value) {
     editBatchFormRef.value.clearValidate();
@@ -1140,6 +1422,8 @@ onMounted(() => {
   console.log('=== COMPONENT MOUNTED ===');
   console.log('Setting selectedColumnKeys:', columnConfigs.map(config => config.key));
   selectedColumnKeys.value = columnConfigs.map(config => config.key);
+  console.log('Calling fetchProductTypeProductNames...');
+  fetchProductTypeProductNames(); // Fetch product names from product-type API
   console.log('Calling fetchToyProductionData...');
   fetchToyProductionData(); // Fetch data on component mount
   console.log('Component mount completed');

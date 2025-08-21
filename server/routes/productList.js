@@ -112,9 +112,9 @@ router.post('/', async (req, res) => {
         serial_number, product_id, ip_role, product_model, product_name, product_type, color,
         production_batch, manufacturer, qr_code_file_directory, qr_code_exported,
         barcode_file_directory, barcode_exported, device_id, sub_account_id,
-        file_export_time, first_binding_time, creator_id, creation_time, update_time
+        file_export_time, first_binding_time, creator_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -164,9 +164,9 @@ router.post('/batch-add', async (req, res) => {
         serial_number, product_id, ip_role, product_model, product_name, product_type, color,
         production_batch, manufacturer, qr_code_file_directory, qr_code_exported,
         barcode_file_directory, barcode_exported, device_id, sub_account_id,
-        file_export_time, first_binding_time, creator_id, creation_time, update_time
+        file_export_time, first_binding_time, creator_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -303,16 +303,16 @@ router.post('/test-create', async (req, res) => {
         serial_number, product_id, ip_role, product_model, product_name, product_type, color,
         production_batch, manufacturer, qr_code_file_directory, qr_code_exported,
         barcode_file_directory, barcode_exported, device_id, sub_account_id,
-        file_export_time, first_binding_time, creator_id, creation_time, update_time
+        file_export_time, first_binding_time, creator_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
       testData.serial_number, testData.product_id, testData.ip_role, testData.product_model, 
       testData.product_name, testData.product_type, testData.color, testData.production_batch, 
       testData.manufacturer, testData.qr_code_file_directory, '否', 
-      testData.barcode_file_directory, '否', '', '', '', '', testData.creator_id
+      testData.barcode_file_directory, '否', '', '', '', testData.creator_id
     ];
     
     console.log('Test SQL values:', values);
