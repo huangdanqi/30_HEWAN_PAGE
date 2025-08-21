@@ -765,8 +765,8 @@ const createBatchProducts = async () => {
           barcodeExported: '否',
           deviceId: '', // Can be null as requested
           subAccountId: '', // Can be null as requested
-          fileExportTime: '',
-          firstBindingTime: '',
+          fileExportTime: null, // Use null instead of empty string for datetime fields
+          firstBindingTime: null, // Use null instead of empty string for datetime fields
           creatorId: 1
           // creationTime is handled by the database automatically
         };
@@ -938,8 +938,8 @@ interface DataItem {
   barcodeExported: string; // 条形码是否导出
   deviceId: string; // 设备ID
   subAccountId: string; // 子账户ID
-  fileExportTime: string; // 文件导出时间
-  firstBindingTime: string; // 首次绑定时间
+  fileExportTime: string | null; // 文件导出时间 (can be null)
+  firstBindingTime: string | null; // 首次绑定时间 (can be null)
   creatorId: number; // 创建人
   creationTime?: string; // 创建时间 (optional, handled by database)
   updateTime: string; // 更新时间
@@ -1160,8 +1160,8 @@ const createProductList = async (productListData: Omit<DataItem, 'key' | 'id' | 
       barcode_exported: productListData.barcodeExported || '否',
       device_id: productListData.deviceId || '', // Allow empty as requested
       sub_account_id: productListData.subAccountId || '', // Allow empty as requested
-      file_export_time: productListData.fileExportTime || '',
-      first_binding_time: productListData.firstBindingTime || '',
+      file_export_time: productListData.fileExportTime || null, // Use null for datetime fields
+      first_binding_time: productListData.firstBindingTime || null, // Use null for datetime fields
       creator_id: productListData.creatorId || 1
     };
     
