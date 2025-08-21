@@ -4,7 +4,7 @@ import { resolve } from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/', // Always use root path for cloud deployment
+  base: '/30_HEWAN_PAGE/', // Use 30_HEWAN_PAGE as base path for all assets
   plugins: [vue()],
   resolve: {
     alias: {
