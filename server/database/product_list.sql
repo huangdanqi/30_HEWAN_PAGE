@@ -1,54 +1,93 @@
--- Product List Table
--- Based on ProductList.vue file content
+-- =====================================================
+-- Product List Route Database Operations
+-- =====================================================
 
+USE hewan_page_server;
+
+-- =====================================================
+-- Create product_list table if not exists
+-- =====================================================
 CREATE TABLE IF NOT EXISTS product_list (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  product_id VARCHAR(50) NOT NULL COMMENT '商品ID',
-  product_name VARCHAR(200) NOT NULL COMMENT '商品名称',
-  product_code VARCHAR(50) NOT NULL COMMENT '产品ID',
-  product_name2 VARCHAR(200) NOT NULL COMMENT '产品名称',
-  product_type VARCHAR(50) NOT NULL COMMENT '产品类型',
-  color VARCHAR(50) COMMENT '颜色',
-  member_type VARCHAR(50) COMMENT '初始会员',
-  device_id VARCHAR(100) COMMENT '设备ID',
-  sub_account_id VARCHAR(50) COMMENT '子账户ID',
-  activation_time TIMESTAMP COMMENT '激活时间',
-  update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  
-  UNIQUE KEY unique_product_id (product_id),
-  INDEX idx_product_name (product_name),
-  INDEX idx_product_code (product_code),
-  INDEX idx_product_type (product_type),
-  INDEX idx_color (color),
-  INDEX idx_member_type (member_type),
-  INDEX idx_device_id (device_id),
-  INDEX idx_sub_account_id (sub_account_id),
-  INDEX idx_activation_time (activation_time),
-  INDEX idx_update_time (update_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品列表表';
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    serial_number VARCHAR(100) NOT NULL COMMENT '序列号',
+    product_id VARCHAR(100) NOT NULL COMMENT '产品ID',
+    ip_role VARCHAR(50) COMMENT 'IP角色',
+    product_model VARCHAR(100) NOT NULL COMMENT '产品型号',
+    product_name VARCHAR(200) NOT NULL COMMENT '产品名称',
+    product_type VARCHAR(100) NOT NULL COMMENT '产品类型',
+    color VARCHAR(50) COMMENT '颜色',
+    production_batch VARCHAR(100) NOT NULL COMMENT '生产批次',
+    manufacturer VARCHAR(100) NOT NULL COMMENT '制造商',
+    qr_code_file_directory VARCHAR(500) COMMENT '二维码文件目录',
+    qr_code_exported ENUM('是', '否') DEFAULT '否' COMMENT '二维码是否已导出',
+    barcode_file_directory VARCHAR(500) COMMENT '条形码文件目录',
+    barcode_exported ENUM('是', '否') DEFAULT '否' COMMENT '条形码是否已导出',
+    device_id VARCHAR(100) DEFAULT '' COMMENT '设备ID',
+    sub_account_id VARCHAR(100) DEFAULT '' COMMENT '子账户ID',
+    file_export_time VARCHAR(100) DEFAULT '' COMMENT '文件导出时间',
+    first_binding_time VARCHAR(100) DEFAULT '' COMMENT '首次绑定时间',
+    creator_id VARCHAR(100) NOT NULL COMMENT '创建者ID',
+    creator_name VARCHAR(100) DEFAULT '管理员' COMMENT '创建者姓名',
+    creation_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_product_id (product_id),
+    INDEX idx_serial_number (serial_number),
+    INDEX idx_device_id (device_id),
+    INDEX idx_creation_time (creation_time),
+    INDEX idx_update_time (update_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='产品列表表';
 
--- Clear existing data
-DELETE FROM product_list;
+-- =====================================================
+-- Sample data for product_list
+-- =====================================================
+INSERT INTO product_list (
+    serial_number, product_id, ip_role, product_model, product_name, product_type, color,
+    production_batch, manufacturer, qr_code_file_directory, qr_code_exported,
+    barcode_file_directory, barcode_exported, device_id, sub_account_id,
+    file_export_time, first_binding_time, creator_id, creator_name
+) VALUES
+('SN001', 'PROD_001', '小熊维尼', 'HW-001', '小熊维尼智能玩具', '智能玩具', '黄色',
+ 'BATCH_2024_001', 'HeWan制造', '/qr/SN001.png', '是', '/barcode/SN001.png', '是',
+ 'DEVICE_001', 'SUB_001', '2024-01-15 10:30:00', '2024-01-15 10:30:00', 'ADMIN_001', '管理员'),
 
--- Insert 20 rows of sample data
-INSERT INTO product_list (product_id, product_name, product_code, product_name2, product_type, color, member_type, device_id, sub_account_id, activation_time) VALUES
-('A001', '粉色碳碳娃挂件富盒普通款', 'HWSZ001001', '粉色碳碳娃挂件富盒普通款', '普通挂件', '亮光粉', '普通会员', '0075A1B2SZTD5ZSD69I892XJUB', '183****7953', '2025-01-13 10:25:11'),
-('A002', '蓝色小熊玩偶', 'HWSZ001002', '蓝色小熊玩偶', '毛绒玩具', '天蓝', 'VIP', '0075A1B2SZTD5ZSD69I892XJUC', '183****7963', '2025-01-14 11:25:12'),
-('A003', '绿色恐龙模型', 'HWSZ001003', '绿色恐龙模型', '模型', '草绿', 'SVIP', '0075A1B2SZTD5ZSD69I892XJUD', '183****7973', '2025-01-15 12:25:13'),
-('A004', '红色蝴蝶结蓝牙配件', 'HWSZ001004', '红色蝴蝶结蓝牙配件', '蓝牙配件', '荧光粉', '普通会员', '0075A1B2SZTD5ZSD69I892XJUE', '183****7983', '2025-01-16 13:25:14'),
-('A005', '银色蝴蝶结蓝牙配件', 'HWSZ001005', '银色蝴蝶结蓝牙配件', '蓝牙配件', '银白色', 'VIP', '0075A1B2SZTD5ZSD69I892XJUF', '183****7993', '2025-01-17 14:25:15'),
-('A006', '金色蝴蝶结蓝牙配件', 'HWSZ001006', '金色蝴蝶结蓝牙配件', '蓝牙配件', '纯金色', 'SVIP', '0075A1B2SZTD5ZSD69I892XJUG', '183****8003', '2025-01-18 15:25:16'),
-('A007', '紫色碳碳娃挂件富盒普通款', 'HWSZ001007', '紫色碳碳娃挂件富盒普通款', '普通挂件', '亮光紫', '普通会员', '0075A1B2SZTD5ZSD69I892XJUH', '183****8013', '2025-01-19 16:25:17'),
-('A008', '橙色小熊玩偶', 'HWSZ001008', '橙色小熊玩偶', '毛绒玩具', '橙色', 'VIP', '0075A1B2SZTD5ZSD69I892XJUI', '183****8023', '2025-01-20 17:25:18'),
-('A009', '黄色恐龙模型', 'HWSZ001009', '黄色恐龙模型', '模型', '柠檬黄', 'SVIP', '0075A1B2SZTD5ZSD69I892XJUJ', '183****8033', '2025-01-21 18:25:19'),
-('A010', '黑色蝴蝶结蓝牙配件', 'HWSZ001010', '黑色蝴蝶结蓝牙配件', '蓝牙配件', '纯黑色', '普通会员', '0075A1B2SZTD5ZSD69I892XJUK', '183****8043', '2025-01-22 19:25:20'),
-('A011', '白色碳碳娃挂件富盒普通款', 'HWSZ001011', '白色碳碳娃挂件富盒普通款', '普通挂件', '纯白色', 'VIP', '0075A1B2SZTD5ZSD69I892XJUL', '183****8053', '2025-01-23 20:25:21'),
-('A012', '灰色小熊玩偶', 'HWSZ001012', '灰色小熊玩偶', '毛绒玩具', '深灰色', 'SVIP', '0075A1B2SZTD5ZSD69I892XJUM', '183****8063', '2025-01-24 21:25:22'),
-('A013', '棕色恐龙模型', 'HWSZ001013', '棕色恐龙模型', '模型', '深棕色', '普通会员', '0075A1B2SZTD5ZSD69I892XJUN', '183****8073', '2025-01-25 22:25:23'),
-('A014', '粉色蝴蝶结蓝牙配件', 'HWSZ001014', '粉色蝴蝶结蓝牙配件', '蓝牙配件', '淡粉色', 'VIP', '0075A1B2SZTD5ZSD69I892XJUO', '183****8083', '2025-01-26 23:25:24'),
-('A015', '蓝色碳碳娃挂件富盒普通款', 'HWSZ001015', '蓝色碳碳娃挂件富盒普通款', '普通挂件', '深蓝色', 'SVIP', '0075A1B2SZTD5ZSD69I892XJUP', '183****8093', '2025-01-27 00:25:25'),
-('A016', '绿色小熊玩偶', 'HWSZ001016', '绿色小熊玩偶', '毛绒玩具', '深绿色', '普通会员', '0075A1B2SZTD5ZSD69I892XJUQ', '183****8103', '2025-01-28 01:25:26'),
-('A017', '红色恐龙模型', 'HWSZ001017', '红色恐龙模型', '模型', '深红色', 'VIP', '0075A1B2SZTD5ZSD69I892XJUR', '183****8113', '2025-01-29 02:25:27'),
-('A018', '黄色蝴蝶结蓝牙配件', 'HWSZ001018', '黄色蝴蝶结蓝牙配件', '蓝牙配件', '金黄色', 'SVIP', '0075A1B2SZTD5ZSD69I892XJUS', '183****8123', '2025-01-30 03:25:28'),
-('A019', '紫色碳碳娃挂件富盒普通款', 'HWSZ001019', '紫色碳碳娃挂件富盒普通款', '普通挂件', '深紫色', '普通会员', '0075A1B2SZTD5ZSD69I892XJUT', '183****8133', '2025-01-31 04:25:29'),
-('A020', '橙色恐龙模型', 'HWSZ001020', '橙色恐龙模型', '模型', '深橙色', 'VIP', '0075A1B2SZTD5ZSD69I892XJUU', '183****8143', '2025-02-01 05:25:30'); 
+('SN002', 'PROD_002', '米老鼠', 'HW-002', '米老鼠智能玩具', '智能玩具', '黑色',
+ 'BATCH_2024_002', 'HeWan制造', '/qr/SN002.png', '是', '/barcode/SN002.png', '是',
+ 'DEVICE_002', 'SUB_002', '2024-02-20 14:20:00', '2024-02-20 14:20:00', 'ADMIN_001', '管理员'),
+
+('SN003', 'PROD_003', '唐老鸭', 'HW-003', '唐老鸭智能玩具', '智能玩具', '蓝色',
+ 'BATCH_2024_003', 'HeWan制造', '/qr/SN003.png', '是', '/barcode/SN003.png', '是',
+ 'DEVICE_003', 'SUB_003', '2024-03-10 09:15:00', '2024-03-10 09:15:00', 'ADMIN_001', '管理员');
+
+-- =====================================================
+-- Common queries for product_list route
+-- =====================================================
+
+-- Get all products with pagination
+-- SELECT * FROM product_list ORDER BY update_time DESC LIMIT 10 OFFSET 0;
+
+-- Get product by ID
+-- SELECT * FROM product_list WHERE id = ?;
+
+-- Get product by serial_number
+-- SELECT * FROM product_list WHERE serial_number = ?;
+
+-- Get product by product_id
+-- SELECT * FROM product_list WHERE product_id = ?;
+
+-- Search products by product_name, product_model, or ip_role
+-- SELECT * FROM product_list WHERE product_name LIKE '%search%' OR product_model LIKE '%search%' OR ip_role LIKE '%search%';
+
+-- Create new product
+-- INSERT INTO product_list (serial_number, product_id, ip_role, product_model, product_name, product_type, color, production_batch, manufacturer, qr_code_file_directory, barcode_file_directory, creator_id, creator_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update product
+-- UPDATE product_list SET product_name = ?, product_type = ?, color = ?, update_time = CURRENT_TIMESTAMP WHERE id = ?;
+
+-- Delete product
+-- DELETE FROM product_list WHERE id = ?;
+
+-- Update QR code export status
+-- UPDATE product_list SET qr_code_exported = '是', file_export_time = NOW() WHERE id = ?;
+
+-- Update barcode export status
+-- UPDATE product_list SET barcode_exported = '是', file_export_time = NOW() WHERE id = ?;
