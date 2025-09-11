@@ -408,9 +408,9 @@ import { theme, message } from 'ant-design-vue';
 import { ReloadOutlined, ColumnHeightOutlined ,SettingOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import draggable from 'vuedraggable';
 import { useRoute, useRouter } from 'vue-router';
-import { constructApiUrl } from '../utils/api';
-import { useAuthStore } from '../stores/auth';
 import axios from 'axios';
+import { constructApiUrl } from '@/utils/api';
+import { useAuthStore } from '@/stores/auth';
 
 const route = useRoute();
 const router = useRouter();
@@ -653,7 +653,7 @@ const createDeviceProduction = async (deviceProductionData: Omit<DataItem, 'key'
       creator: deviceProductionData.creator
     };
     console.log('POST /device-production payload:', payload);
-    const response = await axios.post('http://121.43.196.106:2829/api/device-production', payload);
+    const response = await axios.post(constructApiUrl('/device-production'), payload);
     await fetchDeviceProduction(); // Refresh data
     return response.data;
   } catch (error) {
@@ -682,9 +682,9 @@ const updateDeviceProduction = async (id: number, deviceProductionData: Partial<
     };
     
     console.log('PUT /device-production payload:', payload);
-    console.log('Making PUT request to:', `http://121.43.196.106:2829/api/device-production/${id}`);
+    console.log('Making PUT request to:', constructApiUrl(`/device-production/${id}`));
     
-    const response = await axios.put(`http://121.43.196.106:2829/api/device-production/${id}`, payload);
+    const response = await axios.put(constructApiUrl(`/device-production/${id}`), payload);
     console.log('PUT response received:', response);
     console.log('Response data:', response.data);
     

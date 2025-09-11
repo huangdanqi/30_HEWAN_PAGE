@@ -14,11 +14,27 @@ router.get('/', async (req, res) => {
       pageSize = 10,
       search = '',
       sortBy = 'updatedAt',
-      sortOrder = 'desc'
+      sortOrder = 'descend'
     } = req.query;
 
-    // Convert 'descend' to 'desc' for SQL compatibility
-    const sqlSortOrder = sortOrder === 'descend' ? 'desc' : sortOrder;
+    // Normalize sort order and map sort field to valid DB columns
+    const sqlSortOrder = (sortOrder === 'ascend' || sortOrder === 'asc') ? 'ASC' : 'DESC';
+    const sortFieldMap = {
+      updatedAt: 'updatedAt',
+      createdAt: 'createdAt',
+      toolId: 'toolId',
+      toolType: 'toolType',
+      toolName: 'toolName',
+      apiAddress: 'apiAddress',
+      localToolFilePath: 'localToolFilePath',
+      purchaseTime: 'purchaseTime',
+      activationTime: 'activationTime',
+      expirationTime: 'expirationTime',
+      accumulatedUsage: 'accumulatedUsage',
+      accumulatedCost: 'accumulatedCost',
+      updater: 'updater'
+    };
+    const sortField = sortFieldMap[sortBy] || 'updatedAt';
 
     let whereConditions = [];
     let params = [];
@@ -65,7 +81,7 @@ router.get('/', async (req, res) => {
         DATE_FORMAT(updatedAt, '%Y-%m-%d %H:%i:%s') as updatedAt
       FROM toolconfiguration 
       ${whereClause}
-      ORDER BY ${sortBy} ${sqlSortOrder}
+      ORDER BY ${sortField} ${sqlSortOrder}
       LIMIT ${limit} OFFSET ${offset}
     `;
 
@@ -264,4 +280,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-export default router; 
+export default router;

@@ -247,6 +247,7 @@ import { ReloadOutlined, ColumnHeightOutlined, SettingOutlined, SearchOutlined, 
 import draggable from 'vuedraggable';
 import { createColumnConfigs, useTableColumns, createColumn, type ColumnDefinition } from '../utils/tableConfig';
 import axios from 'axios';
+import { constructApiUrl } from '@/utils/api';
 import { useAuthStore } from '../stores/auth';
 
 const customLocale = computed(() => ({
@@ -318,7 +319,7 @@ const fetchData = async () => {
     console.log('Calling built-in alarm endpoint');
     // Use the correct endpoint
     console.log('Trying endpoint: /api/alarm');
-    const response = await axios.get('http://121.43.196.106:2829/api/alarm?page=1&pageSize=1000');
+    const response = await axios.get(constructApiUrl('alarm?page=1&pageSize=1000'));
     console.log('✅ /api/alarm succeeded');
     
     console.log('Alarm response:', response.data);
@@ -384,10 +385,10 @@ const handleAudition = (record: AlarmItem) => {
       
       // If it already contains 'audio/' at the beginning, use it as is
       if (fileName.startsWith('audio/')) {
-        audioUrl = `http://121.43.196.106:2829/${fileName}`;
+        audioUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/${fileName}`;
       } else {
         // Otherwise, add the /audio/ prefix
-        audioUrl = `http://121.43.196.106:2829/audio/${fileName}`;
+        audioUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/audio/${fileName}`;
       }
     }
     
@@ -571,7 +572,7 @@ const handleCreateConfirm = async () => {
       updater: userName.value
     });
     
-    const response = await axios.post('http://121.43.196.106:2829/api/alarm', formData, {
+    const response = await axios.post(constructApiUrl('/alarm'), formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -678,7 +679,7 @@ const handleEditConfirm = async () => {
     });
     
     // Send PUT request to update the alarm
-    const response = await axios.put(`http://121.43.196.106:2829/api/alarm/${editForm.value.recordId}`, formData, {
+    const response = await axios.put(constructApiUrl(`/alarm/${editForm.value.recordId}`), formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -744,7 +745,7 @@ onMounted(() => {
     
     try {
       console.log('Testing endpoint: /api/alarm');
-      const response = await axios.get('http://121.43.196.106:2829/api/alarm?page=1&pageSize=10');
+      const response = await axios.get(constructApiUrl('alarm?page=1&pageSize=10'));
       console.log(`✅ /api/alarm - Status: ${response.status}`);
       console.log(`Response structure:`, response.data);
       if (response.data.data) {

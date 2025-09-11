@@ -149,21 +149,21 @@
     </div>
 
     <FirmwareReleaseModal
-      :visible="showReleaseModal"
+      :open="showReleaseModal"
       :uniqueDeviceModels="uniqueDeviceModels"
-      @update:visible="handleReleaseModalClose"
+      @update:open="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
 
     <FirmwareEditModal
-      :visible="showEditModal"
+      :open="showEditModal"
       :record="editRecord"
-      @update:visible="handleEditModalClose"
+      @update:open="handleEditModalClose"
       @submit="handleEditModalSubmit"
     />
 
     <ProductCreateModal
-      v-model:visible="showProductCreateModal"
+      v-model:open="showProductCreateModal"
       :deviceModelOptions="deviceModelOptions"
       :ipNameOptions="ipNameOptions"
       @submit="handleProductCreateSubmit"

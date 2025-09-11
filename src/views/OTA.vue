@@ -132,7 +132,7 @@
     </div>
 
     <DeviceImportModal
-      v-model:visible="deviceImportModalVisible"
+      v-model:open="deviceImportModalVisible"
       :deviceModelOptions="deviceModelOptions"
       :manufacturerOptions="manufacturerOptions"
       :productionBatchOptions="productionBatchOptions"
@@ -140,7 +140,7 @@
     />
 
     <OtaConfigModal
-      v-model:visible="otaConfigModalVisible"
+      v-model:open="otaConfigModalVisible"
       :deviceModelOptions="deviceModelOptions"
       :latestFirmwareOptions="latestFirmwareOptions"
       v-model:deviceModelValue="otaModalDeviceModelValue"

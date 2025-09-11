@@ -26,7 +26,7 @@
     <!-- Column Configuration Modal -->
     <a-modal
       title="Configure Table Columns"
-      v-model:visible="isConfigModalVisible"
+      v-model:open="isConfigModalVisible"
       @cancel="handleConfigModalClose"
       @ok="handleConfigModalClose"
     >

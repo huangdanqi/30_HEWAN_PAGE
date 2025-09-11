@@ -139,9 +139,9 @@
     </div>
 
     <FirmwareReleaseModal
-      :visible="showReleaseModal"
+      :open="showReleaseModal"
       :uniqueDeviceModels="uniqueDeviceModels"
-      @update:visible="handleReleaseModalClose"
+      @update:open="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
 
@@ -162,8 +162,8 @@
     />
 
     <BomUploadModal
-      :visible="showBomModal"
-      @update:visible="showBomModal = $event"
+      :open="showBomModal"
+      @update:open="showBomModal = $event"
       @submit="handleBomSubmit"
     />
 

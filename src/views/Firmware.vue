@@ -183,14 +183,14 @@
     </div>
 
     <FirmwareReleaseModal
-      :visible="showReleaseModal"
+      :open="showReleaseModal"
       :uniqueDeviceModels="uniqueDeviceModels"
       :deviceModelOptions="deviceModelOptions"
       :editRecord="editRecord"
       :firmwareData="rawData"
       :generatedVersion="nextVersionNumber"
       :currentUsername="currentUsername"
-      @update:visible="handleReleaseModalClose"
+      @update:open="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
     
@@ -207,13 +207,13 @@
     </div> -->
 
     <FirmwareEditModal
-      :visible="showEditModal"
+      :open="showEditModal"
       :record="editRecord"
       :currentUsername="currentUsername"
       :uniqueDeviceModels="uniqueDeviceModels"
       :deviceModelOptions="deviceModelOptions"
       :firmwareData="rawData"
-      @update:visible="handleEditModalClose"
+      @update:open="handleEditModalClose"
       @submit="handleEditModalSubmit"
     />
 

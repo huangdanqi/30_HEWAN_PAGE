@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :visible="visible"
+    :open="visible"
     title="版本编辑"
     :footer="null"
     @cancel="handleCancel"
@@ -165,7 +165,7 @@ const props = defineProps({
   firmwareData: { type: Array as () => any[], default: () => [] }, // Firmware data for version calculation
 });
 
-const emits = defineEmits(['update:visible', 'submit']);
+const emits = defineEmits(['update:open', 'submit']);
 
 const currentStep = ref(0);
 const step1Form = ref<FormInstance | null>(null);
@@ -484,7 +484,7 @@ const handleCancel = () => {
   formState.releaseType = 'major';
   formState.contentDescription = '';
   fileList.value = [];
-  emits('update:visible', false);
+  emits('update:open', false);
 };
 
 const testVersionGeneration = () => {

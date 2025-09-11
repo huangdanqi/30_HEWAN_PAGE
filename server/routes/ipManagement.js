@@ -15,11 +15,17 @@ router.get('/', async (req, res) => {
         ip_id,
         ip_name,
         ip_intro,
+        ip_address,
+        device_id,
+        device_model,
+        status,
         running,
         portrait,
         mbti,
         preference,
         agent_link,
+        last_seen,
+        creator,
         updater,
         create_time,
         update_time
@@ -38,11 +44,17 @@ router.get('/', async (req, res) => {
       ipId: row.ip_id,
       ipName: row.ip_name,
       ipIntro: row.ip_intro,
+      ipAddress: row.ip_address,
+      deviceId: row.device_id,
+      deviceModel: row.device_model,
+      status: row.status,
       running: row.running,
       portrait: row.portrait,
       mbti: row.mbti,
       preference: row.preference,
       agentLink: row.agent_link,
+      lastSeen: row.last_seen,
+      creator: row.creator,
       updater: row.updater,
       createTime: row.create_time,
       updateTime: row.update_time
@@ -67,6 +79,8 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { ipName, ipIntro, running, portrait, mbti, preference, agentLink, updater } = req.body;
+    
+    console.log('Received data:', { ipName, ipIntro, running, portrait, mbti, preference, agentLink, updater });
     
     // Validate required fields
     if (!ipName) {
@@ -98,28 +112,74 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'IP名称已存在，请使用其他名称' });
     }
     
-    // Generate unique IP ID
+    // Generate unique IP ID and IP address
     const timestamp = Date.now();
     const ipId = `hjhwx${timestamp}`;
+    
+    // Generate a unique IP address by checking for conflicts
+    let ipAddress;
+    let attempts = 0;
+    do {
+      ipAddress = `192.168.1.${Math.floor(Math.random() * 254) + 1}`;
+      attempts++;
+      
+      // Check if this IP address already exists
+      const [ipCheckResult] = await pool.execute(
+        'SELECT COUNT(*) as count FROM ip_management WHERE ip_address = ?',
+        [ipAddress]
+      );
+      
+      if (ipCheckResult[0].count === 0) {
+        break; // IP address is unique
+      }
+      
+      if (attempts > 10) {
+        // Fallback to timestamp-based IP if random generation fails
+        ipAddress = `192.168.1.${timestamp % 254 + 1}`;
+        break;
+      }
+    } while (attempts <= 10);
+    
+    console.log('Generated IP ID:', ipId);
+    console.log('Generated IP Address:', ipAddress);
     
     // Insert new record
     const insertQuery = `
       INSERT INTO ip_management (
-        ip_id, ip_name, ip_intro, running, portrait, mbti, preference, agent_link, updater
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ip_id, ip_name, ip_intro, ip_address, running, portrait, mbti, preference, agent_link, updater
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
-    await pool.execute(insertQuery, [
-      ipId, ipName, ipIntro, running, portrait, mbti, preference, agentLink || '', updater || '管理员'
-    ]);
+    const insertParams = [
+      ipId, ipName, ipIntro, ipAddress, running, portrait, mbti, preference, agentLink || '', updater || '管理员'
+    ];
+    
+    console.log('Insert query:', insertQuery);
+    console.log('Insert params:', insertParams);
+    
+    await pool.execute(insertQuery, insertParams);
     
     res.status(201).json({ 
       message: 'IP创建成功',
-      ipId: ipId
+      ipId: ipId,
+      ipAddress: ipAddress
     });
   } catch (error) {
     console.error('Error creating IP management record:', error);
-    res.status(500).json({ error: '服务器内部错误，请稍后重试' });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Check if it's a database constraint error
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'IP地址或ID已存在，请重试' });
+    }
+    
+    // Check if it's a database connection error
+    if (error.code === 'ECONNREFUSED' || error.code === 'ER_ACCESS_DENIED_ERROR') {
+      return res.status(500).json({ error: '数据库连接失败，请检查数据库配置' });
+    }
+    
+    res.status(500).json({ error: '服务器内部错误，请稍后重试', details: error.message });
   }
 });
 
@@ -127,7 +187,7 @@ router.post('/', async (req, res) => {
 router.put('/:ipId', async (req, res) => {
   try {
     const { ipId } = req.params;
-    const { ipName, ipIntro, running, portrait, mbti, preference, agentLink, updater } = req.body;
+    const { ipName, ipIntro, ipAddress, running, portrait, mbti, preference, agentLink, updater } = req.body;
     
     // Validate required fields
     if (!ipName) {
@@ -164,6 +224,7 @@ router.put('/:ipId', async (req, res) => {
       UPDATE ip_management SET 
         ip_name = ?, 
         ip_intro = ?, 
+        ip_address = ?,
         running = ?, 
         portrait = ?, 
         mbti = ?, 
@@ -175,7 +236,7 @@ router.put('/:ipId', async (req, res) => {
     `;
     
     await pool.execute(updateQuery, [
-      ipName, ipIntro, running, portrait, mbti, preference, agentLink || '', updater || '管理员', ipId
+      ipName, ipIntro, ipAddress || '', running, portrait, mbti, preference, agentLink || '', updater || '管理员', ipId
     ]);
     
     res.json({ 

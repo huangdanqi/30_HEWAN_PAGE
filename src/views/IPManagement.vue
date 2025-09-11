@@ -131,8 +131,21 @@
         @change="handleTableChange"
         :showSorterTooltip="false"
       >
-      <template #bodyCell="{ column, record }">
-      <template v-if="column.key === 'operation'">
+      <template #bodyCell="{ column, record, index }">
+      <template v-if="column.key === 'rowIndex'">
+        <span style="text-align: center; display: block;">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
+      </template>
+      <template v-else-if="column.key === 'agentLink'">
+        <a 
+          v-if="record[column.dataIndex]" 
+          style="cursor: pointer;" 
+          @click="router.push({ name: 'agent-configuration', query: { search: record[column.dataIndex] } })"
+        >
+          {{ record[column.dataIndex] }}
+        </a>
+        <span v-else>-</span>
+      </template>
+      <template v-else-if="column.key === 'operation'">
         <a-space class="action-cell" direction="horizontal">
           <a class="view-link" @click="handleViewClick(record)">查看</a>
           <a-divider type="vertical" />
@@ -146,8 +159,8 @@
           </a-popconfirm>
         </a-space>
       </template>
-      <template v-else-if="column.key === 'updater'">
-        <span>{{ record.updater }}</span>
+      <template v-else>
+        <span>{{ record[column.dataIndex] === undefined || record[column.dataIndex] === null || record[column.dataIndex] === '' ? '-' : record[column.dataIndex] }}</span>
       </template>
     </template>
       </a-table>
@@ -164,13 +177,13 @@
     </div>
 
     <FirmwareReleaseModal
-      :visible="showReleaseModal"
-      @update:visible="handleReleaseModalClose"
+      :open="showReleaseModal"
+      @update:open="handleReleaseModalClose"
       @submit="handleReleaseModalSubmit"
     />
 
     <a-modal
-      v-model:visible="showCreateIpModal"
+      v-model:open="showCreateIpModal"
       title="新建IP"
       :footer="null"
       width="500px"
@@ -189,7 +202,7 @@
           <a-textarea 
             v-model:value="createFormData.ipIntro" 
             placeholder="请输入" 
-            rows="4"
+            :rows="4"
             :maxLength="2000"
             showCount
           />
@@ -315,7 +328,7 @@
     </a-modal>
 
     <a-modal
-      v-model:visible="showEditModal"
+      v-model:open="showEditModal"
       title="编辑IP"
       :footer="null"
       width="500px"
@@ -334,7 +347,7 @@
           <a-textarea 
             v-model:value="editFormData.ipIntro" 
             placeholder="请输入" 
-            rows="4"
+            :rows="4"
             :maxLength="2000"
             showCount
           />
@@ -460,7 +473,7 @@
     </a-modal>
 
     <a-modal
-      v-model:visible="showViewModal"
+      v-model:open="showViewModal"
       title="查看IP"
       :footer="null"
       width="500px"
@@ -538,21 +551,12 @@ import axios from 'axios';
 import { useAuthStore } from '../stores/auth'; // Import the auth store
 import { useRouter } from 'vue-router';
 import { h } from 'vue';
-import { Empty } from 'ant-design-vue';
 import { useRoute } from 'vue-router';
-import { 
-  createColumnConfigs, 
-  useTableColumns, 
-  createColumn,
-  type ColumnDefinition 
-} from '../utils/tableConfig';
 import { constructApiUrl } from '../utils/api';
 
 const router = useRouter();
 const route = useRoute();
 
-// API base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Auth store for getting current user
 const authStore = useAuthStore();
@@ -595,11 +599,10 @@ interface ColumnConfig {
   sorter?: (a: any, b: any) => number;
   sortDirections?: ('ascend' | 'descend')[];
   defaultSortOrder?: 'ascend' | 'descend';
-  customRender?: (record: any) => string | number;
 }
 
 const columnConfigs: ColumnConfig[] = [
-  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left', customRender: ({ index }: { index: number }) => (currentPage.value - 1) * pageSize.value + index + 1 },
+  { key: 'rowIndex', title: '序号', dataIndex: 'rowIndex', width: 60, fixed: 'left' },
   { key: 'ipId', title: 'IP ID', dataIndex: 'ipId', width: 150, sorter: (a: any, b: any) => (a.ipId || '').localeCompare(b.ipId || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'ipName', title: 'IP名称', dataIndex: 'ipName', width: 120, sorter: (a: any, b: any) => (a.ipName || '').localeCompare(b.ipName || ''), sortDirections: ['ascend', 'descend'] },
   { key: 'ipIntro', title: 'IP介绍', dataIndex: 'ipIntro', width: 320, sorter: (a: any, b: any) => (a.ipIntro || '').localeCompare(b.ipIntro || ''), sortDirections: ['ascend', 'descend'] },
@@ -629,19 +632,6 @@ const createColumnsFromConfigs = (configs: ColumnConfig[]): ColumnsType => {
     sorter: config.sorter,
     sortDirections: config.sortDirections,
     sortOrder: sorterInfo.value && config.key === sorterInfo.value.columnKey ? sorterInfo.value.order : undefined,
-    customRender: config.customRender
-      ? config.customRender
-      : ({ text, record }) => {
-          // Handle hyperlinks for specific columns
-          if (config.key === 'agentLink') {
-            return text ? h('a', {
-              style: { cursor: 'pointer' },
-              onClick: () => router.push({ name: 'agent-configuration', query: { search: text } })
-            }, text) : '-';
-          }
-          // Default rendering for other columns
-          return text === undefined || text === null || text === '' ? '-' : text;
-        },
   })) as ColumnsType;
 };
 
@@ -754,18 +744,6 @@ const fetchData = async () => {
   }
 };
 
-// Helper function to map frontend column keys to database field names
-const getSortByField = (columnKey?: string) => {
-  const fieldMap: { [key: string]: string } = {
-    'createTime': 'create_time',
-    'updateTime': 'update_time',
-    'ipId': 'ip_id',
-    'ipName': 'ip_name',
-    'ipIntro': 'ip_intro',
-    'agentLink': 'agent_link'
-  };
-  return fieldMap[columnKey || ''] || 'update_time';
-};
 
 const currentPage = ref(1);
 const pageSize = ref(10);
@@ -999,20 +977,6 @@ const handleEditClick = (record: DataItem) => {
   showEditModal.value = true;
 };
 
-const handleEditModalClose = () => {
-  showEditModal.value = false;
-  editRecord.value = null;
-  editFormData.value = {
-    ipName: '',
-    ipIntro: '',
-    running: '',
-    portrait: '',
-    mbti: '',
-    preference: '',
-    agentLink: '',
-    personalizedParams: [{ fieldName: '', value: '', type: 'string' }]
-  };
-};
 
 const handleEditCancel = () => {
   showEditModal.value = false;
@@ -1041,19 +1005,12 @@ const handleEditSubmit = () => {
         mbti: editFormData.value.mbti,
         preference: editFormData.value.preference,
         agentLink: editFormData.value.agentLink,
-        personalizedParams: editFormData.value.personalizedParams,
-        updateTime: new Date().toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }),
-        updater: currentUsername.value // Use the current username from auth store
+        updater: currentUsername.value
       };
 
-      const response = await axios.put(`http://121.43.196.106:2829/api/ip-management/${editRecord.value.ipId}`, updatedIp);
+      console.log('Sending update data:', JSON.stringify(updatedIp, null, 2));
+
+      const response = await axios.put(constructApiUrl(`ip-management/${editRecord.value.ipId}`), updatedIp);
       console.log('IP updated:', response.data);
       message.success('更新成功');
       showEditModal.value = false;
@@ -1180,19 +1137,12 @@ const handleCreateSubmit = () => {
         mbti: createFormData.value.mbti,
         preference: createFormData.value.preference,
         agentLink: createFormData.value.agentLink,
-        personalizedParams: createFormData.value.personalizedParams,
-        createTime: new Date().toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }),
-        updater: currentUsername.value // Use the current username from auth store
+        updater: currentUsername.value
       };
 
-      const response = await axios.post(`http://121.43.196.106:2829/api/ip-management`, newIp);
+      console.log('Sending data:', JSON.stringify(newIp, null, 2));
+
+      const response = await axios.post(constructApiUrl('ip-management'), newIp);
       console.log('IP created:', response.data);
       message.success('创建成功');
       showCreateIpModal.value = false;

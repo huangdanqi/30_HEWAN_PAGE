@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :visible="visible"
+    :open="visible"
     title="上传BOM"
     @ok="handleOk"
     @cancel="handleCancel"
@@ -35,7 +35,7 @@ import { UploadOutlined } from '@ant-design/icons-vue';
 const props = defineProps({
   visible: { type: Boolean, default: false },
 });
-const emits = defineEmits(['update:visible', 'submit']);
+const emits = defineEmits(['update:open', 'submit']);
 
 const fileList = ref<any[]>([]);
 
@@ -53,11 +53,11 @@ function customRequest({ onSuccess }: any) {
 }
 function handleOk() {
   emits('submit', fileList.value[0]);
-  emits('update:visible', false);
+  emits('update:open', false);
   fileList.value = [];
 }
 function handleCancel() {
-  emits('update:visible', false);
+  emits('update:open', false);
   fileList.value = [];
 }
 watch(() => props.visible, (val) => {

@@ -572,8 +572,8 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
-import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
+import { constructApiUrl } from '@/utils/api';
 
 const router = useRouter();
 
@@ -990,7 +990,7 @@ const handlePlay = (record: DataItem) => {
   if (videoUrl && videoUrl !== 'https://example.com/firmware.bin') {
     // Use the actual video file path - ensure proper URL construction
     const normalizedPath = videoUrl.startsWith('/') ? videoUrl : `/${videoUrl}`;
-    const fullVideoUrl = `http://121.43.196.106:2829${normalizedPath}`;
+    const fullVideoUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}${normalizedPath}`;
     currentVideoUrl.value = fullVideoUrl;
     console.log('Constructed video URL:', currentVideoUrl.value);
     
@@ -1197,7 +1197,7 @@ const handleCreateConfirm = async () => {
     formData.append('videoFile', createForm.value.videoFile!);
     formData.append('updater', authStore.user?.name || authStore.user?.username || '管理员');
 
-    const response = await axios.post('http://121.43.196.106:2829/api/ipvideo', formData, {
+    const response = await axios.post(constructApiUrl('/ipvideo'), formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -1271,7 +1271,7 @@ const handleEditConfirm = async () => {
     }
     formData.append('updater', authStore.user?.name || authStore.user?.username || '管理员');
 
-    const response = await axios.put(`http://121.43.196.106:2829/api/ipvideo/${editForm.value.id}`, formData, {
+    const response = await axios.put(constructApiUrl(`/ipvideo/${editForm.value.id}`), formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },

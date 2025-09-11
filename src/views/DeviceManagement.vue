@@ -508,6 +508,7 @@ import draggable from 'vuedraggable';
 import { useRouter } from 'vue-router';
 import { Empty } from 'ant-design-vue';
 import axios from 'axios';
+import { constructApiUrl } from '@/utils/api';
 import * as XLSX from 'xlsx';
 import { 
   createColumnConfigs, 
@@ -515,7 +516,6 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
-import { constructApiUrl } from '../utils/api';
 
 const router = useRouter();
 
@@ -826,7 +826,7 @@ const fetchDeviceManagement = async () => {
 
 const createDeviceManagement = async (deviceManagementData: Omit<DataItem, 'key' | 'id' | 'createTime' | 'updateTime'>) => {
   try {
-    const response = await axios.post('http://121.43.196.106:2829/api/device-management', deviceManagementData);
+    const response = await axios.post(constructApiUrl('/device-management'), deviceManagementData);
     await fetchDeviceManagement(); // Refresh data
     return response.data;
   } catch (error: any) {

@@ -29,7 +29,7 @@
     <!-- Column Configuration Modal -->
     <a-modal
       title="Configure Table Columns"
-      v-model:visible="isConfigModalVisible"
+      v-model:open="isConfigModalVisible"
       @ok="handleConfigModalOk"
     >
       <!-- Add your modal content here -->

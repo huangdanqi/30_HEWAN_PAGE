@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :visible="visible"
+    :open="visible"
     title="版本发布"
     :footer="null"
     @cancel="handleCancel"
@@ -169,7 +169,7 @@ const props = defineProps({
   currentUsername: { type: String, default: '管理员' }, // Current username from auth store
 });
 
-const emits = defineEmits(['update:visible', 'submit']);
+const emits = defineEmits(['update:open', 'submit']);
 
 const currentStep = ref(0);
 const step1Form = ref<FormInstance | null>(null);
@@ -626,7 +626,7 @@ const handleCancel = () => {
   formState.releaseType = 'major';
   formState.contentDescription = '';
   fileList.value = [];
-  emits('update:visible', false);
+  emits('update:open', false);
 };
 </script>
 

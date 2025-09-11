@@ -464,8 +464,8 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
-import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
+import { constructApiUrl } from '@/utils/api';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -861,7 +861,7 @@ const handleCreateConfirm = async () => {
     formData.append('imageFile', createForm.value.imageFile);
     formData.append('updater', '管理员');
 
-    const response = await axios.post('http://121.43.196.106:2829/api/ipimage', formData, {
+    const response = await axios.post(constructApiUrl('/ipimage'), formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -1007,7 +1007,7 @@ const handleEditConfirm = async () => {
     }
     formData.append('updater', '管理员');
 
-    const response = await axios.put(`http://121.43.196.106:2829/api/ipimage/${currentEditId.value}`, formData, {
+    const response = await axios.put(constructApiUrl(`/ipimage/${currentEditId.value}`), formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -1098,7 +1098,7 @@ const handlePreview = (record: DataItem) => {
   console.log('Original imageFileAddress:', record.imageFileAddress);
   
   // Construct the full URL for the image
-  const imageUrl = `http://121.43.196.106:2829${record.imageFileAddress}`;
+  const imageUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}${record.imageFileAddress}`;
   console.log('Constructed image URL:', imageUrl);
   
   // Show image in modal
@@ -1117,22 +1117,22 @@ const getImageUrl = (imagePath: string) => {
   // Handle different path formats for image display
   if (imagePath.startsWith('public\\images\\') || imagePath.startsWith('public/images/')) {
     // Use folder site - get the first image from the folder
-    const url = `http://121.43.196.106:2829/images/top.jpg`;
+    const url = `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/images/top.jpg`;
     console.log('Returning public images URL:', url);
     return url;
   } else if (imagePath.startsWith('\\images\\') || imagePath.startsWith('/images/')) {
-    const url = `http://121.43.196.106:2829/images/top.jpg`;
+    const url = `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/images/top.jpg`;
     console.log('Returning images URL:', url);
     return url;
   } else if (imagePath.endsWith('\\') || imagePath.endsWith('/')) {
     // Handle folder paths ending with backslash
-    const url = `http://121.43.196.106:2829/images/top.jpg`;
+    const url = `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/images/top.jpg`;
     console.log('Returning folder URL:', url);
     return url;
   } else {
     // Ensure the path starts with / if it doesn't already
     const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-    const url = `http://121.43.196.106:2829${normalizedPath}`;
+    const url = `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}${normalizedPath}`;
     console.log('Returning direct URL:', url);
     return url;
   }

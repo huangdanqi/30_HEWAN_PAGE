@@ -189,8 +189,8 @@ router.post('/', async (req, res) => {
       localModelFileDir || null,
       billingUnit || 'h',
       unitCost || 0,
-      '0h', // Default accumulated usage
-      '0元', // Default accumulated cost
+      '0h', // Default accumulated usage as string
+      '0元', // Default accumulated cost as string
       updater || '管理员'
     ];
     

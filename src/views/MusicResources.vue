@@ -424,8 +424,8 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
-import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
+import { constructApiUrl } from '@/utils/api';
 
 const router = useRouter();
 
@@ -694,11 +694,11 @@ const handleAudition = (record: DataItem) => {
     } else {
       // Try different URL patterns
       const possibleUrls = [
-        `http://121.43.196.106:2829${record.musicFileAddress.startsWith('/') ? '' : '/'}${record.musicFileAddress}`,
-        `http://121.43.196.106:2829/api/files/${record.musicFileAddress}`,
-        `http://121.43.196.106:2829/uploads/${record.musicFileAddress}`,
-        `http://121.43.196.106:2829/static/${record.musicFileAddress}`,
-        `http://121.43.196.106:2829/music/${record.musicFileAddress}`
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}${record.musicFileAddress.startsWith('/') ? '' : '/'}${record.musicFileAddress}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/api/files/${record.musicFileAddress}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/uploads/${record.musicFileAddress}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/static/${record.musicFileAddress}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/music/${record.musicFileAddress}`
       ];
       
       console.log('Trying possible URLs:', possibleUrls);
@@ -799,11 +799,11 @@ const createAudioElement = (audioUrl: string, recordId: number) => {
 // Function to try alternative URLs if the first one fails
 const tryAlternativeUrls = (record: DataItem, recordId: number) => {
   const alternativeUrls = [
-    `http://121.43.196.106:2829/api/files/${record.musicFileAddress}`,
-    `http://121.43.196.106:2829/uploads/${record.musicFileAddress}`,
-    `http://121.43.196.106:2829/static/${record.musicFileAddress}`,
-    `http://121.43.196.106:2829/music/${record.musicFileAddress}`,
-    `http://121.43.196.106:2829/public/${record.musicFileAddress}`
+    `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/api/files/${record.musicFileAddress}`,
+    `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/uploads/${record.musicFileAddress}`,
+    `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/static/${record.musicFileAddress}`,
+    `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/music/${record.musicFileAddress}`,
+    `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/public/${record.musicFileAddress}`
   ];
   
   console.log('Trying alternative URLs:', alternativeUrls);
@@ -928,7 +928,7 @@ const handleCreateConfirm = async () => {
       updater: userName.value
     });
     
-    const response = await axios.post('http://121.43.196.106:2829/api/ipmusic', formData, {
+    const response = await axios.post(constructApiUrl('/ipmusic'), formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -1055,7 +1055,7 @@ const handleEditConfirm = async () => {
     }
     formData.append('updater', userName.value);
 
-    const response = await axios.put(`http://121.43.196.106:2829/api/ipmusic/${editForm.value.id}`, formData, {
+    const response = await axios.put(constructApiUrl(`/ipmusic/${editForm.value.id}`), formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -1169,12 +1169,12 @@ onMounted(() => {
       console.log('Music file address:', record.musicFileAddress);
       
       const possibleUrls = [
-        `http://121.43.196.106:2829${record.musicFileAddress.startsWith('/') ? '' : '/'}${record.musicFileAddress}`,
-        `http://121.43.196.106:2829/api/files/${record.musicFileAddress}`,
-        `http://121.43.196.106:2829/uploads/${record.musicFileAddress}`,
-        `http://121.43.196.106:2829/static/${record.musicFileAddress}`,
-        `http://121.43.196.106:2829/music/${record.musicFileAddress}`,
-        `http://121.43.196.106:2829/public/${record.musicFileAddress}`
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}${record.musicFileAddress.startsWith('/') ? '' : '/'}${record.musicFileAddress}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/api/files/${record.musicFileAddress}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/uploads/${record.musicFileAddress}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/static/${record.musicFileAddress}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/music/${record.musicFileAddress}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}/public/${record.musicFileAddress}`
       ];
       
       console.log('Testing URLs:', possibleUrls);

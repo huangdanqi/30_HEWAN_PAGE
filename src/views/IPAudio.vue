@@ -456,8 +456,8 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
-import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
+import { constructApiUrl } from '@/utils/api';
 
 const router = useRouter();
 
@@ -874,7 +874,7 @@ const handleAudition = (record: DataItem) => {
 
   if (!audioElement) {
     // Construct the full URL for the audio file using the backend server
-    const audioUrl = `http://121.43.196.106:2829${record.audioFileAddress}`;
+    const audioUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://139.196.23.139:2829'}${record.audioFileAddress}`;
     console.log('Audio URL:', audioUrl);
     console.log('Original audioFileAddress:', record.audioFileAddress);
     console.log('Record ID:', record.id);
@@ -1024,14 +1024,14 @@ const handleCreateConfirm = async () => {
     formData.append('audioFile', createForm.value.audioFile!);
     formData.append('updater', authStore.user?.name || authStore.user?.username || '管理员');
 
-    console.log('Sending request to:', `${API_BASE_URL}/ipaudio`);
+    console.log('Sending request to:', constructApiUrl('/ipaudio'));
     console.log('FormData contents:');
     for (let [key, value] of formData.entries()) {
       console.log(key, ':', value);
     }
 
     // Send to backend
-    const response = await axios.post('http://121.43.196.106:2829/api/ipaudio', formData, {
+    const response = await axios.post(constructApiUrl('/ipaudio'), formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -1178,14 +1178,14 @@ const handleEditConfirm = async () => {
     }
     formData.append('updater', authStore.user?.name || authStore.user?.username || '管理员');
 
-    console.log('Sending update request to:', `${API_BASE_URL}/ipaudio/${editForm.value.id}`);
+    console.log('Sending update request to:', constructApiUrl(`/ipaudio/${editForm.value.id}`));
     console.log('FormData contents:');
     for (let [key, value] of formData.entries()) {
       console.log(key, ':', value);
     }
 
     // Send to backend
-    const response = await axios.put(`http://121.43.196.106:2829/api/ipaudio/${editForm.value.id}`, formData, {
+    const response = await axios.put(constructApiUrl(`/ipaudio/${editForm.value.id}`), formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },

@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :visible="modalVisible"
+    :open="modalVisible"
     :title="modalTitle"
     :footer="null"
     :width="540"
@@ -100,14 +100,14 @@ const props = defineProps({
   productionBatchOptions: { type: Array, default: () => [] },
   manufacturerOptions: { type: Array, default: () => [] },
 });
-const emits = defineEmits(['update:visible', 'finish']);
+const emits = defineEmits(['update:open', 'finish']);
 
 const modalVisible = ref(props.visible);
 watch(() => props.visible, (val) => {
   modalVisible.value = val;
 });
 watch(modalVisible, (val) => {
-  if (!val) emits('update:visible', false);
+  if (!val) emits('update:open', false);
 });
 
 const step = ref(0);
@@ -145,7 +145,7 @@ function prevStep() {
   step.value = 0;
 }
 function handleCancel() {
-  emits('update:visible', false);
+  emits('update:open', false);
   reset();
 }
 function handleFinish() {

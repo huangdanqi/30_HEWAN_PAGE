@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    :visible="visible"
+    :open="visible"
     title="新建产品"
     @cancel="handleCancel"
     :footer="null"
@@ -46,7 +46,7 @@ defineProps({
   deviceModelOptions: { type: Array as () => Array<{ value: string; label: string }>, default: () => [] },
   ipNameOptions: { type: Array as () => Array<{ value: string; label: string }>, default: () => [] },
 });
-const emits = defineEmits(['update:visible', 'submit']);
+const emits = defineEmits(['update:open', 'submit']);
 const formRef = ref<FormInstance | null>(null);
 const formState = reactive({
   productName: '',
@@ -65,13 +65,13 @@ const rules = {
   ipName: [{ required: true, message: '请选择IP名称' }],
 };
 function handleCancel() {
-  emits('update:visible', false);
+  emits('update:open', false);
 }
 async function handleOk() {
   try {
     await formRef.value?.validateFields();
     emits('submit', { ...formState });
-    emits('update:visible', false);
+    emits('update:open', false);
   } catch (e) {
     // Validation failed
   }

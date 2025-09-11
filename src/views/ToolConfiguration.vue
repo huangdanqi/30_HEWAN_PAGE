@@ -501,8 +501,8 @@ import {
   createColumn,
   type ColumnDefinition 
 } from '../utils/tableConfig';
-import { constructApiUrl } from '../utils/api';
 import axios from 'axios';
+import { constructApiUrl } from '@/utils/api';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -941,7 +941,7 @@ const handleCreateToolModalConfirm = async () => {
     console.log('Creating tool configuration:', toolData);
     
     // Send POST request to create new tool
-    const response = await axios.post('http://121.43.196.106:2829/api/tool-configuration', toolData);
+    const response = await axios.post(constructApiUrl('/tool-configuration'), toolData);
     
     if (response.data.success) {
       message.success('工具创建成功！');
@@ -1145,7 +1145,7 @@ const handleEditToolModalConfirm = async () => {
     
     try {
       // Send POST request to create new tool (same as create form)
-      const response = await axios.post('http://121.43.196.106:2829/api/tool-configuration', toolData);
+      const response = await axios.post(constructApiUrl('/tool-configuration'), toolData);
       
       console.log('POST response:', response);
       

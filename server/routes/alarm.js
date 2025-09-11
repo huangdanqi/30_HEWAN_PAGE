@@ -14,7 +14,20 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   const connection = await pool.getConnection();
   try {
-    const { page = 1, pageSize = 10, search = '', sortBy = 'updateTime', sortOrder = 'desc' } = req.query;
+    const { page = 1, pageSize = 10, search = '', sortBy = 'updateTime', sortOrder = 'descend' } = req.query;
+    
+    console.log('Alarm GET request - params:', { page, pageSize, search, sortBy, sortOrder });
+    
+    // First check if the table exists
+    const tableCheckQuery = `SHOW TABLES LIKE 'alarm'`;
+    const [tableExists] = await connection.execute(tableCheckQuery);
+    
+    if (tableExists.length === 0) {
+      console.error('Table alarm does not exist');
+      return res.status(500).json({ error: '数据库表不存在，请检查数据库结构' });
+    }
+    
+    console.log('Table alarm exists, proceeding with query');
     
     // Build WHERE clause for search
     let whereClause = '';
@@ -28,6 +41,8 @@ router.get('/', async (req, res) => {
     
     // Convert sort order
     const sqlSortOrder = sortOrder === 'ascend' ? 'ASC' : 'DESC';
+    
+    console.log('SQL Sort Order:', sqlSortOrder);
     
     // Check if we want all data (for large pageSize)
     const isLargePageSize = parseInt(pageSize) >= 1000;
@@ -54,8 +69,15 @@ router.get('/', async (req, res) => {
     // Count query
     const countQuery = `SELECT COUNT(*) as total FROM alarm ${whereClause}`;
     
+    console.log('Data query:', dataQuery);
+    console.log('Count query:', countQuery);
+    console.log('Query params:', params);
+    
     const [dataRows] = await connection.execute(dataQuery, params);
     const [countRows] = await connection.execute(countQuery, params);
+    
+    console.log('Data rows count:', dataRows.length);
+    console.log('Total count:', countRows[0].total);
     
     res.json({
       data: dataRows,
@@ -66,7 +88,20 @@ router.get('/', async (req, res) => {
     
   } catch (error) {
     console.error('Error fetching alarm data:', error);
-    res.status(500).json({ error: 'Failed to fetch alarm data' });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Check if it's a database connection error
+    if (error.code === 'ECONNREFUSED' || error.code === 'ER_ACCESS_DENIED_ERROR') {
+      return res.status(500).json({ error: '数据库连接失败，请检查数据库配置' });
+    }
+    
+    // Check if it's a table not found error
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      return res.status(500).json({ error: '数据库表不存在，请检查数据库结构' });
+    }
+    
+    res.status(500).json({ error: '服务器内部错误，请稍后重试', details: error.message });
   } finally {
     connection.release();
   }

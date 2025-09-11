@@ -9,20 +9,50 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   const connection = await pool.getConnection();
   try {
-    const { page = 1, pageSize = 10, search = '', sortBy = 'update_time', sortOrder = 'desc' } = req.query;
+    const { page = 1, pageSize = 10, search = '', sortBy = 'updateTime', sortOrder = 'descend' } = req.query;
+    
+    console.log('IPAudio GET request - params:', { page, pageSize, search, sortBy, sortOrder });
+    
+    // First check if the table exists
+    const tableCheckQuery = `SHOW TABLES LIKE 'ipaudio'`;
+    const [tableExists] = await connection.execute(tableCheckQuery);
+    
+    if (tableExists.length === 0) {
+      console.error('Table ipaudio does not exist');
+      return res.status(500).json({ error: '数据库表不存在，请检查数据库结构' });
+    }
+    
+    console.log('Table ipaudio exists, proceeding with query');
     
     // Build WHERE clause for search
     let whereClause = '';
     const params = [];
     
     if (search) {
-      whereClause = 'WHERE ip_name LIKE ? OR audio_name LIKE ? OR tags LIKE ?';
+      whereClause = 'WHERE ipName LIKE ? OR audioName LIKE ? OR tags LIKE ?';
       const searchTerm = `%${search}%`;
       params.push(searchTerm, searchTerm, searchTerm);
     }
     
-    // Convert sort order
+    // Convert sort order - now column names match frontend expectations
     const sqlSortOrder = sortOrder === 'ascend' ? 'ASC' : 'DESC';
+    
+    // Map frontend sortBy to database column names (now they match!)
+    const sortByMap = {
+      'updateTime': 'updateTime',
+      'createTime': 'createTime',
+      'audioName': 'audioName',
+      'ipName': 'ipName',
+      'audioType': 'audioType',
+      'audioId': 'audioId',
+      'emotion': 'emotion',
+      'language': 'language'
+    };
+    
+    const dbSortBy = sortByMap[sortBy] || 'updateTime';
+    
+    console.log('Mapped sortBy:', sortBy, '->', dbSortBy);
+    console.log('SQL Sort Order:', sqlSortOrder);
     
     // Check if we want all data (for large pageSize)
     const isLargePageSize = parseInt(pageSize) >= 1000;
@@ -30,24 +60,56 @@ router.get('/', async (req, res) => {
     
     if (isLargePageSize) {
       dataQuery = `
-        SELECT id, audio_id as audioId, ip_name as ipName, audio_name as audioName, audio_type as audioType, tags, emotion, language, audio_file_address as audioFileAddress, updater, create_time as createTime, update_time as updateTime
-        FROM ipaudio ${whereClause} ORDER BY ${sortBy} ${sqlSortOrder}
+        SELECT 
+          id,
+          audioId,
+          ipName,
+          audioName,
+          audioType,
+          tags,
+          emotion,
+          language,
+          audioFileAddress,
+          updater,
+          DATE_FORMAT(createTime, '%Y-%m-%d %H:%i:%s') as createTime,
+          DATE_FORMAT(updateTime, '%Y-%m-%d %H:%i:%s') as updateTime
+        FROM ipaudio ${whereClause} ORDER BY ${dbSortBy} ${sqlSortOrder}
       `;
     } else {
       const offset = (parseInt(page) - 1) * parseInt(pageSize);
       const limit = parseInt(pageSize);
       dataQuery = `
-        SELECT id, audio_id as audioId, ip_name as ipName, audio_name as audioName, audio_type as audioType, tags, emotion, language, audio_file_address as audioFileAddress, updater, create_time as createTime, update_time as updateTime
-        FROM ipaudio ${whereClause} ORDER BY ${sortBy} ${sqlSortOrder} LIMIT ${limit} OFFSET ${offset}
+        SELECT 
+          id,
+          audioId,
+          ipName,
+          audioName,
+          audioType,
+          tags,
+          emotion,
+          language,
+          audioFileAddress,
+          updater,
+          DATE_FORMAT(createTime, '%Y-%m-%d %H:%i:%s') as createTime,
+          DATE_FORMAT(updateTime, '%Y-%m-%d %H:%i:%s') as updateTime
+        FROM ipaudio ${whereClause} ORDER BY ${dbSortBy} ${sqlSortOrder} LIMIT ${limit} OFFSET ${offset}
       `;
     }
     
     // Count query
     const countQuery = `SELECT COUNT(*) as total FROM ipaudio ${whereClause}`;
     
+    console.log('Data query:', dataQuery);
+    console.log('Count query:', countQuery);
+    console.log('Query params:', params);
+    
     const [dataRows] = await connection.execute(dataQuery, params);
     const [countRows] = await connection.execute(countQuery, params);
     
+    console.log('Data rows count:', dataRows.length);
+    console.log('Total count:', countRows[0].total);
+    
+    // No transformation needed - column names now match frontend expectations!
     res.json({
       data: dataRows,
       total: countRows[0].total,
@@ -57,7 +119,20 @@ router.get('/', async (req, res) => {
     
   } catch (error) {
     console.error('Error fetching IP audio data:', error);
-    res.status(500).json({ error: 'Failed to fetch IP audio data' });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Check if it's a database connection error
+    if (error.code === 'ECONNREFUSED' || error.code === 'ER_ACCESS_DENIED_ERROR') {
+      return res.status(500).json({ error: '数据库连接失败，请检查数据库配置' });
+    }
+    
+    // Check if it's a table not found error
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      return res.status(500).json({ error: '数据库表不存在，请检查数据库结构' });
+    }
+    
+    res.status(500).json({ error: '服务器内部错误，请稍后重试', details: error.message });
   } finally {
     connection.release();
   }
@@ -107,12 +182,12 @@ router.post('/', upload.single('audioFile'), async (req, res) => {
     console.log('File path:', filePath);
     console.log('Full file path:', audioFile.path);
 
-    // Generate audio_id
+    // Generate audioId
     const audioId = `AUD${Date.now()}`;
 
-    // Insert into database
+    // Insert into database - now using camelCase column names
     const insertQuery = `
-      INSERT INTO ipaudio (audio_id, ip_name, audio_name, audio_type, tags, emotion, language, audio_file_address, updater, create_time, update_time)
+      INSERT INTO ipaudio (audioId, ipName, audioName, audioType, tags, emotion, language, audioFileAddress, updater, createTime, updateTime)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `;
     
@@ -210,7 +285,7 @@ router.put('/:id', upload.single('audioFile'), async (req, res) => {
     }
 
     const existingAudio = existingResult[0];
-    let filePath = existingAudio.audio_file_address; // Keep existing file path by default
+    let filePath = existingAudio.audioFileAddress; // Keep existing file path by default
 
     // Handle file upload if new file is provided
     if (req.file) {
@@ -225,18 +300,18 @@ router.put('/:id', upload.single('audioFile'), async (req, res) => {
       console.log('Full file path:', audioFile.path);
     }
 
-    // Update database
+    // Update database - now using camelCase column names
     const updateQuery = `
       UPDATE ipaudio SET 
-        ip_name = ?, 
-        audio_name = ?, 
-        audio_type = ?, 
+        ipName = ?, 
+        audioName = ?, 
+        audioType = ?, 
         tags = ?, 
         emotion = ?, 
         language = ?, 
-        audio_file_address = ?,
+        audioFileAddress = ?,
         updater = ?,
-        update_time = NOW()
+        updateTime = NOW()
       WHERE id = ?
     `;
     
@@ -289,4 +364,4 @@ router.put('/:id', upload.single('audioFile'), async (req, res) => {
   }
 });
 
-export default router; 
+export default router;

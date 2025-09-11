@@ -143,7 +143,7 @@
 
     <!-- Create Modal -->
     <a-modal
-      v-model:visible="showCreateModelModal"
+      v-model:open="showCreateModelModal"
       title="新建模型"
       :footer="null"
       width="600px"
@@ -373,7 +373,7 @@
 
     <!-- Edit Modal -->
     <a-modal
-      v-model:visible="showEditModelModal"
+      v-model:open="showEditModelModal"
       title="编辑模型"
       :footer="null"
       width="600px"
